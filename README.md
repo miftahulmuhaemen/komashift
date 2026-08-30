@@ -1,89 +1,68 @@
 # Windows Folder Image Previewer
 
-A fast, lightweight desktop utility to browse and preview images across nested subfolders, navigate smoothly in distraction-free fullscreen reader mode, and manage folders (rename, batch delete to Windows Recycle Bin).
+Desktop application for scanning and previewing images across nested directory structures with fullscreen reading support, persistent zoom levels, and folder management actions (renaming, batch deletion to Recycle Bin).
 
----
+## Features
 
-## ✨ Features
+- **Folder Discovery**: Scans a chosen root directory and lists subfolders containing image files.
+- **State Persistence**: Saves the last opened root directory across application restarts using `QSettings`.
+- **Fullscreen Reading Mode (`F12`)**: Hides all window controls and panels to show only the image on screen.
+- **Continuous Reading Navigation**: Automatically advances to the next folder upon reaching the last image, or returns to the previous folder's final image when navigating backwards from the first image.
+- **Zoom Presets**: Supports Fit, 50%, 75%, 100%, and 120% zoom modes. The active zoom factor is preserved when changing folders.
+- **Horizontal Thumbnail Strip**: Single-row thumbnail container with horizontal scrolling and automatic active item tracking.
+- **Asynchronous Image Loading**: Background worker threads decode and scale thumbnails to maintain UI responsiveness.
+- **Batch Selection & Deletion**: Supports multi-selection (`Ctrl`, `Shift`, `Ctrl+A`) and moves selected folders to the Windows Recycle Bin (`Delete`). Automatically selects the next remaining folder.
+- **Folder Renaming**: Double-click any folder entry in the list or press `F2` to rename it directly on disk.
 
-- 📁 **Instant Subfolder Discovery**: Automatically scans a parent directory and lists all subfolders containing image files.
-- 💾 **Persistent Folder State**: Automatically remembers and restores the last opened directory on startup.
-- 🖼️ **Distraction-Free Fullscreen Reader (`F12`)**: Hides all surrounding UI chrome for an immersive, uninterrupted image reading experience.
-- 🔄 **Continuous Rollover Reading**: Navigating past the last image in a folder automatically moves to the first image of the next folder; navigating backwards before the first image seamlessly opens the last image of the previous folder.
-- 🔍 **Persistent Zoom Presets**: Choose between **Fit**, **50%**, **75%**, **100%**, and **120%** zoom levels (using dropdown or `Ctrl + +` / `Ctrl + -`). Zoom settings remain active across folder switches.
-- 🎞️ **Horizontal Thumbnail Strip**: Single-row left-to-right thumbnail strip with smooth auto-scrolling.
-- ⚡ **Fast Asynchronous Caching**: Background worker threads decode and cache thumbnails smoothly without blocking the GUI.
-- 🗑️ **Batch Selection & Safe Deletion**: Multi-select folders (`Ctrl+Click`, `Shift+Click`, `Ctrl+A`) and move them directly to the Windows Recycle Bin (`Delete`). Automatically selects the next immediate folder upon deletion.
-- ✏️ **Double-Click Renaming**: Double-click any folder item in the list (or press `F2`) to quickly rename it on disk.
-
----
-
-## ⌨️ Keyboard Shortcuts
+## Keyboard Shortcuts
 
 | Shortcut | Action |
 |---|---|
-| `Left` / `Right` | Move to Previous / Next image (*continuous cross-folder reading*) |
-| `Up` / `Down` | Move to Previous / Next folder |
-| `F12` / `Escape` | Toggle Distraction-Free Fullscreen Mode |
-| `Ctrl` + `+` / `Ctrl` + `=` | Zoom In (Preset cycle: 50% → 75% → 100% → 120%) |
+| `Left` / `Right` | Previous / Next image (continuous cross-folder rollover) |
+| `Up` / `Down` | Previous / Next folder |
+| `F12` / `Escape` | Toggle Fullscreen Reader Mode |
+| `Ctrl` + `+` / `Ctrl` + `=` | Zoom In (Preset cycle: 50% -> 75% -> 100% -> 120%) |
 | `Ctrl` + `-` | Zoom Out |
-| `Double-Click` or `F2` | Rename active folder |
+| `Double-Click` or `F2` | Rename selected folder |
 | `Delete` | Move selected folder(s) to Recycle Bin |
-| `Ctrl` + `A` | Select all folders in the list |
-| `Ctrl` + `Click` / `Shift` + `Click` | Multi-select folders for batch actions |
+| `Ctrl` + `A` | Select all folders |
+| `Ctrl` + `Click` / `Shift` + `Click` | Multi-select folders |
 
----
+## Requirements
 
-## 🚀 Getting Started
-
-### Prerequisites
 - Python 3.10+
-- `pip`
+- `PyQt6`
+- `Pillow`
+- `Send2Trash`
+- `pytest` / `pytest-qt` (for testing)
 
-### Installation
+## Installation & Local Run
+
 ```bash
 git clone https://github.com/miftahulmuhaemen/win-folder-thumbnail.git
 cd win-folder-thumbnail
 pip install -r requirements.txt
-```
-
-### Running Locally
-```bash
 python src/main.py
 ```
 
----
+## Building Executable
 
-## 🛠️ Building Standalone Windows Executable (.exe)
+To build a standalone Windows binary (`.exe`) using PyInstaller:
 
-You can build a standalone single-file `.exe` that runs independently without needing Python installed on the host machine.
+```powershell
+python build.py
+```
 
-### Building via PowerShell on Windows
-1. Open PowerShell (`Win + R`, type `powershell`, press Enter).
-2. Navigate to the project directory:
-   ```powershell
-   cd \\wsl$\Ubuntu\home\sahana\Code_Repository\personal\win-folder-thumbnail
-   pip install -r requirements.txt
-   ```
-3. Run the build script:
-   ```powershell
-   python build.py
-   ```
-4. The build script automatically increments the version and generates the binary in `dist/`:
-   - `dist/FolderImagePreviewer_v1.0.x.exe` (version-stamped)
-   - `dist/FolderImagePreviewer.exe` (latest alias)
+`build.py` automatically increments the patch/build version and writes the output files to `dist/`:
+- `dist/FolderImagePreviewer_v<version>.exe`
+- `dist/FolderImagePreviewer.exe`
 
----
+## Running Tests
 
-## 🧪 Running Tests
-
-Run the test suite with `pytest`:
 ```bash
 QT_QPA_PLATFORM=offscreen pytest
 ```
 
----
+## License
 
-## 📄 License
-
-MIT License. Feel free to use and modify!
+MIT
