@@ -1,0 +1,28 @@
+# Virtual Environments
+.venv/
+venv/
+env/
+ENV/
+
+# Python Cache
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Build & Dist Artifacts
+build/
+dist/
+*.spec
+
+# Documentation & Superpowers
+docs/superpowers/
+docs/
+
+# IDE & OS
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
