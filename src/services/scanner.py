@@ -1,11 +1,16 @@
 import os
+import re
 from pathlib import Path
-from typing import List, Set, Optional
+from typing import List, Set, Optional, Union
 from src.models.folder_item import FolderItem
 
 DEFAULT_IMAGE_EXTENSIONS: Set[str] = {
     '.jpg', '.jpeg', '.png', '.webp', '.bmp', '.gif'
 }
+
+def natural_sort_key(item: Union[Path, str]) -> List[Union[int, str]]:
+    name = item.name if isinstance(item, Path) else str(item)
+    return [int(text) if text.isdigit() else text.lower() for text in re.split(r'(\d+)', name)]
 
 def scan_directory(
     root_path: Path | str,
@@ -19,7 +24,7 @@ def scan_directory(
     folder_items: List[FolderItem] = []
 
     try:
-        entries = sorted(list(root.iterdir()), key=lambda p: p.name.lower())
+        entries = sorted(list(root.iterdir()), key=natural_sort_key)
     except (PermissionError, OSError):
         return []
 
@@ -36,7 +41,7 @@ def scan_directory(
             continue
 
         if image_paths:
-            image_paths.sort(key=lambda p: p.name.lower())
+            image_paths.sort(key=natural_sort_key)
             folder_items.append(
                 FolderItem(
                     path=entry,

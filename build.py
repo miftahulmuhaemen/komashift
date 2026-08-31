@@ -38,12 +38,15 @@ def build():
     version_str = increment_version()
     app_name = f"FolderImagePreviewer_v{version_str}"
 
+    sep = ";" if sys.platform.startswith("win") else ":"
     cmd = [
         sys.executable,
         "-m", "PyInstaller",
         f"--name={app_name}",
         "--windowed",
         "--onefile",
+        "--icon=assets/icon.ico",
+        f"--add-data=assets{sep}assets",
         "src/main.py"
     ]
     print(f"Running build command: {' '.join(cmd)}")
@@ -52,11 +55,9 @@ def build():
     dist_dir = Path(__file__).parent / "dist"
     ext = ".exe" if sys.platform.startswith("win") else ""
     versioned_exe = dist_dir / f"{app_name}{ext}"
-    generic_exe = dist_dir / f"FolderImagePreviewer{ext}"
 
     if versioned_exe.exists():
-        shutil.copy2(versioned_exe, generic_exe)
-        print(f"\nSuccessfully built:\n  -> {versioned_exe}\n  -> {generic_exe}\n")
+        print(f"\nSuccessfully built:\n  -> {versioned_exe}\n")
 
 if __name__ == "__main__":
     build()

@@ -87,12 +87,17 @@ class PreviewPaneWidget(QWidget):
                 return
         self.set_zoom_mode(ZOOM_PRESETS[0])
 
+    def reset_scroll(self):
+        self.scroll_area.verticalScrollBar().setValue(0)
+        self.scroll_area.horizontalScrollBar().setValue(0)
+
     def set_image(self, image_path: Optional[Path]):
         if not image_path or not image_path.exists():
             self._current_pixmap = None
             self.image_label.setText("No Image Selected")
             self.image_label.setPixmap(QPixmap())
             self.image_label.resize(self.scroll_area.viewport().size())
+            self.reset_scroll()
             return
 
         pixmap = QPixmap(str(image_path))
@@ -101,9 +106,11 @@ class PreviewPaneWidget(QWidget):
             self.image_label.setText("Failed to load image")
             self.image_label.setPixmap(QPixmap())
             self.image_label.resize(self.scroll_area.viewport().size())
+            self.reset_scroll()
         else:
             self._current_pixmap = pixmap
             self._update_scaled_pixmap()
+            self.reset_scroll()
 
     def resizeEvent(self, event):
         super().resizeEvent(event)

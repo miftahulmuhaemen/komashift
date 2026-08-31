@@ -62,6 +62,24 @@ def test_folder_list_auto_selection_on_delete(qtbot, tmp_path: Path):
     assert widget.get_current_folder() is None
     assert emitted_folders[-1] is None
 
+def test_folder_list_batch_rename(qtbot, tmp_path: Path):
+    widget = FolderListWidget()
+    qtbot.addWidget(widget)
+
+    f1 = FolderItem(path=tmp_path / "10 - Old", name="10 - Old")
+    f2 = FolderItem(path=tmp_path / "02 - Old", name="02 - Old")
+    widget.set_folders([f1, f2])
+
+    updates = [
+        (f1.path, tmp_path / "Chapter 10", "Chapter 10"),
+        (f2.path, tmp_path / "Chapter 2", "Chapter 2")
+    ]
+    widget.rename_folder_items_batch(updates)
+
+    # Should naturally sort Chapter 2 before Chapter 10
+    assert widget._items[0].name == "Chapter 2"
+    assert widget._items[1].name == "Chapter 10"
+
 def test_folder_list_batch_selection_and_deletion(qtbot, tmp_path: Path):
     widget = FolderListWidget()
     qtbot.addWidget(widget)
@@ -200,12 +218,111 @@ def test_main_window_rename(qtbot, tmp_path: Path):
     f1 = FolderItem(path=f1_dir, name="orig_folder", image_paths=[img1])
     window.folder_list.set_folders([f1])
 
-    with patch("src.ui.main_window.QInputDialog.getText", return_value=("renamed_folder", True)):
+    with patch("src.ui.main_window.RenameDialog.exec", return_value=True), \
+         patch("src.ui.main_window.RenameDialog.get_new_name", return_value="renamed_folder"):
         window._on_rename_folder()
         assert window.folder_list.get_current_folder().name == "renamed_folder"
         assert window.folder_list.get_current_folder().path == tmp_path / "renamed_folder"
         assert (tmp_path / "renamed_folder").exists()
         assert not f1_dir.exists()
+    window.thumbnail_cache.thread_pool.waitForDone(2000)
+
+def test_rename_dialog_widget(qtbot):
+    from src.ui.rename_dialog import RenameDialog
+
+    sample_name = "nhentai-672171 - [Chinjao Girl. (Special G, Yamagiri)]"
+    dialog = RenameDialog(sample_name)
+    qtbot.addWidget(dialog)
+    dialog.show()
+
+    assert dialog.text_edit.toPlainText() == sample_name
+    assert dialog.ok_btn.isEnabled() is True
+    assert dialog.get_new_name() == sample_name
+
+    # Test invalid character handling
+    dialog.text_edit.setPlainText('Invalid: Name?')
+    assert dialog.ok_btn.isEnabled() is False
+    assert "Invalid character" in dialog.warning_label.text()
+
+    dialog.text_edit.setPlainText("Valid New Name")
+    assert dialog.ok_btn.isEnabled() is True
+    assert dialog.get_new_name() == "Valid New Name"
+
+def test_batch_rename_dialog_widget(qtbot, tmp_path: Path):
+    from src.ui.batch_rename_dialog import BatchRenameDialog
+
+    f1 = FolderItem(path=tmp_path / "f1", name="nhentai-672171 - [Chinjao Girl.] (01)")
+    f2 = FolderItem(path=tmp_path / "f2", name="nhentai-123456 - [Another Title] (02)")
+    dialog = BatchRenameDialog([f1, f2])
+    qtbot.addWidget(dialog)
+    dialog.show()
+
+    # Initial state
+    assert dialog.ok_btn.isEnabled() is False  # No changes made yet
+
+    # Test Strip Leading ID
+    dialog.strip_leading_id()
+    assert dialog._new_names[0] == "[Chinjao Girl.] (01)"
+    assert dialog._new_names[1] == "[Another Title] (02)"
+    assert dialog.ok_btn.isEnabled() is True
+
+    # Test Strip Trailing Numbers
+    dialog.strip_trailing_numbers()
+    assert dialog._new_names[0] == "[Chinjao Girl.]"
+    assert dialog._new_names[1] == "[Another Title]"
+
+    # Test Trim Head One & Untrim Head One
+    dialog.trim_head_one()
+    assert dialog._new_names[0].startswith("Chinjao")
+    dialog.untrim_head_one()
+    assert dialog._new_names[0].startswith("[Chinjao")
+
+    # Test Trim Tail One & Untrim Tail One
+    dialog.trim_tail_one()
+    assert dialog._new_names[0].endswith("Girl.")
+    dialog.untrim_tail_one()
+    assert dialog._new_names[0].endswith("Girl.]")
+
+    # Test Add Prefix & Suffix
+    dialog.head_input.setText("Prefix_")
+    dialog.add_head()
+    assert dialog._new_names[0].startswith("Prefix_")
+
+    dialog.tail_input.setText("_Suffix")
+    dialog.add_tail()
+    assert dialog._new_names[0].endswith("_Suffix")
+
+    # Test Reset
+    dialog.reset_original()
+    assert dialog._new_names[0] == f1.name
+    assert dialog._new_names[1] == f2.name
+
+    # Test Duplicate Name Detection
+    dialog._new_names[0] = "Same Name"
+    dialog._new_names[1] = "Same Name"
+    dialog._refresh_table()
+    assert dialog.ok_btn.isEnabled() is False
+    assert 'Duplicate "Same Name" in Rows 1, 2' in dialog.warning_label.text()
+
+def test_main_window_batch_rename(qtbot, tmp_path: Path):
+    window = MainWindow()
+    qtbot.addWidget(window)
+
+    f1_dir = tmp_path / "nhentai-1 - Album A"
+    f2_dir = tmp_path / "nhentai-2 - Album B"
+    f1_dir.mkdir()
+    f2_dir.mkdir()
+
+    f1 = FolderItem(path=f1_dir, name="nhentai-1 - Album A")
+    f2 = FolderItem(path=f2_dir, name="nhentai-2 - Album B")
+    window.folder_list.set_folders([f1, f2])
+
+    with patch("src.ui.main_window.BatchRenameDialog.exec", return_value=True), \
+         patch("src.ui.main_window.BatchRenameDialog.get_rename_pairs", return_value=[(f1, "Album A"), (f2, "Album B")]):
+        window._on_batch_rename_folders()
+        assert window.folder_list._items[0].name == "Album A"
+        assert window.folder_list._items[1].name == "Album B"
+    window.thumbnail_cache.thread_pool.waitForDone(2000)
 
 def test_double_click_rename_trigger(qtbot, tmp_path: Path):
     widget = FolderListWidget()
@@ -275,6 +392,66 @@ def test_event_filter_arrow_navigation_in_fullscreen(qtbot, tmp_path: Path):
     handled = window.eventFilter(window.preview_pane.scroll_area, left_event)
     assert handled is True
     assert window.thumbnail_strip.get_current_index() == 0
+
+def test_scroll_position_resets_on_new_image(qtbot, tmp_path: Path):
+    pane = PreviewPaneWidget()
+    qtbot.addWidget(pane)
+    pane.resize(400, 300)
+    pane.show()
+
+    # Create tall images that cause scrollbars to appear at 100% zoom
+    img1_path = tmp_path / "img1.png"
+    img2_path = tmp_path / "img2.png"
+    Image.new("RGB", (300, 1200), color="red").save(img1_path)
+    Image.new("RGB", (300, 1200), color="blue").save(img2_path)
+
+    pane.set_zoom_mode("100%")
+    pane.set_image(img1_path)
+
+    # Scroll down on image 1
+    pane.scroll_area.verticalScrollBar().setValue(400)
+    assert pane.scroll_area.verticalScrollBar().value() == 400
+
+    # Moving to image 2 should reset scroll position to top (0)
+    pane.set_image(img2_path)
+    assert pane.scroll_area.verticalScrollBar().value() == 0
+
+def test_page_up_page_down_shortcuts(qtbot, tmp_path: Path):
+    window = MainWindow()
+    qtbot.addWidget(window)
+    window.resize(600, 400)
+    window.show()
+
+    f1_dir = tmp_path / "f1"
+    f1_dir.mkdir()
+    img1 = f1_dir / "1.png"
+    img2 = f1_dir / "2.png"
+    Image.new("RGB", (400, 1500), color="red").save(img1)
+    Image.new("RGB", (400, 1500), color="blue").save(img2)
+
+    f1 = FolderItem(path=f1_dir, name="f1", image_paths=[img1, img2])
+    window.folder_list.set_folders([f1])
+    window.preview_pane.set_zoom_mode("100%")
+
+    from PyQt6.QtGui import QKeyEvent
+    from PyQt6.QtCore import QEvent
+
+    # Initial position at top
+    assert window.preview_pane.scroll_area.verticalScrollBar().value() == 0
+
+    # PageDown on MainWindow
+    pagedown_event = QKeyEvent(QEvent.Type.KeyPress, Qt.Key.Key_PageDown, Qt.KeyboardModifier.NoModifier)
+    handled = window.eventFilter(window, pagedown_event)
+    assert handled is True
+    assert window.preview_pane.scroll_area.verticalScrollBar().value() > 0
+
+    # Navigating to next image restarts scroll position from the top
+    window._navigate_next()
+    assert window.thumbnail_strip.get_current_index() == 1
+    assert window.preview_pane.scroll_area.verticalScrollBar().value() == 0
+
+    window.thumbnail_cache.thread_pool.waitForDone(2000)
+
 
 
 

@@ -1,11 +1,12 @@
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Tuple
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QListWidget, QListWidgetItem,
     QLineEdit
 )
 from PyQt6.QtCore import pyqtSignal, Qt
 from src.models.folder_item import FolderItem
+from src.services.scanner import natural_sort_key
 
 class FolderListWidget(QWidget):
     folder_selected = pyqtSignal(object)
@@ -122,13 +123,18 @@ class FolderListWidget(QWidget):
         return False
 
     def rename_folder_item(self, old_path: Path, new_path: Path, new_name: str):
-        for item in self._items:
-            if item.path == old_path:
-                item.path = new_path
-                item.name = new_name
-                item.image_paths = [new_path / img.name for img in item.image_paths]
-                break
+        self.rename_folder_items_batch([(old_path, new_path, new_name)])
 
+    def rename_folder_items_batch(self, updates: List[Tuple[Path, Path, str]]):
+        update_map = {old_p: (new_p, new_n) for old_p, new_p, new_n in updates}
+        for item in self._items:
+            if item.path in update_map:
+                new_p, new_n = update_map[item.path]
+                item.path = new_p
+                item.name = new_n
+                item.image_paths = [new_p / img.name for img in item.image_paths]
+
+        self._items.sort(key=lambda item: natural_sort_key(item.name))
         current_row = self.list_widget.currentRow()
         self._apply_filter(self.filter_input.text(), target_row=current_row)
 

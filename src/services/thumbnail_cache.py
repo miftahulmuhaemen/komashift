@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 from typing import Tuple, Optional, Callable, Set
 from collections import OrderedDict
-from PyQt6.QtCore import QObject, QRunnable, QThreadPool, pyqtSignal, pyqtSlot
+from PyQt6.QtCore import QObject, QRunnable, QThreadPool, pyqtSignal, pyqtSlot, Qt
 from PyQt6.QtGui import QPixmap, QImage, QGuiApplication
 from PIL import Image
 
@@ -55,8 +55,9 @@ class ThumbnailWorker(QRunnable):
         if qimg is not None:
             self.signals.finished.emit(str(self.image_path), qimg)
 
-class ThumbnailCache:
-    def __init__(self, max_entries: int = 300):
+class ThumbnailCache(QObject):
+    def __init__(self, max_entries: int = 300, parent=None):
+        super().__init__(parent)
         self.max_entries = max_entries
         self._cache: OrderedDict[str, QPixmap] = OrderedDict()
         self.thread_pool = QThreadPool.globalInstance()
@@ -89,7 +90,7 @@ class ThumbnailCache:
             self.put(key, pixmap)
             on_loaded(path_str, pixmap)
 
-        worker.signals.finished.connect(handle_finished)
+        worker.signals.finished.connect(handle_finished, Qt.ConnectionType.QueuedConnection)
         self._active_workers.add(worker)
         self.thread_pool.start(worker)
 

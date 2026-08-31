@@ -1,12 +1,14 @@
+import sys
 from pathlib import Path
 from typing import Optional
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QSplitter, QPushButton, QFileDialog, QMessageBox, QInputDialog,
-    QLabel, QStatusBar, QComboBox, QApplication
+    QSplitter, QPushButton, QFileDialog, QMessageBox,
+    QLabel, QStatusBar, QComboBox, QApplication,
+    QProgressDialog
 )
 from PyQt6.QtCore import Qt, QSettings, QEvent
-from PyQt6.QtGui import QKeyEvent
+from PyQt6.QtGui import QKeyEvent, QIcon
 from src.version import __version__
 from src.models.folder_item import FolderItem
 from src.services.scanner import scan_directory
@@ -16,18 +18,29 @@ from src.services.thumbnail_cache import ThumbnailCache
 from src.ui.folder_list import FolderListWidget
 from src.ui.thumbnail_strip import ThumbnailStripWidget
 from src.ui.preview_pane import PreviewPaneWidget
+from src.ui.rename_dialog import RenameDialog
+from src.ui.batch_rename_dialog import BatchRenameDialog
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle(f"Windows Folder Image Previewer v{__version__}")
         self.resize(1150, 780)
+        self._set_app_icon()
         self.settings = QSettings("FolderImagePreviewer", "FolderImagePreviewer")
         self.thumbnail_cache = ThumbnailCache()
         self._select_last_on_folder_load = False
         self._init_ui()
         self._install_global_event_filter()
         self._restore_last_folder()
+
+    def _set_app_icon(self):
+        if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
+            icon_path = Path(sys._MEIPASS) / "assets" / "icon.png"
+        else:
+            icon_path = Path(__file__).resolve().parent.parent.parent / "assets" / "icon.png"
+        if icon_path.exists():
+            self.setWindowIcon(QIcon(str(icon_path)))
 
     def _init_ui(self):
         central = QWidget()
@@ -45,6 +58,12 @@ class MainWindow(QMainWindow):
         self.open_btn.setStyleSheet("padding: 6px 12px; font-weight: bold;")
         self.open_btn.clicked.connect(self._on_open_folder)
         top_bar.addWidget(self.open_btn)
+
+        self.batch_rename_btn = QPushButton("🏷️ Batch Rename...")
+        self.batch_rename_btn.setStyleSheet("padding: 6px 12px; font-weight: bold;")
+        self.batch_rename_btn.setToolTip("Batch rename selected folders with quick transform tools")
+        self.batch_rename_btn.clicked.connect(self._on_batch_rename_folders)
+        top_bar.addWidget(self.batch_rename_btn)
 
         # Zoom Controls
         zoom_label = QLabel("Zoom:")
@@ -175,20 +194,108 @@ class MainWindow(QMainWindow):
         if not target:
             return
 
-        new_name, ok = QInputDialog.getText(
-            self,
-            "Rename Folder",
-            "Enter new folder name:",
-            text=target.name
-        )
+        dialog = RenameDialog(target.name, parent=self)
+        if dialog.exec():
+            new_name = dialog.get_new_name()
+            if new_name and new_name != target.name:
+                success, error, new_path = rename_folder(target.path, new_name)
+                if success and new_path:
+                    self.folder_list.rename_folder_item(target.path, new_path, new_name)
+                    self.status_bar.showMessage(f"Renamed to '{new_name}'.")
+                else:
+                    QMessageBox.critical(self, "Error Renaming Folder", f"Failed to rename folder: {error}")
 
-        if ok and new_name.strip():
-            success, error, new_path = rename_folder(target.path, new_name.strip())
-            if success and new_path:
-                self.folder_list.rename_folder_item(target.path, new_path, new_name.strip())
-                self.status_bar.showMessage(f"Renamed to '{new_name.strip()}'.")
-            else:
-                QMessageBox.critical(self, "Error Renaming Folder", f"Failed to rename folder: {error}")
+    def _on_batch_rename_folders(self):
+        targets = self.folder_list.get_selected_folders()
+        if not targets:
+            targets = list(self.folder_list._filtered_items)
+
+        if not targets:
+            QMessageBox.information(self, "Batch Rename", "No folders available to rename.")
+            return
+
+        dialog = BatchRenameDialog(targets, parent=self)
+        if dialog.exec():
+            pairs = dialog.get_rename_pairs()
+            if not pairs:
+                return
+
+            total = len(pairs)
+            progress = QProgressDialog("Renaming folders...", "Cancel", 0, total, self)
+            progress.setWindowTitle("Batch Rename Progress")
+            progress.setWindowModality(Qt.WindowModality.ApplicationModal)
+            progress.setMinimumDuration(0)
+            progress.setMinimumWidth(420)
+            progress.setStyleSheet("""
+                QProgressDialog {
+                    background-color: #1e1e1e;
+                    color: #f1f5f9;
+                }
+                QLabel {
+                    color: #f1f5f9;
+                    font-size: 13px;
+                    min-height: 48px;
+                }
+                QProgressBar {
+                    background-color: #2b2d35;
+                    border: 1px solid #4c566a;
+                    border-radius: 4px;
+                    text-align: center;
+                    color: #ffffff;
+                    min-height: 20px;
+                }
+                QProgressBar::chunk {
+                    background-color: #0284c7;
+                    border-radius: 3px;
+                }
+                QPushButton {
+                    background-color: #334155;
+                    color: #e2e8f0;
+                    border-radius: 4px;
+                    padding: 6px 18px;
+                    font-weight: bold;
+                    border: none;
+                }
+                QPushButton:hover {
+                    background-color: #dc2626;
+                    color: white;
+                }
+            """)
+            progress.show()
+            progress.setValue(0)
+
+            renamed_updates = []
+            errors = []
+
+            for i, (folder, new_name) in enumerate(pairs):
+                if progress.wasCanceled():
+                    break
+
+                progress.setLabelText(f"Renaming ({i+1}/{total}):\n{folder.name}\n→ {new_name}")
+                progress.setValue(i)
+                QApplication.processEvents()
+
+                success, error, new_path = rename_folder(folder.path, new_name)
+                if success and new_path:
+                    renamed_updates.append((folder.path, new_path, new_name))
+                else:
+                    errors.append(f"{folder.name} -> {new_name}: {error}")
+
+            was_cancelled = progress.wasCanceled()
+            progress.setValue(total)
+            progress.close()
+
+            if renamed_updates:
+                self.folder_list.rename_folder_items_batch(renamed_updates)
+                if was_cancelled:
+                    self.status_bar.showMessage(f"Batch rename cancelled. Renamed {len(renamed_updates)} of {total} folder(s).")
+                else:
+                    self.status_bar.showMessage(f"Batch renamed {len(renamed_updates)} folder(s).")
+            elif was_cancelled:
+                self.status_bar.showMessage("Batch rename cancelled. No folders were renamed.")
+
+            if errors:
+                QMessageBox.critical(self, "Batch Rename Errors", "\n".join(errors[:20]))
 
     def _on_delete_folder(self):
         selected_folders = self.folder_list.get_selected_folders()
@@ -290,6 +397,16 @@ class MainWindow(QMainWindow):
             elif modifiers & Qt.KeyboardModifier.ControlModifier and key in (Qt.Key.Key_Minus, Qt.Key.Key_Underscore):
                 self.preview_pane.zoom_out()
                 return True
+            elif key == Qt.Key.Key_PageUp:
+                if watched != self.preview_pane.scroll_area:
+                    bar = self.preview_pane.scroll_area.verticalScrollBar()
+                    bar.setValue(bar.value() - bar.pageStep())
+                    return True
+            elif key == Qt.Key.Key_PageDown:
+                if watched != self.preview_pane.scroll_area:
+                    bar = self.preview_pane.scroll_area.verticalScrollBar()
+                    bar.setValue(bar.value() + bar.pageStep())
+                    return True
 
         return super().eventFilter(watched, event)
 
