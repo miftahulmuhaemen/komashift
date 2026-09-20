@@ -53,7 +53,10 @@ class ThumbnailWorker(QRunnable):
     def run(self):
         qimg = create_thumbnail_image(self.image_path, self.size)
         if qimg is not None:
-            self.signals.finished.emit(str(self.image_path), qimg)
+            try:
+                self.signals.finished.emit(str(self.image_path), qimg)
+            except RuntimeError:
+                pass
 
 class ThumbnailCache(QObject):
     def __init__(self, max_entries: int = 300, parent=None):
@@ -86,9 +89,12 @@ class ThumbnailCache(QObject):
 
         def handle_finished(path_str: str, qimg: QImage):
             self._active_workers.discard(worker)
-            pixmap = QPixmap.fromImage(qimg)
-            self.put(key, pixmap)
-            on_loaded(path_str, pixmap)
+            try:
+                pixmap = QPixmap.fromImage(qimg)
+                self.put(key, pixmap)
+                on_loaded(path_str, pixmap)
+            except RuntimeError:
+                pass
 
         worker.signals.finished.connect(handle_finished, Qt.ConnectionType.QueuedConnection)
         self._active_workers.add(worker)

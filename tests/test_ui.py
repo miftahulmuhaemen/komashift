@@ -493,16 +493,18 @@ def test_fullscreen_exit_restores_maximized_state(qtbot):
     window = MainWindow()
     qtbot.addWidget(window)
     window.showMaximized()
-    assert window.isMaximized() is True
+    qtbot.waitUntil(lambda: window.isMaximized())
 
     # Enter fullscreen
     window._toggle_fullscreen()
-    assert window.isFullScreen() is True
+    qtbot.waitUntil(lambda: window.isFullScreen())
 
     # Exit fullscreen
     window._toggle_fullscreen()
-    assert window.isFullScreen() is False
-    assert window.isMaximized() is True
+    qtbot.waitUntil(lambda: not window.isFullScreen())
+    qtbot.waitUntil(lambda: window.isMaximized())
+
+    window.thumbnail_cache.thread_pool.waitForDone(2000)
 
 
 
