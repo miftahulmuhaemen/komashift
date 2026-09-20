@@ -93,13 +93,13 @@ class MainWindow(QMainWindow):
         main_layout.addWidget(self.top_bar_widget)
 
         # Main Splitter
-        splitter = QSplitter(Qt.Orientation.Horizontal)
+        self.splitter = QSplitter(Qt.Orientation.Horizontal)
 
         # Left folder list
         self.folder_list = FolderListWidget()
         self.folder_list.folder_selected.connect(self._on_folder_selected)
         self.folder_list.rename_requested.connect(self._on_rename_folder)
-        splitter.addWidget(self.folder_list)
+        self.splitter.addWidget(self.folder_list)
 
         # Right container
         right_container = QWidget()
@@ -115,11 +115,11 @@ class MainWindow(QMainWindow):
         self.thumbnail_strip.image_selected.connect(self.preview_pane.set_image)
         right_layout.addWidget(self.thumbnail_strip)
 
-        splitter.addWidget(right_container)
-        splitter.setStretchFactor(0, 1)
-        splitter.setStretchFactor(1, 3)
+        self.splitter.addWidget(right_container)
+        self.splitter.setStretchFactor(0, 1)
+        self.splitter.setStretchFactor(1, 3)
 
-        main_layout.addWidget(splitter, 1)
+        main_layout.addWidget(self.splitter, 1)
         self.status_bar = QStatusBar()
         self.setStatusBar(self.status_bar)
 
@@ -174,13 +174,22 @@ class MainWindow(QMainWindow):
 
     def _toggle_fullscreen(self):
         if self.isFullScreen():
-            self.showNormal()
+            if getattr(self, "_was_maximized", False):
+                self.showMaximized()
+            else:
+                self.showNormal()
             self.top_bar_widget.show()
             self.folder_list.show()
             self.thumbnail_strip.show()
             self.status_bar.show()
+            if hasattr(self, "_saved_splitter_sizes") and self._saved_splitter_sizes:
+                self.splitter.setSizes(self._saved_splitter_sizes)
+            self.folder_list.scroll_to_current()
+            self.thumbnail_strip.scroll_to_current()
             self.fullscreen_btn.setText("⛶ Fullscreen (F12)")
         else:
+            self._was_maximized = self.isMaximized()
+            self._saved_splitter_sizes = self.splitter.sizes()
             self.top_bar_widget.hide()
             self.folder_list.hide()
             self.thumbnail_strip.hide()

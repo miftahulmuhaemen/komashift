@@ -452,6 +452,60 @@ def test_page_up_page_down_shortcuts(qtbot, tmp_path: Path):
 
     window.thumbnail_cache.thread_pool.waitForDone(2000)
 
+def test_fullscreen_exit_preserves_folder_scroll_and_selection(qtbot, tmp_path: Path):
+    window = MainWindow()
+    qtbot.addWidget(window)
+    window.resize(1000, 600)
+    window.show()
+
+    folders = [
+        FolderItem(path=tmp_path / f"folder_{i:03d}", name=f"Title {i:03d}", image_paths=[])
+        for i in range(100)
+    ]
+    window.folder_list.set_folders(folders)
+
+    # Select title 50
+    window.folder_list.list_widget.setCurrentRow(50)
+    window.folder_list.scroll_to_current()
+
+    # Enter fullscreen
+    window._toggle_fullscreen()
+    assert window.isFullScreen() is True
+
+    # Navigate to next folder in fullscreen
+    window.folder_list.select_next_folder()
+    assert window.folder_list.get_current_folder().name == "Title 051"
+
+    # Exit fullscreen
+    window._toggle_fullscreen()
+    assert window.isFullScreen() is False
+
+    # Check that current folder is still Title 051 and visible in viewport
+    assert window.folder_list.get_current_folder().name == "Title 051"
+    current_item = window.folder_list.list_widget.currentItem()
+    assert current_item.isSelected() is True
+    item_rect = window.folder_list.list_widget.visualItemRect(current_item)
+    assert window.folder_list.list_widget.viewport().rect().contains(item_rect)
+
+    window.thumbnail_cache.thread_pool.waitForDone(2000)
+
+def test_fullscreen_exit_restores_maximized_state(qtbot):
+    window = MainWindow()
+    qtbot.addWidget(window)
+    window.showMaximized()
+    assert window.isMaximized() is True
+
+    # Enter fullscreen
+    window._toggle_fullscreen()
+    assert window.isFullScreen() is True
+
+    # Exit fullscreen
+    window._toggle_fullscreen()
+    assert window.isFullScreen() is False
+    assert window.isMaximized() is True
+
+
+
 
 
 

@@ -108,10 +108,19 @@ class FolderListWidget(QWidget):
     def has_next_folder(self) -> bool:
         return 0 <= self.list_widget.currentRow() < len(self._filtered_items) - 1
 
+    def scroll_to_current(self):
+        row = self.list_widget.currentRow()
+        if 0 <= row < self.list_widget.count():
+            item = self.list_widget.item(row)
+            if item:
+                item.setSelected(True)
+                self.list_widget.scrollToItem(item, QListWidget.ScrollHint.PositionAtCenter)
+
     def select_previous_folder(self) -> bool:
         row = self.list_widget.currentRow()
         if row > 0:
             self.list_widget.setCurrentRow(row - 1)
+            self.scroll_to_current()
             return True
         return False
 
@@ -119,6 +128,7 @@ class FolderListWidget(QWidget):
         row = self.list_widget.currentRow()
         if 0 <= row < len(self._filtered_items) - 1:
             self.list_widget.setCurrentRow(row + 1)
+            self.scroll_to_current()
             return True
         return False
 

@@ -72,6 +72,13 @@ class ThumbnailStripWidget(QWidget):
         elif len(self.image_paths) == 0:
             self.image_selected.emit(None)
 
+    def scroll_to_current(self):
+        row = self.list_widget.currentRow()
+        if 0 <= row < self.list_widget.count():
+            item = self.list_widget.item(row)
+            if item:
+                self.list_widget.scrollToItem(item, QListWidget.ScrollHint.EnsureVisible)
+
     def get_current_index(self) -> int:
         return self.list_widget.currentRow()
 
