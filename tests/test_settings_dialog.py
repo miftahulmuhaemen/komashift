@@ -13,7 +13,7 @@ def test_settings_dialog_defaults_and_visible_api_key(qtbot):
     assert dialog.api_key_input.echoMode() == QLineEdit.EchoMode.Normal
     # Defaults must point to Google Gemini OpenAI-compatible endpoint
     assert dialog.base_url_input.text() == "https://generativelanguage.googleapis.com/v1beta/openai/"
-    assert dialog.model_input.text() == "gemini-1.5-flash"
+    assert dialog.model_input.text() == "gemini-3.5-flash-lite"
     settings.clear()
 
 def test_settings_dialog_load_and_save(qtbot):

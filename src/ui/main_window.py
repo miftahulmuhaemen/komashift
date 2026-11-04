@@ -23,6 +23,7 @@ from src.ui.preview_pane import PreviewPaneWidget
 from src.ui.rename_dialog import RenameDialog
 from src.ui.batch_rename_dialog import BatchRenameDialog
 from src.ui.settings_dialog import SettingsDialog
+from src.ui.log_dialog import LogDialog
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -106,6 +107,11 @@ class MainWindow(QMainWindow):
         self.settings_btn.setStyleSheet("padding: 6px 12px; font-weight: bold;")
         self.settings_btn.clicked.connect(self._on_open_settings)
         top_bar.addWidget(self.settings_btn)
+
+        self.logs_btn = QPushButton("📜 View Logs")
+        self.logs_btn.setStyleSheet("padding: 6px 12px; font-weight: bold;")
+        self.logs_btn.clicked.connect(self._on_view_logs)
+        top_bar.addWidget(self.logs_btn)
 
         self.path_label = QLabel("No root folder selected")
         self.path_label.setStyleSheet("color: #888; font-style: italic; margin-left: 10px;")
@@ -205,7 +211,10 @@ class MainWindow(QMainWindow):
             return
 
         base_url = self.settings.value("llm_base_url", "https://generativelanguage.googleapis.com/v1beta/openai/", type=str)
-        model = self.settings.value("llm_model", "gemini-1.5-flash", type=str)
+        model = self.settings.value("llm_model", "gemini-3.5-flash-lite", type=str)
+        if model in ("gemini-1.5-flash", "gemini-2.5-flash"):
+            model = "gemini-3.5-flash-lite"
+            self.settings.setValue("llm_model", model)
 
         self.translate_btn.setEnabled(False)
         self.translate_btn.setText("⏳ Translating...")
@@ -235,7 +244,20 @@ class MainWindow(QMainWindow):
                 self._on_image_selected(curr_img)
         else:
             self.status_bar.showMessage(f"Translation failed: {message}")
-            QMessageBox.critical(self, "Translation Error", f"Translation failed: {message}")
+            reply = QMessageBox.critical(
+                self,
+                "Translation Failed",
+                f"{message}\n\nWould you like to open the detailed log file to inspect the issue?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            )
+            if reply == QMessageBox.StandardButton.Yes:
+                self._on_view_logs()
+
+    def _on_view_logs(self):
+        folder = self.folder_list.get_current_folder()
+        log_path = (folder.path / "temp" / "translation.log") if folder else None
+        dialog = LogDialog(parent=self, log_path=log_path)
+        dialog.exec()
 
     def _on_folder_selected(self, folder_item):
         if folder_item is None:

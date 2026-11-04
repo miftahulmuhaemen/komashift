@@ -12,10 +12,10 @@ class TranslationError(Exception):
     pass
 
 class OpenAITranslator:
-    def __init__(self, api_key: str, base_url: str = "https://generativelanguage.googleapis.com/v1beta/openai/", model: str = "gemini-1.5-flash", timeout: float = 60.0):
+    def __init__(self, api_key: str, base_url: str = "https://generativelanguage.googleapis.com/v1beta/openai/", model: str = "gemini-3.5-flash-lite", timeout: float = 60.0):
         self.api_key = api_key.strip()
         self.base_url = self._normalize_endpoint(base_url.strip())
-        self.model = model.strip() or "gemini-1.5-flash"
+        self.model = model.strip() or "gemini-3.5-flash-lite"
         self.timeout = timeout
 
     def _normalize_endpoint(self, url: str) -> str:

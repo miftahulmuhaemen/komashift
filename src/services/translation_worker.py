@@ -19,7 +19,7 @@ class TranslationWorker(QThread):
         image_paths: List[Path],
         api_key: str,
         base_url: str = "https://generativelanguage.googleapis.com/v1beta/openai/",
-        model: str = "gemini-1.5-flash",
+        model: str = "gemini-3.5-flash-lite",
         detector: Optional[MangaOcrDetector] = None,
         parent=None
     ):
@@ -31,7 +31,11 @@ class TranslationWorker(QThread):
         self.model = model
         self.workspace = TranslationWorkspace(self.folder_path)
         self.translator = OpenAITranslator(api_key=self.api_key, base_url=self.base_url, model=self.model)
-        self.detector = detector or MangaOcrDetector()
+        self.detector = detector or MangaOcrDetector(
+            api_key=self.api_key,
+            base_url=self.base_url,
+            model=self.model
+        )
 
     def run(self):
         total_pages = len(self.image_paths)
@@ -39,7 +43,7 @@ class TranslationWorker(QThread):
             self.translation_finished.emit(False, "No images found in chapter folder.")
             return
 
-        self.workspace.append_log(f"Starting translation process for {total_pages} pages")
+        self.workspace.append_log(f"Starting translation process for {total_pages} pages using model: {self.model}")
 
         # 1. Check if translation is already completed
         if self.workspace.is_translation_complete():
@@ -66,7 +70,11 @@ class TranslationWorker(QThread):
 
             self.progress_updated.emit(f"Scanning OCR: {filename}...", idx + 1, total_pages)
             try:
-                page_data = self.detector.detect_page(img_path, page_index=idx + 1)
+                page_data = self.detector.detect_page(
+                    img_path,
+                    page_index=idx + 1,
+                    log_callback=self.workspace.append_log
+                )
                 self.workspace.save_page_ocr(page_data)
                 ocr_results[filename] = page_data
                 self.page_completed.emit(filename)
@@ -81,24 +89,45 @@ class TranslationWorker(QThread):
             self.translation_finished.emit(False, "Cancelled by user")
             return
 
-        # 4. Batch LLM Translation (Single Roundtrip)
-        self.progress_updated.emit("Translating chapter dialogue with LLM...", total_pages, total_pages)
-        self.workspace.append_log(f"Sending batch translation request for {len(ocr_results)} pages")
+        # 4. Check if any bubbles were detected
+        total_bubbles = sum(len(p.bubbles) for p in ocr_results.values())
+        if total_bubbles == 0:
+            err_msg = "0 speech bubbles were detected. Please check your API key, ensure the model supports Vision, and review the logs."
+            self.workspace.append_log(err_msg)
+            self.translation_finished.emit(False, err_msg)
+            return
 
-        try:
-            pages_list = [ocr_results[img.name] for img in self.image_paths if img.name in ocr_results]
-            translations = self.translator.translate_chapter(pages_list)
-            self.workspace.save_translations(translations)
-            self.workspace.append_log(f"Translation finished successfully: {len(translations)} bubbles")
-            self.progress_updated.emit("Translation complete!", total_pages, total_pages)
-            self.translation_finished.emit(True, f"Translated {len(translations)} bubbles successfully.")
-        except TranslationError as e:
-            err_msg = f"Translation API failed: {e}"
-            logger.error(err_msg)
-            self.workspace.append_log(err_msg)
-            self.translation_finished.emit(False, err_msg)
-        except Exception as e:
-            err_msg = f"Unexpected translation error: {e}"
-            logger.error(err_msg)
-            self.workspace.append_log(err_msg)
-            self.translation_finished.emit(False, err_msg)
+        # 5. Harvest translations from Vision or run batch translation
+        translations = {}
+        for p in ocr_results.values():
+            for b in p.bubbles:
+                if b.text_en:
+                    translations[b.id] = b.text_en
+
+        needs_batch = len(translations) < total_bubbles
+        if needs_batch:
+            self.progress_updated.emit("Translating dialogue batch with LLM...", total_pages, total_pages)
+            self.workspace.append_log(f"Sending batch translation request for {len(ocr_results)} pages")
+            try:
+                pages_list = [ocr_results[img.name] for img in self.image_paths if img.name in ocr_results]
+                batch_trans = self.translator.translate_chapter(pages_list)
+                translations.update(batch_trans)
+            except TranslationError as e:
+                err_msg = f"Translation API failed: {e}"
+                logger.error(err_msg)
+                self.workspace.append_log(err_msg)
+                if not translations:
+                    self.translation_finished.emit(False, err_msg)
+                    return
+            except Exception as e:
+                err_msg = f"Unexpected translation error: {e}"
+                logger.error(err_msg)
+                self.workspace.append_log(err_msg)
+                if not translations:
+                    self.translation_finished.emit(False, err_msg)
+                    return
+
+        self.workspace.save_translations(translations)
+        self.workspace.append_log(f"Translation finished successfully: {len(translations)} bubbles")
+        self.progress_updated.emit("Translation complete!", total_pages, total_pages)
+        self.translation_finished.emit(True, f"Translated {len(translations)} bubbles successfully.")

@@ -112,7 +112,7 @@ class SettingsDialog(QDialog):
         api_layout.addRow("Endpoint / Base URL:", self.base_url_input)
 
         self.model_input = QLineEdit()
-        self.model_input.setPlaceholderText("gemini-1.5-flash")
+        self.model_input.setPlaceholderText("gemini-3.5-flash-lite")
         api_layout.addRow("Model Name:", self.model_input)
 
         self.tab_widget.addTab(api_tab, "API && Translation")
@@ -164,7 +164,9 @@ class SettingsDialog(QDialog):
     def _load_settings(self):
         api_key = self.settings.value("llm_api_key", "", type=str)
         base_url = self.settings.value("llm_base_url", "https://generativelanguage.googleapis.com/v1beta/openai/", type=str)
-        model = self.settings.value("llm_model", "gemini-1.5-flash", type=str)
+        model = self.settings.value("llm_model", "gemini-3.5-flash-lite", type=str)
+        if model in ("gemini-1.5-flash", "gemini-2.5-flash"):
+            model = "gemini-3.5-flash-lite"
 
         self.api_key_input.setText(api_key)
         self.base_url_input.setText(base_url)
