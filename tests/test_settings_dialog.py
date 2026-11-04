@@ -1,6 +1,20 @@
 from PyQt6.QtCore import QSettings
+from PyQt6.QtWidgets import QLineEdit
 from src.ui.settings_dialog import SettingsDialog
 from src.version import __version__
+
+def test_settings_dialog_defaults_and_visible_api_key(qtbot):
+    settings = QSettings("FolderImagePreviewerTest", "TestSettingsEmpty")
+    settings.clear()
+    dialog = SettingsDialog(settings=settings)
+    qtbot.addWidget(dialog)
+
+    # API key must NOT be hidden / password masked
+    assert dialog.api_key_input.echoMode() == QLineEdit.EchoMode.Normal
+    # Defaults must point to Google Gemini OpenAI-compatible endpoint
+    assert dialog.base_url_input.text() == "https://generativelanguage.googleapis.com/v1beta/openai/"
+    assert dialog.model_input.text() == "gemini-1.5-flash"
+    settings.clear()
 
 def test_settings_dialog_load_and_save(qtbot):
     settings = QSettings("FolderImagePreviewerTest", "TestSettings")

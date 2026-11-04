@@ -18,8 +18,8 @@ class TranslationWorker(QThread):
         folder_path: Path,
         image_paths: List[Path],
         api_key: str,
-        base_url: str = "https://api.openai.com/v1",
-        model: str = "gpt-4o-mini",
+        base_url: str = "https://generativelanguage.googleapis.com/v1beta/openai/",
+        model: str = "gemini-1.5-flash",
         detector: Optional[MangaOcrDetector] = None,
         parent=None
     ):

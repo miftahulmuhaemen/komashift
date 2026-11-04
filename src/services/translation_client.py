@@ -12,16 +12,16 @@ class TranslationError(Exception):
     pass
 
 class OpenAITranslator:
-    def __init__(self, api_key: str, base_url: str = "https://api.openai.com/v1", model: str = "gpt-4o-mini", timeout: float = 60.0):
+    def __init__(self, api_key: str, base_url: str = "https://generativelanguage.googleapis.com/v1beta/openai/", model: str = "gemini-1.5-flash", timeout: float = 60.0):
         self.api_key = api_key.strip()
         self.base_url = self._normalize_endpoint(base_url.strip())
-        self.model = model.strip() or "gpt-4o-mini"
+        self.model = model.strip() or "gemini-1.5-flash"
         self.timeout = timeout
 
     def _normalize_endpoint(self, url: str) -> str:
         url = url.rstrip("/")
         if not url:
-            return "https://api.openai.com/v1/chat/completions"
+            return "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
         if not url.endswith("/chat/completions"):
             url = f"{url}/chat/completions"
         return url
@@ -65,7 +65,7 @@ class OpenAITranslator:
         }
 
         # Try to enforce JSON mode if compatible
-        if "gpt" in self.model.lower():
+        if "gpt" in self.model.lower() or "gemini" in self.model.lower():
             body["response_format"] = {"type": "json_object"}
 
         req_data = json.dumps(body).encode("utf-8")

@@ -104,19 +104,18 @@ class SettingsDialog(QDialog):
         api_layout.setSpacing(14)
 
         self.api_key_input = QLineEdit()
-        self.api_key_input.setEchoMode(QLineEdit.EchoMode.Password)
-        self.api_key_input.setPlaceholderText("sk-...")
+        self.api_key_input.setPlaceholderText("AIzaSy...")
         api_layout.addRow("API Key:", self.api_key_input)
 
         self.base_url_input = QLineEdit()
-        self.base_url_input.setPlaceholderText("https://api.openai.com/v1")
+        self.base_url_input.setPlaceholderText("https://generativelanguage.googleapis.com/v1beta/openai/")
         api_layout.addRow("Endpoint / Base URL:", self.base_url_input)
 
         self.model_input = QLineEdit()
-        self.model_input.setPlaceholderText("gpt-4o-mini")
+        self.model_input.setPlaceholderText("gemini-1.5-flash")
         api_layout.addRow("Model Name:", self.model_input)
 
-        self.tab_widget.addTab(api_tab, "API & Translation")
+        self.tab_widget.addTab(api_tab, "API && Translation")
 
         # Tab 2: Version & About
         version_tab = QWidget()
@@ -144,7 +143,7 @@ class SettingsDialog(QDialog):
         version_layout.addWidget(desc)
         version_layout.addStretch()
 
-        self.tab_widget.addTab(version_tab, "Version & About")
+        self.tab_widget.addTab(version_tab, "Version && About")
         layout.addWidget(self.tab_widget)
 
         # Bottom Buttons
@@ -164,8 +163,8 @@ class SettingsDialog(QDialog):
 
     def _load_settings(self):
         api_key = self.settings.value("llm_api_key", "", type=str)
-        base_url = self.settings.value("llm_base_url", "https://api.openai.com/v1", type=str)
-        model = self.settings.value("llm_model", "gpt-4o-mini", type=str)
+        base_url = self.settings.value("llm_base_url", "https://generativelanguage.googleapis.com/v1beta/openai/", type=str)
+        model = self.settings.value("llm_model", "gemini-1.5-flash", type=str)
 
         self.api_key_input.setText(api_key)
         self.base_url_input.setText(base_url)

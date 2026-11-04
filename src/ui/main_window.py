@@ -204,8 +204,8 @@ class MainWindow(QMainWindow):
                 self._on_open_settings()
             return
 
-        base_url = self.settings.value("llm_base_url", "https://api.openai.com/v1", type=str)
-        model = self.settings.value("llm_model", "gpt-4o-mini", type=str)
+        base_url = self.settings.value("llm_base_url", "https://generativelanguage.googleapis.com/v1beta/openai/", type=str)
+        model = self.settings.value("llm_model", "gemini-1.5-flash", type=str)
 
         self.translate_btn.setEnabled(False)
         self.translate_btn.setText("⏳ Translating...")
