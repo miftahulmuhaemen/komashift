@@ -82,6 +82,12 @@ class ThumbnailStripWidget(QWidget):
     def get_current_index(self) -> int:
         return self.list_widget.currentRow()
 
+    def get_current_image(self) -> Optional[Path]:
+        row = self.list_widget.currentRow()
+        if 0 <= row < len(self.image_paths):
+            return self.image_paths[row]
+        return None
+
     def is_at_first(self) -> bool:
         return len(self.image_paths) == 0 or self.list_widget.currentRow() <= 0
 

@@ -15,11 +15,14 @@ from src.services.scanner import scan_directory
 from src.services.trash_service import send_folder_to_trash
 from src.services.folder_service import rename_folder
 from src.services.thumbnail_cache import ThumbnailCache
+from src.services.translation_worker import TranslationWorker
+from src.services.translation_workspace import TranslationWorkspace
 from src.ui.folder_list import FolderListWidget
 from src.ui.thumbnail_strip import ThumbnailStripWidget
 from src.ui.preview_pane import PreviewPaneWidget
 from src.ui.rename_dialog import RenameDialog
 from src.ui.batch_rename_dialog import BatchRenameDialog
+from src.ui.settings_dialog import SettingsDialog
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -30,6 +33,7 @@ class MainWindow(QMainWindow):
         self.settings = QSettings("FolderImagePreviewer", "FolderImagePreviewer")
         self.thumbnail_cache = ThumbnailCache()
         self._select_last_on_folder_load = False
+        self._translation_worker = None
         self._init_ui()
         self._install_global_event_filter()
         self._restore_last_folder()
@@ -65,6 +69,18 @@ class MainWindow(QMainWindow):
         self.batch_rename_btn.clicked.connect(self._on_batch_rename_folders)
         top_bar.addWidget(self.batch_rename_btn)
 
+        self.translate_btn = QPushButton("🌐 Translate to EN")
+        self.translate_btn.setStyleSheet("padding: 6px 12px; font-weight: bold;")
+        self.translate_btn.setToolTip("Translate Japanese dialogue in this folder using manga OCR and LLM")
+        self.translate_btn.clicked.connect(self._on_translate_folder)
+        top_bar.addWidget(self.translate_btn)
+
+        self.overlay_toggle_btn = QPushButton("🔤 Overlay: ON")
+        self.overlay_toggle_btn.setStyleSheet("padding: 6px 12px;")
+        self.overlay_toggle_btn.setToolTip("Toggle English translation overlay (Hotkey: T)")
+        self.overlay_toggle_btn.clicked.connect(self._toggle_translation_overlay)
+        top_bar.addWidget(self.overlay_toggle_btn)
+
         # Zoom Controls
         zoom_label = QLabel("Zoom:")
         zoom_label.setStyleSheet("margin-left: 8px; color: #aaa;")
@@ -85,6 +101,11 @@ class MainWindow(QMainWindow):
         self.info_btn.setStyleSheet("padding: 6px 12px; font-weight: bold;")
         self.info_btn.clicked.connect(self._on_show_shortcuts_info)
         top_bar.addWidget(self.info_btn)
+
+        self.settings_btn = QPushButton("⚙ Settings")
+        self.settings_btn.setStyleSheet("padding: 6px 12px; font-weight: bold;")
+        self.settings_btn.clicked.connect(self._on_open_settings)
+        top_bar.addWidget(self.settings_btn)
 
         self.path_label = QLabel("No root folder selected")
         self.path_label.setStyleSheet("color: #888; font-style: italic; margin-left: 10px;")
@@ -112,7 +133,7 @@ class MainWindow(QMainWindow):
         right_layout.addWidget(self.preview_pane, 1)
 
         self.thumbnail_strip = ThumbnailStripWidget(self.thumbnail_cache)
-        self.thumbnail_strip.image_selected.connect(self.preview_pane.set_image)
+        self.thumbnail_strip.image_selected.connect(self._on_image_selected)
         right_layout.addWidget(self.thumbnail_strip)
 
         self.splitter.addWidget(right_container)
@@ -149,6 +170,72 @@ class MainWindow(QMainWindow):
         if dir_path:
             self.settings.setValue("last_root_folder", dir_path)
             self._load_root_folder(Path(dir_path))
+
+    def _on_image_selected(self, image_path: Optional[Path]):
+        self.preview_pane.set_image(image_path)
+        if image_path and image_path.exists():
+            ws = TranslationWorkspace(image_path.parent)
+            if ws.is_translation_complete():
+                ocr_results = ws.load_ocr_results()
+                trans_map = ws.load_translations()
+                page_data = ocr_results.get(image_path.name)
+                if page_data:
+                    self.preview_pane.set_translation_data(page_data, trans_map)
+
+    def _toggle_translation_overlay(self):
+        enabled = self.preview_pane.toggle_translation_overlay()
+        self.overlay_toggle_btn.setText("🔤 Overlay: ON" if enabled else "🔤 Overlay: OFF")
+
+    def _on_translate_folder(self):
+        folder = self.folder_list.get_current_folder()
+        if not folder or not folder.image_paths:
+            QMessageBox.warning(self, "No Folder Selected", "Please select a folder containing images to translate.")
+            return
+
+        api_key = self.settings.value("llm_api_key", "", type=str).strip()
+        if not api_key:
+            reply = QMessageBox.question(
+                self,
+                "API Key Missing",
+                "An OpenAI-compatible API Key is required for translation.\nWould you like to open Settings now to set it?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            )
+            if reply == QMessageBox.StandardButton.Yes:
+                self._on_open_settings()
+            return
+
+        base_url = self.settings.value("llm_base_url", "https://api.openai.com/v1", type=str)
+        model = self.settings.value("llm_model", "gpt-4o-mini", type=str)
+
+        self.translate_btn.setEnabled(False)
+        self.translate_btn.setText("⏳ Translating...")
+        self.status_bar.showMessage(f"Starting translation for {folder.name}...")
+
+        self._translation_worker = TranslationWorker(
+            folder_path=folder.path,
+            image_paths=folder.image_paths,
+            api_key=api_key,
+            base_url=base_url,
+            model=model
+        )
+        self._translation_worker.progress_updated.connect(self._on_translation_progress)
+        self._translation_worker.translation_finished.connect(self._on_translation_finished)
+        self._translation_worker.start()
+
+    def _on_translation_progress(self, message: str, current: int, total: int):
+        self.status_bar.showMessage(f"[{current}/{total}] {message}")
+
+    def _on_translation_finished(self, success: bool, message: str):
+        self.translate_btn.setEnabled(True)
+        self.translate_btn.setText("🌐 Translate to EN")
+        if success:
+            self.status_bar.showMessage(f"Translation finished: {message}")
+            curr_img = self.thumbnail_strip.get_current_image()
+            if curr_img:
+                self._on_image_selected(curr_img)
+        else:
+            self.status_bar.showMessage(f"Translation failed: {message}")
+            QMessageBox.critical(self, "Translation Error", f"Translation failed: {message}")
 
     def _on_folder_selected(self, folder_item):
         if folder_item is None:
@@ -352,12 +439,17 @@ class MainWindow(QMainWindow):
             "<li><b>Rename Folder:</b> <b>Double-click</b> any folder item in the list or press <b>F2</b>.</li>"
             "<li><b>Fullscreen Reader:</b> Press <b>F12</b> or click <b>Fullscreen</b> to view images in full screen with zero UI distraction. (Escape or F12 exits).</li>"
             "<li><b>Zoom Presets:</b> Press <b>Ctrl + +</b> (Zoom In) or <b>Ctrl + -</b> (Zoom Out), or use the top bar dropdown (Fit, 50%, 75%, 100%, 120%). Zoom settings persist when switching directories.</li>"
+            "<li><b>Toggle Translation:</b> Press <b>T</b> to toggle the English translation overlay on/off.</li>"
             "<li><b>Image Navigation:</b> Press <b>Left</b> / <b>Right</b> arrows.<br>"
             "<i>In fullscreen mode, navigating past the last image automatically continues to the next folder; navigating before the 1st image goes to the previous folder.</i></li>"
             "<li><b>Folder Navigation:</b> Press <b>Up</b> / <b>Down</b> arrows to change folder.</li>"
             "</ul>"
         )
         QMessageBox.information(self, "Shortcuts & Information", info_text)
+
+    def _on_open_settings(self):
+        dialog = SettingsDialog(parent=self, settings=self.settings)
+        dialog.exec()
 
     def _navigate_next(self):
         if not self.thumbnail_strip.select_next():
@@ -399,6 +491,9 @@ class MainWindow(QMainWindow):
                 return True
             elif key == Qt.Key.Key_Delete:
                 self._on_delete_folder()
+                return True
+            elif key == Qt.Key.Key_T:
+                self._toggle_translation_overlay()
                 return True
             elif modifiers & Qt.KeyboardModifier.ControlModifier and key in (Qt.Key.Key_Plus, Qt.Key.Key_Equal):
                 self.preview_pane.zoom_in()
