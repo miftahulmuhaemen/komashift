@@ -40,6 +40,7 @@ def test_worker_full_pipeline(tmp_path: Path, qtbot):
 
     with qtbot.waitSignal(worker.translation_finished, timeout=5000) as blocker:
         worker.start()
+    worker.wait()
 
     success, msg = blocker.args
     assert success is True
@@ -73,8 +74,37 @@ def test_worker_resumes_from_existing_ocr(tmp_path: Path, qtbot):
 
     with qtbot.waitSignal(worker.translation_finished, timeout=5000) as blocker:
         worker.start()
+    worker.wait()
 
     success, msg = blocker.args
     assert success is True
     assert mock_detect.call_count == 1
     assert mock_detect.call_args[0][0] == img2
+
+def test_worker_discards_stale_empty_cache(tmp_path: Path, qtbot):
+    img1 = tmp_path / "01.png"
+    _create_dummy_image(img1)
+
+    worker = TranslationWorker(
+        folder_path=tmp_path,
+        image_paths=[img1],
+        api_key="mock-key",
+        base_url="https://api.openai.com/v1",
+        model="gpt-4o-mini"
+    )
+
+    # Pre-populate empty cache (0 bubbles) from a previous broken run
+    page1 = PageTranslation("01.png", 400, 600, [])
+    worker.workspace.save_page_ocr(page1)
+
+    mock_detect = MagicMock(return_value=PageTranslation("01.png", 400, 600, [BubbleBlock("p1_b1", (0, 0, 10, 10), "テスト", "Test")]))
+    worker.detector.detect_page = mock_detect
+
+    with qtbot.waitSignal(worker.translation_finished, timeout=5000) as blocker:
+        worker.start()
+    worker.wait()
+
+    success, msg = blocker.args
+    assert success is True
+    # Detector must have been called because empty cache was discarded
+    assert mock_detect.call_count == 1

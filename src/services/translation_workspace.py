@@ -95,6 +95,19 @@ class TranslationWorkspace:
     def is_translation_complete(self) -> bool:
         return self.translation_file.exists() and len(self.load_translations()) > 0
 
+    def clear_cache(self):
+        if self.ocr_file.exists():
+            try:
+                self.ocr_file.unlink()
+            except Exception:
+                pass
+        if self.translation_file.exists():
+            try:
+                self.translation_file.unlink()
+            except Exception:
+                pass
+        self.append_log("Cleared OCR and translation cache.")
+
     def _atomic_write_json(self, target_path: Path, data: dict):
         temp_file = target_path.with_suffix(".tmp")
         with open(temp_file, "w", encoding="utf-8") as f:

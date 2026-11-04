@@ -210,6 +210,26 @@ class MainWindow(QMainWindow):
                 self._on_open_settings()
             return
 
+        ws = TranslationWorkspace(folder.path)
+        if ws.is_translation_complete():
+            reply = QMessageBox.question(
+                self,
+                "Translation Cache Found",
+                f"Translation data already exists for '{folder.name}'.\n\nWould you like to re-scan and translate again from scratch?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            )
+            if reply == QMessageBox.StandardButton.Yes:
+                ws.clear_cache()
+            else:
+                self.status_bar.showMessage(f"Loaded existing translation for {folder.name}")
+                curr_img = self.thumbnail_strip.get_current_image()
+                if curr_img:
+                    self._on_image_selected(curr_img)
+                return
+        elif ws.ocr_file.exists():
+            if sum(len(p.bubbles) for p in ws.load_ocr_results().values()) == 0:
+                ws.clear_cache()
+
         base_url = self.settings.value("llm_base_url", "https://generativelanguage.googleapis.com/v1beta/openai/", type=str)
         model = self.settings.value("llm_model", "gemini-3.5-flash-lite", type=str)
         if model in ("gemini-1.5-flash", "gemini-2.5-flash"):

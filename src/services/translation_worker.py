@@ -54,7 +54,14 @@ class TranslationWorker(QThread):
 
         # 2. Check existing OCR progress to resume
         ocr_results = self.workspace.load_ocr_results()
-        self.workspace.append_log(f"Loaded {len(ocr_results)} pre-existing OCR pages from cache")
+        if ocr_results:
+            total_cached_bubbles = sum(len(p.bubbles) for p in ocr_results.values())
+            if total_cached_bubbles == 0:
+                self.workspace.append_log("Stale OCR cache found with 0 bubbles (from previous broken run). Clearing cache and re-scanning.")
+                self.workspace.clear_cache()
+                ocr_results = {}
+            else:
+                self.workspace.append_log(f"Loaded {len(ocr_results)} pre-existing OCR pages from cache ({total_cached_bubbles} bubbles)")
 
         # 3. Perform OCR for any remaining pages
         for idx, img_path in enumerate(self.image_paths):
