@@ -35,6 +35,17 @@ def increment_version() -> str:
     return version_str
 
 def build():
+    if not sys.platform.startswith("win"):
+        ps_path = Path("/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe")
+        if ps_path.exists():
+            print("Detected Linux/WSL environment. Auto-delegating build to Windows PowerShell to produce .exe...")
+            unc_path = r"\\wsl.localhost\Ubuntu\home\sahana\Code_Repository\personal\win-folder-thumbnail"
+            cmd = [str(ps_path), "-NoProfile", "-Command", f"Set-Location '{unc_path}'; python build.py"]
+            with open("/dev/null", "r") as devnull:
+                sys.exit(subprocess.call(cmd, stdin=devnull))
+        else:
+            sys.exit("ERROR: build.py must be executed in Windows environment to produce a Windows .exe binary.")
+
     version_str = increment_version()
     app_name = f"FolderImagePreviewer_v{version_str}"
 
@@ -47,6 +58,13 @@ def build():
         "--onefile",
         "--icon=assets/icon.ico",
         f"--add-data=assets{sep}assets",
+        "--collect-all=onnxruntime",
+        "--collect-all=manga_ocr",
+        "--collect-all=unidic_lite",
+        "--collect-all=pyphen",
+        "--copy-metadata=transformers",
+        "--copy-metadata=tokenizers",
+        "--copy-metadata=huggingface_hub",
         "src/main.py"
     ]
     print(f"Running build command: {' '.join(cmd)}")

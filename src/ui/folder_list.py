@@ -1,10 +1,11 @@
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Dict
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QListWidget, QListWidgetItem,
     QLineEdit
 )
 from PyQt6.QtCore import pyqtSignal, Qt
+from PyQt6.QtGui import QColor
 from src.models.folder_item import FolderItem
 from src.services.scanner import natural_sort_key
 
@@ -16,6 +17,8 @@ class FolderListWidget(QWidget):
         super().__init__(parent)
         self._items: List[FolderItem] = []
         self._filtered_items: List[FolderItem] = []
+        self._folder_statuses: Dict[str, str] = {}
+        self._saved_scroll: int = 0
         self._init_ui()
 
     def _init_ui(self):
@@ -46,6 +49,54 @@ class FolderListWidget(QWidget):
         self._items = list(folders)
         self._apply_filter(self.filter_input.text())
 
+    def save_scroll_state(self):
+        self._saved_scroll = self.list_widget.verticalScrollBar().value()
+
+    def restore_scroll_state(self):
+        self.list_widget.verticalScrollBar().setValue(self._saved_scroll)
+
+    def set_folder_status(self, folder_path: Path, status: str):
+        """status: 'queued', 'running', 'done', 'failed', or ''"""
+        key = str(folder_path.resolve())
+        if status:
+            self._folder_statuses[key] = status
+        else:
+            self._folder_statuses.pop(key, None)
+        self._refresh_single_item_display(folder_path)
+
+    def get_folder_status(self, folder_path: Path) -> str:
+        return self._folder_statuses.get(str(folder_path.resolve()), "")
+
+    def _format_item_text_and_style(self, list_item: QListWidgetItem, item: FolderItem):
+        status = self._folder_statuses.get(str(item.path.resolve()), "")
+        if status == "queued":
+            badge = " [Queued]"
+            color = QColor("#facc15")  # warm amber/yellow
+        elif status == "running":
+            badge = " [Translating...]"
+            color = QColor("#38bdf8")  # bright blue
+        elif status == "done":
+            badge = " [Done]"
+            color = QColor("#4ade80")  # soft green
+        elif status == "failed":
+            badge = " [Failed]"
+            color = QColor("#f87171")  # light red
+        else:
+            badge = ""
+            color = QColor("#e4e4e7")  # normal text
+
+        list_item.setText(f"{item.name} ({item.image_count}){badge}")
+        list_item.setForeground(color)
+
+    def _refresh_single_item_display(self, folder_path: Path):
+        target_path = folder_path.resolve()
+        for i in range(self.list_widget.count()):
+            list_item = self.list_widget.item(i)
+            data = list_item.data(Qt.ItemDataRole.UserRole)
+            if isinstance(data, FolderItem) and data.path.resolve() == target_path:
+                self._format_item_text_and_style(list_item, data)
+                break
+
     def _apply_filter(self, text: str, target_row: Optional[int] = None):
         query = text.strip().lower()
         self.list_widget.blockSignals(True)
@@ -56,8 +107,9 @@ class FolderListWidget(QWidget):
             self._filtered_items = [f for f in self._items if query in f.name.lower()]
 
         for item in self._filtered_items:
-            list_item = QListWidgetItem(f"{item.name} ({item.image_count})")
+            list_item = QListWidgetItem()
             list_item.setData(Qt.ItemDataRole.UserRole, item)
+            self._format_item_text_and_style(list_item, item)
             self.list_widget.addItem(list_item)
 
         self.list_widget.blockSignals(False)

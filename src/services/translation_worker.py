@@ -20,7 +20,10 @@ class TranslationWorker(QThread):
         api_key: str,
         base_url: str = "https://generativelanguage.googleapis.com/v1beta/openai/",
         model: str = "gemini-3.5-flash-lite",
+        target_lang: str = "en",
         detector: Optional[MangaOcrDetector] = None,
+        timeout: float = 120.0,
+        batch_size: int = 0,
         parent=None
     ):
         super().__init__(parent)
@@ -29,8 +32,17 @@ class TranslationWorker(QThread):
         self.api_key = api_key
         self.base_url = base_url
         self.model = model
+        self.target_lang = target_lang
+        self.timeout = timeout
+        self.batch_size = batch_size
         self.workspace = TranslationWorkspace(self.folder_path)
-        self.translator = OpenAITranslator(api_key=self.api_key, base_url=self.base_url, model=self.model)
+        self.translator = OpenAITranslator(
+            api_key=self.api_key,
+            base_url=self.base_url,
+            model=self.model,
+            timeout=self.timeout,
+            batch_size=self.batch_size
+        )
         self.detector = detector or MangaOcrDetector(
             api_key=self.api_key,
             base_url=self.base_url,
@@ -46,8 +58,8 @@ class TranslationWorker(QThread):
         self.workspace.append_log(f"Starting translation process for {total_pages} pages using model: {self.model}")
 
         # 1. Check if translation is already completed
-        if self.workspace.is_translation_complete():
-            self.workspace.append_log("Translation already completed in cache. Done.")
+        if self.workspace.is_translation_complete(target_lang=self.target_lang):
+            self.workspace.append_log(f"Translation ({self.target_lang.upper()}) already completed in cache. Done.")
             self.progress_updated.emit("Translation loaded from cache", total_pages, total_pages)
             self.translation_finished.emit(True, "Loaded from cache")
             return
@@ -99,12 +111,12 @@ class TranslationWorker(QThread):
         # 4. Check if any bubbles were detected
         total_bubbles = sum(len(p.bubbles) for p in ocr_results.values())
         if total_bubbles == 0:
-            err_msg = "0 speech bubbles were detected. Please check your API key, ensure the model supports Vision, and review the logs."
+            err_msg = "0 speech bubbles were detected in this chapter. Please review the logs."
             self.workspace.append_log(err_msg)
             self.translation_finished.emit(False, err_msg)
             return
 
-        # 5. Harvest translations from Vision or run batch translation
+        # 5. Harvest pre-existing translations or run batch translation
         translations = {}
         for p in ocr_results.values():
             for b in p.bubbles:
@@ -117,7 +129,17 @@ class TranslationWorker(QThread):
             self.workspace.append_log(f"Sending batch translation request for {len(ocr_results)} pages")
             try:
                 pages_list = [ocr_results[img.name] for img in self.image_paths if img.name in ocr_results]
-                batch_trans = self.translator.translate_chapter(pages_list)
+
+                def _on_batch_progress(batch_num: int, total_batches: int, translated_count: int):
+                    msg = f"Translating batch {batch_num}/{total_batches} ({translated_count} bubbles done)..."
+                    self.workspace.append_log(msg)
+                    self.progress_updated.emit(msg, total_pages, total_pages)
+
+                batch_trans = self.translator.translate_chapter(
+                    pages_list,
+                    target_lang=self.target_lang,
+                    on_batch_progress=_on_batch_progress
+                )
                 translations.update(batch_trans)
             except TranslationError as e:
                 err_msg = f"Translation API failed: {e}"
@@ -134,7 +156,7 @@ class TranslationWorker(QThread):
                     self.translation_finished.emit(False, err_msg)
                     return
 
-        self.workspace.save_translations(translations)
+        self.workspace.save_translations(translations, target_lang=self.target_lang)
         self.workspace.append_log(f"Translation finished successfully: {len(translations)} bubbles")
         self.progress_updated.emit("Translation complete!", total_pages, total_pages)
         self.translation_finished.emit(True, f"Translated {len(translations)} bubbles successfully.")

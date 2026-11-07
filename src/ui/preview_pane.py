@@ -115,6 +115,7 @@ class PreviewPaneWidget(QWidget):
     def set_image(self, image_path: Optional[Path]):
         self._page_translation = None
         self._translations = {}
+        self._image_path = image_path
         self.overlay.clear()
 
         if not image_path or not image_path.exists():
@@ -214,6 +215,7 @@ class PreviewPaneWidget(QWidget):
             self._translations,
             self._current_pixmap.size(),
             scaled_size,
-            offset
+            offset,
+            getattr(self, "_image_path", None)
         )
 

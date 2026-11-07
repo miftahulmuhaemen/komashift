@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field, asdict
-from typing import List, Tuple, Any, Dict
+from typing import List, Tuple, Any, Dict, Optional
 
 @dataclass
 class BubbleBlock:
@@ -7,23 +7,39 @@ class BubbleBlock:
     bbox: Tuple[int, int, int, int]  # (x, y, w, h)
     text_ja: str
     text_en: str = ""
+    expanded_bbox: Optional[Tuple[int, int, int, int]] = None
+    centroid: Optional[Tuple[int, int]] = None
+    shape: str = "oval"
 
     def to_dict(self) -> Dict[str, Any]:
-        return {
+        res = {
             "id": self.id,
             "bbox": list(self.bbox),
             "text_ja": self.text_ja,
             "text_en": self.text_en,
+            "shape": self.shape,
         }
+        if self.expanded_bbox is not None:
+            res["expanded_bbox"] = list(self.expanded_bbox)
+        if self.centroid is not None:
+            res["centroid"] = list(self.centroid)
+        return res
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "BubbleBlock":
         bbox_data = data.get("bbox", [0, 0, 0, 0])
+        exp_data = data.get("expanded_bbox")
+        exp_bbox = (int(exp_data[0]), int(exp_data[1]), int(exp_data[2]), int(exp_data[3])) if exp_data else None
+        cent_data = data.get("centroid")
+        centroid = (int(cent_data[0]), int(cent_data[1])) if cent_data else None
         return cls(
             id=str(data.get("id", "")),
             bbox=(int(bbox_data[0]), int(bbox_data[1]), int(bbox_data[2]), int(bbox_data[3])),
             text_ja=str(data.get("text_ja", "")),
             text_en=str(data.get("text_en", "")),
+            expanded_bbox=exp_bbox,
+            centroid=centroid,
+            shape=str(data.get("shape", "oval")),
         )
 
 @dataclass

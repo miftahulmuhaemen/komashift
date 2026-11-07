@@ -13,6 +13,11 @@ Desktop application for scanning and previewing images across nested directory s
 - **Asynchronous Image Loading**: Background worker threads decode and scale thumbnails to maintain UI responsiveness.
 - **Batch Selection & Deletion**: Supports multi-selection (`Ctrl`, `Shift`, `Ctrl+A`) and moves selected folders to the Windows Recycle Bin (`Delete`). Automatically selects the next remaining folder.
 - **Folder Renaming**: Double-click any folder entry in the list or press `F2` to rename it directly on disk.
+- **Offline Manga OCR & Bubble Detection**: 100% offline text detection using ONNX Runtime (`comic-text-detector`) and local neural Japanese OCR (`manga-ocr`). Zero images are sent to any external server or LLM.
+- **Intelligent Bubble Segmentation & Inpainting**: Automatically expands detected text boundaries to fit true speech balloon contours using morphology and floodfill, with geometric solidity validation to prevent leaks into artwork.
+- **Dynamic Comic Typography Engine**: Automatically breaks lines, adjusts font sizes, applies hyphenation via `pyphen`, and centers translated English text cleanly over bubbles using image moment centroids.
+- **Batch Translation Integration**: Sends extracted dialogue batches to customizable LLM endpoints (Google Gemini, OpenAI-compatible APIs) for fluent English/Indonesian localization.
+- **Translation Overlay Toggle (`T`)**: Instant interactive translation canvas with hover inspection cards showing original Japanese text.
 
 ## Keyboard Shortcuts
 
@@ -23,6 +28,7 @@ Desktop application for scanning and previewing images across nested directory s
 | `F12` / `Escape` | Toggle Fullscreen Reader Mode |
 | `Ctrl` + `+` / `Ctrl` + `=` | Zoom In (Preset cycle: 50% -> 75% -> 100% -> 120%) |
 | `Ctrl` + `-` | Zoom Out |
+| `T` | Toggle Translation Overlay |
 | `Double-Click` or `F2` | Rename selected folder |
 | `Delete` | Move selected folder(s) to Recycle Bin |
 | `Ctrl` + `A` | Select all folders |
@@ -33,6 +39,10 @@ Desktop application for scanning and previewing images across nested directory s
 - Python 3.10+
 - `PyQt6`
 - `Pillow`
+- `opencv-python`
+- `onnxruntime`
+- `manga-ocr`
+- `pyphen`
 - `Send2Trash`
 - `pytest` / `pytest-qt` (for testing)
 

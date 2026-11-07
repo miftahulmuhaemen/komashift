@@ -17,7 +17,9 @@ def test_main_window_has_translate_controls(qtbot):
     qtbot.addWidget(window)
 
     assert hasattr(window, "translate_btn")
-    assert "Translate to EN" in window.translate_btn.text()
+    assert "Translate" in window.translate_btn.text()
+    assert hasattr(window, "queue_mgr_btn")
+    assert "Queue Manager" in window.queue_mgr_btn.text()
     assert hasattr(window, "overlay_toggle_btn")
 
 def test_auto_load_translation_on_image_selected(qtbot, tmp_path: Path):

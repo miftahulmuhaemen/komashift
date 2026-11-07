@@ -506,6 +506,78 @@ def test_fullscreen_exit_restores_maximized_state(qtbot):
 
     window.thumbnail_cache.thread_pool.waitForDone(2000)
 
+def test_main_window_menubar_and_clean_toolbar(qtbot):
+    window = MainWindow()
+    qtbot.addWidget(window)
+
+    menubar = window.menuBar()
+    actions = menubar.actions()
+    titles = [a.text() for a in actions]
+    assert "&File" in titles
+    assert "&Edit" not in titles
+    assert "&View" in titles
+    assert "&Help" in titles
+    assert "&Window" not in titles
+
+    # Top bar has modern icon sidebar toggle button, Translate, Queue Manager, and path label
+    assert hasattr(window, "sidebar_toggle_btn")
+    assert not window.sidebar_toggle_btn.icon().isNull()
+    assert hasattr(window, "translate_btn")
+    assert "Translate" in window.translate_btn.text()
+    assert hasattr(window, "queue_mgr_btn")
+    assert "Queue Manager" in window.queue_mgr_btn.text()
+    assert hasattr(window, "path_label")
+
+    # Sidebar toggle functionality and state retention
+    assert not window.folder_list.isHidden()
+    window._toggle_sidebar()
+    assert window.folder_list.isHidden()
+    assert "Show Sidebar" in window.sidebar_toggle_btn.toolTip()
+    window._toggle_sidebar()
+    assert not window.folder_list.isHidden()
+    assert "Hide Sidebar" in window.sidebar_toggle_btn.toolTip()
+
+    # Menu and action checks
+    assert "Open" in window.open_btn.text()
+    assert "Batch Rename" in window.batch_rename_btn.text()
+    assert "Overlay" in window.overlay_toggle_btn.text()
+
+    window.thumbnail_cache.thread_pool.waitForDone(2000)
+
+
+def test_sidebar_scroll_and_status_indicators(qtbot):
+    from src.ui.folder_list import FolderListWidget
+    widget = FolderListWidget()
+    qtbot.addWidget(widget)
+
+    items = [
+        FolderItem(path=Path(f"/tmp/ch_{i}"), name=f"Chapter {i:02d}", image_paths=[])
+        for i in range(1, 50)
+    ]
+    widget.set_folders(items)
+
+    p1 = Path("/tmp/ch_1")
+    # 1. Test status indicators
+    assert widget.get_folder_status(p1) == ""
+    widget.set_folder_status(p1, "queued")
+    assert "[Queued]" in widget.list_widget.item(0).text()
+
+    widget.set_folder_status(p1, "running")
+    assert "[Translating...]" in widget.list_widget.item(0).text()
+
+    widget.set_folder_status(p1, "done")
+    assert "[Done]" in widget.list_widget.item(0).text()
+
+    # 2. Test scroll retention
+    widget.list_widget.verticalScrollBar().setValue(10)
+    val = widget.list_widget.verticalScrollBar().value()
+    widget.save_scroll_state()
+    assert widget._saved_scroll == val
+    widget.list_widget.verticalScrollBar().setValue(0)
+    widget.restore_scroll_state()
+    assert widget.list_widget.verticalScrollBar().value() == val
+
+
 
 
 

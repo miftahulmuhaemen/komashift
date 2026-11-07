@@ -72,28 +72,41 @@ class TranslationWorkspace:
         results = self.load_ocr_results()
         return len(results) >= total_pages
 
-    def save_translations(self, translations: Dict[str, str]):
+    def get_translation_file(self, target_lang: str = "en") -> Path:
+        lang = (target_lang or "en").lower().strip()
+        if lang in ("en", "english"):
+            specific = self.temp_dir / "translation_results_en.json"
+            if specific.exists():
+                return specific
+            return self.translation_file
+        return self.temp_dir / f"translation_results_{lang}.json"
+
+    def save_translations(self, translations: Dict[str, str], target_lang: str = "en"):
+        target_file = self.get_translation_file(target_lang)
         data = {
             "version": 1,
+            "target_lang": target_lang,
             "translations": translations,
             "timestamp": datetime.now().isoformat()
         }
-        self._atomic_write_json(self.translation_file, data)
-        self.append_log(f"Saved {len(translations)} translations")
+        self._atomic_write_json(target_file, data)
+        self.append_log(f"Saved {len(translations)} translations ({target_lang.upper()}) to {target_file.name}")
 
-    def load_translations(self) -> Dict[str, str]:
-        if not self.translation_file.exists():
+    def load_translations(self, target_lang: str = "en") -> Dict[str, str]:
+        target_file = self.get_translation_file(target_lang)
+        if not target_file.exists():
             return {}
         try:
-            with open(self.translation_file, "r", encoding="utf-8") as f:
+            with open(target_file, "r", encoding="utf-8") as f:
                 data = json.load(f)
             return data.get("translations", {})
         except Exception as e:
-            self.append_log(f"Error reading translations: {e}")
+            self.append_log(f"Error reading translations from {target_file.name}: {e}")
             return {}
 
-    def is_translation_complete(self) -> bool:
-        return self.translation_file.exists() and len(self.load_translations()) > 0
+    def is_translation_complete(self, target_lang: str = "en") -> bool:
+        target_file = self.get_translation_file(target_lang)
+        return target_file.exists() and len(self.load_translations(target_lang)) > 0
 
     def clear_cache(self):
         if self.ocr_file.exists():
@@ -101,9 +114,9 @@ class TranslationWorkspace:
                 self.ocr_file.unlink()
             except Exception:
                 pass
-        if self.translation_file.exists():
+        for t_file in self.temp_dir.glob("translation_results*.json"):
             try:
-                self.translation_file.unlink()
+                t_file.unlink()
             except Exception:
                 pass
         self.append_log("Cleared OCR and translation cache.")
