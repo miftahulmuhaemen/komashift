@@ -5,8 +5,8 @@ from PIL import Image
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QMessageBox
 from src.models.folder_item import FolderItem
-from src.services.thumbnail_cache import ThumbnailCache
-from src.services.translation_workspace import TranslationWorkspace
+from src.infra.qt_threads import ThumbnailCache
+from src.infra.json_workspace import JsonTempWorkspace as TranslationWorkspace
 from src.ui.folder_list import FolderListWidget
 from src.ui.thumbnail_strip import ThumbnailStripWidget
 from src.ui.preview_pane import PreviewPaneWidget
@@ -594,7 +594,7 @@ def test_sidebar_scroll_and_status_indicators(qtbot):
 
 def test_main_window_manual_box_and_queue_button(qtbot, tmp_path: Path):
     from unittest.mock import MagicMock
-    from src.services.translation_workspace import TranslationWorkspace
+    from src.infra.json_workspace import JsonTempWorkspace as TranslationWorkspace
 
     window = MainWindow()
     qtbot.addWidget(window)

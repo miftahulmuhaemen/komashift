@@ -148,6 +148,10 @@ class TranslationQueueManager(QObject):
         if self._current_worker and self._current_worker.isRunning():
             self._current_worker.requestInterruption()
 
+    def stop_queue(self):
+        """Alias for pause_queue for semantic clarity."""
+        self.pause_queue()
+
     def _process_next(self):
         if not self._is_running:
             return
@@ -277,6 +281,10 @@ class TranslationQueueManager(QObject):
 
         if self._is_running:
             self._process_next()
+
+    def notify_overall_progress(self):
+        """Public trigger to recalculate and emit overall progress."""
+        self._emit_overall_progress()
 
     def _emit_overall_progress(self):
         completed = sum(1 for j in self.jobs if j.status == JobStatus.COMPLETED)

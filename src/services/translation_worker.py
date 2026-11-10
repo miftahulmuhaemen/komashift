@@ -1,10 +1,10 @@
 import logging
 import time
 from pathlib import Path
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Any
 from PyQt6.QtCore import QThread, pyqtSignal
 from src.models.translation_item import PageTranslation
-from src.services.translation_workspace import TranslationWorkspace
+from src.infra.json_workspace import JsonTempWorkspace as TranslationWorkspace
 from src.services.translation_client import OpenAITranslator, TranslationError
 from src.services.manga_ocr_detector import MangaOcrDetector
 from src.services.scanner import natural_sort_key
@@ -20,7 +20,7 @@ class TranslationWorker(QThread):
         self,
         folder_path: Path,
         image_paths: List[Path],
-        api_key: str,
+        api_key: str = "",
         base_url: str = "https://generativelanguage.googleapis.com/v1beta/openai/",
         model: str = "gemini-3.5-flash-lite",
         target_lang: str = "en",
@@ -34,7 +34,10 @@ class TranslationWorker(QThread):
         protocol: str = "openai",
         job_type: str = "translation",
         output_dir: Optional[Path] = None,
-        parent=None
+        parent=None,
+        provider: Optional[Any] = None,
+        repository: Optional[Any] = None,
+        log_sink: Optional[Any] = None,
     ):
         super().__init__(parent)
         self.folder_path = Path(folder_path)
@@ -53,15 +56,23 @@ class TranslationWorker(QThread):
         self.protocol = str(protocol).lower()
         self.job_type = str(job_type)
         self.output_dir = Path(output_dir) if output_dir else None
-        self.workspace = TranslationWorkspace(self.folder_path)
-        self.translator = OpenAITranslator(
-            api_key=self.api_key,
-            base_url=self.base_url,
-            model=self.model,
-            timeout=self.timeout,
-            batch_size=self.batch_size,
-            protocol=self.protocol
-        )
+        if repository is not None:
+            self.workspace = repository
+        else:
+            self.workspace = TranslationWorkspace(self.folder_path, log_sink=log_sink)
+
+        if provider is not None:
+            self.translator = provider
+        else:
+            self.translator = OpenAITranslator(
+                api_key=self.api_key,
+                base_url=self.base_url,
+                model=self.model,
+                timeout=self.timeout,
+                batch_size=self.batch_size,
+                protocol=self.protocol
+            )
+
         # Lightweight detector instance (models are loaded lazily on-demand in worker thread)
         self.detector = detector or MangaOcrDetector(
             api_key=self.api_key,
@@ -69,22 +80,22 @@ class TranslationWorker(QThread):
             model=self.model
         )
 
+        if self.job_type == "rasterize":
+            self._strategy = self._run_rasterize
+        elif self.engine_mode == "multimodal":
+            self._strategy = self._run_multimodal
+        else:
+            self._strategy = self._run_hybrid
+
     def run(self):
         # Soft start: brief yield so Qt UI finishes repainting button and queue transitions
         time.sleep(0.08)
-        if self.detector is None:
-            self.detector = MangaOcrDetector(
-                api_key=self.api_key,
-                base_url=self.base_url,
-                model=self.model
-            )
+        if self.isInterruptionRequested():
+            self.translation_finished.emit(False, "Cancelled by user")
+            return
+        self._strategy()
 
-        if self.job_type == "rasterize":
-            self._run_rasterize()
-            return
-        if self.engine_mode == "multimodal":
-            self._run_multimodal()
-            return
+    def _run_hybrid(self):
         total_pages = len(self.image_paths)
         if total_pages == 0:
             self.translation_finished.emit(False, "No images selected for translation.")
@@ -261,20 +272,10 @@ class TranslationWorker(QThread):
                     from PIL import Image
                     full_page_img = Image.open(img_path).convert("RGB")
                 bx, by, bw, bh = mb.bbox
-                crop_x1 = max(0, bx - 6)
-                crop_y1 = max(0, by - 6)
-                crop_x2 = min(full_page_img.width, bx + bw + 6)
-                crop_y2 = min(full_page_img.height, by + bh + 6)
-                crop = full_page_img.crop((crop_x1, crop_y1, crop_x2, crop_y2))
-
-                self.detector._init_engine()
-                if self.detector._engine is not None:
-                    try:
-                        mb.text_ja = self.detector._engine(crop).strip()
-                    except Exception as e:
-                        self.workspace.append_log(f"OCR error on manual box ({mb.id}): {e}")
-                        mb.text_ja = ""
-                exp_bbox, cent, shape_type = self.detector._segment_bubble(full_page_img, (bx, by, bw, bh))
+                text_ja, exp_bbox, cent, shape_type = self.detector.detect_and_ocr_manual_region(
+                    full_page_img, (bx, by, bw, bh)
+                )
+                mb.text_ja = text_ja
                 mb.expanded_bbox = exp_bbox
                 mb.centroid = cent
                 mb.shape = shape_type
@@ -456,7 +457,7 @@ class TranslationWorker(QThread):
         translations = self.workspace.load_translations()
 
         successful_count = 0
-        from src.services.image_rasterizer import ImageRasterizer
+        from src.infra.image_rasterizer import ImageRasterizer
         import shutil
 
         for idx, img_path in enumerate(self.image_paths, start=1):

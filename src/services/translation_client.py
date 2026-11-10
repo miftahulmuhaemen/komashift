@@ -8,11 +8,9 @@ from typing import List, Dict, Any, Optional, Tuple, Union
 import unicodedata
 from src.models.translation_item import PageTranslation, BubbleBlock
 from src.services.image_compression import compress_image_to_webp
+from src.ports.translation_provider import TranslationError
 
 logger = logging.getLogger(__name__)
-
-class TranslationError(Exception):
-    pass
 
 class OpenAITranslator:
     def __init__(

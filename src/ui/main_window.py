@@ -17,12 +17,10 @@ from src.models.translation_job import TranslationJob, JobStatus, JobType
 from src.services.scanner import scan_directory, natural_sort_key
 from src.services.trash_service import send_folder_to_trash
 from src.services.folder_service import rename_folder
-from src.services.thumbnail_cache import ThumbnailCache
+from src.infra.qt_threads import ThumbnailCache
 from src.services.translation_worker import TranslationWorker
-from src.services.translation_workspace import TranslationWorkspace
+from src.infra.json_workspace import JsonTempWorkspace as TranslationWorkspace
 from src.services.translation_queue import TranslationQueueManager
-from src.services.manga_ocr_detector import MangaOcrDetector
-from src.services.translation_client import OpenAITranslator
 from src.ui.folder_list import FolderListWidget
 from src.ui.thumbnail_strip import ThumbnailStripWidget
 from src.ui.preview_pane import PreviewPaneWidget
@@ -30,6 +28,9 @@ from src.ui.rename_dialog import RenameDialog
 from src.ui.batch_rename_dialog import BatchRenameDialog
 from src.ui.settings_dialog import SettingsDialog
 from src.ui.queue_dialog import QueueDialog
+from src.viewmodels.settings_viewmodel import SettingsViewModel
+from src.viewmodels.library_viewmodel import LibraryViewModel
+from src.viewmodels.translation_viewmodel import TranslationViewModel
 
 
 def create_sidebar_icon(color: str = "#ffffff", size: int = 16) -> QIcon:
@@ -122,11 +123,14 @@ class MainWindow(QMainWindow):
         self.resize(1200, 780)
         self._set_app_icon()
         self.settings = QSettings("FolderImagePreviewer", "FolderImagePreviewer")
+        self.settings_vm = SettingsViewModel(self.settings, parent=self)
+        self.library_vm = LibraryViewModel(parent=self)
         self.thumbnail_cache = ThumbnailCache()
         self._select_last_on_folder_load = False
         self._translation_worker = None
         self._queue_dialog = None
-        self.queue_manager = TranslationQueueManager(settings_getter=self._get_api_credentials)
+        self.queue_manager = TranslationQueueManager(settings_getter=self.settings_vm.get_api_credentials)
+        self.translation_vm = TranslationViewModel(self.queue_manager, parent=self)
         self._init_ui()
         self._init_queue_connections()
         self._install_global_event_filter()
@@ -622,13 +626,13 @@ class MainWindow(QMainWindow):
 
 
     def _restore_last_folder(self):
-        last_dir = self.settings.value("last_root_folder", type=str)
+        last_dir = self.settings_vm.get_last_root_folder()
         if last_dir and Path(last_dir).is_dir():
             self._load_root_folder(Path(last_dir))
 
     def _load_root_folder(self, root_path: Path):
         self.path_label.setText(str(root_path))
-        folders = scan_directory(root_path)
+        folders = self.library_vm.load_directory(root_path)
         for f in folders:
             ws = TranslationWorkspace(f.path)
             if ws.is_translation_complete("en") or ws.is_translation_complete("id"):
@@ -646,10 +650,10 @@ class MainWindow(QMainWindow):
         self.status_bar.showMessage(f"Found {len(folders)} folders with images.")
 
     def _on_open_folder(self):
-        start_dir = self.settings.value("last_root_folder", "") or ""
+        start_dir = self.settings_vm.get_last_root_folder() or ""
         dir_path = QFileDialog.getExistingDirectory(self, "Select Root Folder", str(start_dir))
         if dir_path:
-            self.settings.setValue("last_root_folder", dir_path)
+            self.settings_vm.set_last_root_folder(dir_path)
             self._load_root_folder(Path(dir_path))
 
     def _on_image_selected(self, image_path: Optional[Path]):
@@ -747,90 +751,23 @@ class MainWindow(QMainWindow):
         folder_path = curr_img.parent
 
         try:
-            ws = TranslationWorkspace(folder_path)
-            ocr_results = ws.load_ocr_results()
-            page_data = ocr_results.get(curr_img.name)
-            if not page_data:
-                from PIL import Image
-                with Image.open(curr_img) as im:
-                    pw, ph = im.size
-                page_data = PageTranslation(
-                    page_filename=curr_img.name,
-                    page_width=pw,
-                    page_height=ph,
-                    bubbles=[]
-                )
-                ocr_results[curr_img.name] = page_data
-
             all_paths = self.thumbnail_strip.image_paths
             curr_idx = all_paths.index(curr_img) if curr_img in all_paths else 0
+            pw, ph = 1000, 1000
+            if hasattr(self.preview_pane, "raw_pixmap") and self.preview_pane.raw_pixmap:
+                pw, ph = self.preview_pane.raw_pixmap.width(), self.preview_pane.raw_pixmap.height()
 
-            # Store the manual box geometry with a unique ID that never collides with automatic bubble IDs or cache residue
-            translations = ws.load_translations()
-            existing_ids = {b.id for b in page_data.bubbles}
-            while True:
-                new_id = f"p{curr_idx + 1}_m_{uuid.uuid4().hex[:8]}"
-                if new_id not in existing_ids and new_id not in translations:
-                    break
-
-            new_bubble = BubbleBlock(
-                id=new_id,
+            page_data, translations, new_bubble = self.translation_vm.add_manual_bubble(
+                folder_path=folder_path,
+                image_path=curr_img,
+                image_index=curr_idx,
                 bbox=(bx, by, bw, bh),
-                text_ja="",
-                text_en="",
                 target_lang=target_lang,
-                expanded_bbox=(bx, by, bw, bh),
-                centroid=(bx + bw // 2, by + bh // 2),
-                shape="rect",
-                is_manual=True
+                image_size=(pw, ph)
             )
-            page_data.bubbles.append(new_bubble)
-            ws.save_page_ocr(page_data)
 
             # Refresh preview overlay: ensure this ID has no translation residue and displays as [Manual Label]
-            translations.pop(new_id, None)
             self.preview_pane.set_translation_data(page_data, translations)
-
-            # Push job into Queue Manager for this image
-            existing_job = None
-            for j in self.queue_manager.jobs:
-                if j.folder_path == folder_path and j.job_type == JobType.TRANSLATION:
-                    existing_job = j
-                    break
-
-            if existing_job:
-                if curr_img not in existing_job.image_paths:
-                    existing_job.image_paths.append(curr_img)
-                if existing_job.selected_image_paths is not None:
-                    if curr_img not in existing_job.selected_image_paths:
-                        existing_job.selected_image_paths.append(curr_img)
-                else:
-                    existing_job.selected_image_paths = [curr_img]
-
-                if existing_job.target_lang.lower() != target_lang.lower():
-                    existing_job.target_lang = "mix"
-
-                if existing_job.status in (JobStatus.COMPLETED, JobStatus.FAILED):
-                    existing_job.status = JobStatus.PENDING
-                    existing_job.status_message = "Pending manual label translation"
-                    existing_job.error_message = None
-                    existing_job.progress_pct = 0
-                self.queue_manager.queue_updated.emit()
-                self.queue_manager._emit_overall_progress()
-                job = existing_job
-            else:
-                all_imgs = sorted([
-                    p for p in folder_path.iterdir()
-                    if p.suffix.lower() in (".png", ".jpg", ".jpeg", ".webp")
-                ], key=natural_sort_key)
-                job = self.queue_manager.add_job(
-                    folder_path=folder_path,
-                    image_paths=all_imgs,
-                    target_lang=target_lang
-                )
-                job.selected_image_paths = [curr_img]
-                self.queue_manager.queue_updated.emit()
-
             self.folder_list.set_folder_status(folder_path, "queued")
             self.status_bar.showMessage(
                 f"Manual box ({bw}x{bh}) [Translate to {target_lang.upper()}] enqueued for {curr_img.name}."
@@ -896,7 +833,7 @@ class MainWindow(QMainWindow):
                     current_selected.add(p)
                 existing_job.selected_image_paths = [p for p in existing_job.image_paths if p in current_selected]
             self.queue_manager.queue_updated.emit()
-            self.queue_manager._emit_overall_progress()
+            self.queue_manager.notify_overall_progress()
             job = existing_job
         else:
             job = self.queue_manager.add_job(
@@ -957,17 +894,7 @@ class MainWindow(QMainWindow):
         self._on_open_queue_dialog(tab="pages")
 
     def _get_api_credentials(self):
-        api_key = self.settings.value("llm_api_key", "", type=str).strip()
-        base_url = self.settings.value("llm_base_url", "https://generativelanguage.googleapis.com/v1beta/openai/", type=str)
-        model = self.settings.value("llm_model", "gemini-2.5-flash", type=str)
-        timeout = max(300, self.settings.value("llm_timeout_seconds", 300, type=int))
-        batch_size = self.settings.value("llm_batch_size", 0, type=int)
-        engine_mode = self.settings.value("llm_engine_mode", "hybrid", type=str)
-        vision_scale_pct = self.settings.value("llm_vision_scale_pct", 75, type=int)
-        vision_quality = self.settings.value("llm_vision_quality", 75, type=int)
-        max_retries = max(1, min(5, self.settings.value("llm_max_retries", 3, type=int)))
-        protocol = self.settings.value("llm_protocol", "openai", type=str)
-        return api_key, base_url, model, timeout, batch_size, engine_mode, vision_scale_pct, vision_quality, max_retries, protocol
+        return self.settings_vm.get_api_credentials()
 
     def _init_queue_connections(self):
         self.queue_manager.queue_updated.connect(self._on_queue_updated)
@@ -1387,15 +1314,8 @@ class MainWindow(QMainWindow):
         )
 
         if confirm == QMessageBox.StandardButton.Yes:
-            deleted_paths = []
-            errors = []
-            for folder in selected_folders:
-                success, error = send_folder_to_trash(folder.path)
-                if success:
-                    deleted_paths.append(folder.path)
-                else:
-                    errors.append(f"{folder.name}: {error}")
-
+            success_count, errors = self.library_vm.delete_folders(selected_folders)
+            deleted_paths = [f.path for f in selected_folders[:success_count]]
             if deleted_paths:
                 self.folder_list.remove_folder_items(deleted_paths)
                 if len(deleted_paths) == 1:
@@ -1491,6 +1411,14 @@ class MainWindow(QMainWindow):
     def keyPressEvent(self, event):
         # Fallback if not caught by eventFilter
         self.eventFilter(self, event)
+
+    def closeEvent(self, event):
+        if hasattr(self, "thumbnail_cache") and self.thumbnail_cache:
+            try:
+                self.thumbnail_cache.shutdown(wait_ms=200)
+            except Exception:
+                pass
+        super().closeEvent(event)
 
 
 

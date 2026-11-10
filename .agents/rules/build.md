@@ -10,10 +10,11 @@ This repository is a **Windows desktop application**. All builds must target **W
 ---
 
 ## How to Build (Zero Investigation Required)
-Execute the build command ONLY when the user explicitly requests it (e.g. "build", "build it", "compile", "make exe"). Never trigger it autonomously:
+Execute the build command ONLY when the user explicitly requests it (e.g. "build", "build it", "compile", "make exe"). Never trigger it autonomously.
+Execution without `--explicit-user-request` is physically blocked by a mechanical guard in `build.py`:
 
 ```bash
-/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe -NoProfile -Command "Set-Location '\\\\wsl.localhost\\Ubuntu\\home\\sahana\\Code_Repository\\personal\\win-folder-thumbnail'; python build.py" < /dev/null
+/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe -NoProfile -Command "Set-Location '\\\\wsl.localhost\\Ubuntu\\home\\sahana\\Code_Repository\\personal\\win-folder-thumbnail'; python build.py --explicit-user-request" < /dev/null
 ```
 
 ### Critical Rules for Execution:

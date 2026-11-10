@@ -29,7 +29,7 @@ def test_auto_load_translation_on_image_selected(qtbot, tmp_path: Path):
     # Pre-populate workspace
     temp_dir = folder_path / "temp"
     temp_dir.mkdir(parents=True, exist_ok=True)
-    from src.services.translation_workspace import TranslationWorkspace
+    from src.infra.json_workspace import JsonTempWorkspace as TranslationWorkspace
     ws = TranslationWorkspace(folder_path)
     ws.save_page_ocr(PageTranslation("01.png", 200, 300, [BubbleBlock("b1", (10, 10, 40, 40), "こんにちは")]))
     ws.save_translations({"b1": "Hello"})

@@ -34,7 +34,17 @@ def increment_version() -> str:
     print(f"Bumped version to v{version_str} (build {build_num})")
     return version_str
 
+EXPLICIT_FLAG = "--explicit-user-request"
+
 def build():
+    if EXPLICIT_FLAG not in sys.argv:
+        sys.exit(
+            f"CRITICAL ERROR: Automated build rejected!\n"
+            f"build.py is strictly restricted and cannot be executed autonomously.\n"
+            f"It requires an explicit user command in the current prompt and the flag '{EXPLICIT_FLAG}'.\n"
+            f"See .agents/rules/build.md."
+        )
+
     no_bump = "--no-bump" in sys.argv
     if not sys.platform.startswith("win"):
         ps_path = Path("/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe")
@@ -42,7 +52,7 @@ def build():
             print("Detected Linux/WSL environment. Auto-delegating build to Windows PowerShell to produce .exe...")
             unc_path = r"\\wsl.localhost\Ubuntu\home\sahana\Code_Repository\personal\win-folder-thumbnail"
             extra = " --no-bump" if no_bump else ""
-            cmd = [str(ps_path), "-NoProfile", "-Command", f"Set-Location '{unc_path}'; python build.py{extra}"]
+            cmd = [str(ps_path), "-NoProfile", "-Command", f"Set-Location '{unc_path}'; python build.py {EXPLICIT_FLAG}{extra}"]
             with open("/dev/null", "r") as devnull:
                 sys.exit(subprocess.call(cmd, stdin=devnull))
         else:

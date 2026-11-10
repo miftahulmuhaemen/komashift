@@ -42,6 +42,46 @@ class MangaOcrDetector:
             logger.warning(f"Could not initialize local manga-ocr engine: {e}")
             self._engine = None
 
+    def recognize_crop(self, crop_img: Image.Image) -> str:
+        """Run local OCR on a cropped image region, returning recognized text."""
+        self._init_engine()
+        if self._engine is not None:
+            return self._engine(crop_img).strip()
+        return ""
+
+    def segment_bubble(
+        self,
+        full_img: Image.Image,
+        bbox: Tuple[int, int, int, int]
+    ) -> Tuple[Tuple[int, int, int, int], Tuple[int, int], str]:
+        """Calculates expanded speech balloon bounding box, true centroid, and shape classification."""
+        return self._segment_bubble(full_img, bbox)
+
+    def detect_and_ocr_manual_region(
+        self,
+        full_img: Image.Image,
+        bbox: Tuple[int, int, int, int]
+    ) -> Tuple[str, Tuple[int, int, int, int], Tuple[int, int], str]:
+        """
+        Public method to OCR and segment a manual bounding box on a full page image.
+        Returns: (text_ja, expanded_bbox, centroid, shape_type)
+        """
+        bx, by, bw, bh = bbox
+        crop_x1 = max(0, bx - 6)
+        crop_y1 = max(0, by - 6)
+        crop_x2 = min(full_img.width, bx + bw + 6)
+        crop_y2 = min(full_img.height, by + bh + 6)
+        crop = full_img.crop((crop_x1, crop_y1, crop_x2, crop_y2))
+
+        text_ja = ""
+        try:
+            text_ja = self.recognize_crop(crop)
+        except Exception as e:
+            logger.warning(f"OCR error on manual region: {e}")
+
+        exp_bbox, cent, shape_type = self._segment_bubble(full_img, bbox)
+        return text_ja, exp_bbox, cent, shape_type
+
     def _segment_bubble(
         self,
         full_img: Image.Image,

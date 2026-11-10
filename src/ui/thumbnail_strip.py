@@ -3,7 +3,7 @@ from typing import List, Optional, Dict
 from PyQt6.QtWidgets import QWidget, QHBoxLayout, QListWidget, QListWidgetItem, QStyledItemDelegate, QStyle, QStyleOptionViewItem
 from PyQt6.QtCore import pyqtSignal, Qt, QSize, QRect, QRectF, QModelIndex
 from PyQt6.QtGui import QIcon, QPixmap, QPainter, QColor, QFont, QPen, QBrush
-from src.services.thumbnail_cache import ThumbnailCache
+from src.infra.qt_threads import ThumbnailCache
 
 
 class ThumbnailDelegate(QStyledItemDelegate):

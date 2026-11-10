@@ -3,7 +3,7 @@ from enum import Enum
 from pathlib import Path
 import time
 import uuid
-from typing import List, Optional
+from typing import List, Optional, Any, Union
 
 
 class JobStatus(str, Enum):
@@ -75,8 +75,10 @@ class TranslationJob:
         else:
             self.selected_image_paths = []
 
-    def toggle_image(self, path: Path, selected: bool):
+    def toggle_image(self, path: Path, selected: Optional[bool] = None):
         p = Path(path)
+        if selected is None:
+            selected = p not in self.selected_image_paths
         if selected:
             if p in self.image_paths and p not in self.selected_image_paths:
                 # Maintain original folder ordering
@@ -88,11 +90,18 @@ class TranslationJob:
     def is_image_selected(self, path: Path) -> bool:
         return Path(path) in self.selected_image_paths
 
-    def update_progress(self, message: str, current: int, total: int):
-        self.status_message = message
-        self.progress_current = current
-        self.progress_total = total
-        if total > 0:
-            self.progress_pct = max(0, min(100, int((current / total) * 100)))
-        else:
-            self.progress_pct = 0
+    def update_progress(self, message: Any, current: Optional[int] = None, total: Optional[int] = None):
+        if isinstance(message, int) and current is not None and total is None:
+            total = current
+            current = message
+            message = self.status_message
+        if message is not None and isinstance(message, str):
+            self.status_message = message
+        if current is not None:
+            self.progress_current = current
+        if total is not None:
+            self.progress_total = total
+            if total > 0 and current is not None:
+                self.progress_pct = max(0, min(100, int((current / total) * 100)))
+            else:
+                self.progress_pct = 0

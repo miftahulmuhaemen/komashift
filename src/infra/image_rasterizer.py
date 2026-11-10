@@ -2,7 +2,7 @@ import os
 import sys
 import logging
 from pathlib import Path
-from typing import Dict, Union
+from typing import Dict, Union, Optional
 
 if sys.platform.startswith("linux") and not os.environ.get("DISPLAY"):
     os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
@@ -10,20 +10,26 @@ if sys.platform.startswith("linux") and not os.environ.get("DISPLAY"):
 from PyQt6.QtWidgets import QApplication
 from PyQt6.QtGui import QPixmap, QPainter
 from src.models.translation_item import PageTranslation
-from src.ui.translation_overlay import TranslationOverlayWidget
+from src.ports.comic_text_renderer import ComicTextRenderer
+from src.infra.qt_comic_renderer import QtComicTextRenderer
 
 logger = logging.getLogger(__name__)
 
 
 class ImageRasterizer:
-    """Service to permanently bake vector translation overlays into rasterized images."""
+    """Infra adapter to permanently bake vector translation overlays into rasterized images."""
 
-    @staticmethod
+    def __init__(self, renderer: Optional[ComicTextRenderer] = None):
+        self._renderer = renderer if renderer is not None else QtComicTextRenderer()
+
+    @classmethod
     def rasterize_page(
+        cls,
         image_path: Union[str, Path],
         page: PageTranslation,
         translations: Dict[str, str],
-        output_path: Union[str, Path]
+        output_path: Union[str, Path],
+        renderer: Optional[ComicTextRenderer] = None,
     ) -> bool:
         """
         Renders the vector translation overlay onto the source image and saves it to disk.
@@ -33,11 +39,11 @@ class ImageRasterizer:
             page: PageTranslation containing detected speech bubble contours and bboxes.
             translations: Mapping of bubble IDs to their translated text strings.
             output_path: Destination path for the baked image.
+            renderer: Optional custom ComicTextRenderer adapter.
 
         Returns:
             True if rasterization and save succeeded, False otherwise.
         """
-        # Ensure a QCoreApplication / QApplication instance exists for offscreen painting
         app = QApplication.instance()
         if not app:
             app = QApplication([])
@@ -54,26 +60,26 @@ class ImageRasterizer:
             logger.error("Failed to load source image into QPixmap: %s", image_path)
             return False
 
-        orig_size = pixmap.size()
-        overlay = TranslationOverlayWidget()
-        overlay.resize(orig_size)
-        overlay.set_data(
-            page=page,
-            translations=translations,
-            orig_size=orig_size,
-            scaled_size=orig_size,
-            offset=(0, 0)
-        )
+        orig_w = pixmap.width()
+        orig_h = pixmap.height()
 
         canvas = QPixmap(pixmap)
         painter = QPainter(canvas)
+        active_renderer = renderer if renderer is not None else QtComicTextRenderer()
         try:
-            overlay.render(painter)
+            active_renderer.render(
+                painter=painter,
+                page=page,
+                translations=translations,
+                scale_factor=1.0,
+                offset=(0, 0),
+                orig_size=(orig_w, orig_h),
+                scaled_size=(orig_w, orig_h),
+            )
         finally:
             painter.end()
 
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        # Determine format from extension or fallback to PNG
         ext = output_path.suffix.lstrip(".").upper()
         if not ext:
             ext = "PNG"

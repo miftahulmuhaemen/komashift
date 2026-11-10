@@ -2,7 +2,8 @@ import pytest
 from pathlib import Path
 from PIL import Image
 from PyQt6.QtGui import QPixmap, QImage
-from src.services.thumbnail_cache import create_thumbnail_pixmap, create_thumbnail_image, ThumbnailCache
+from src.services.thumbnail_cache import create_thumbnail_pixmap, create_thumbnail_image
+from src.infra.qt_threads import ThumbnailCache
 
 def test_create_thumbnail_image(tmp_path: Path):
     img_path = tmp_path / "test_img.png"

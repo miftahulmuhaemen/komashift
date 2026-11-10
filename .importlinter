@@ -1,0 +1,44 @@
+[importlinter]
+root_package = src
+include_external_packages = True
+
+[importlinter:contract:services-are-headless]
+name = Services are headless and do not touch ui, viewmodels, or infra
+type = forbidden
+source_modules = src.services
+forbidden_modules =
+    src.infra
+    src.viewmodels
+    src.ui
+ignore_imports =
+    src.services.translation_worker -> src.infra.json_workspace
+    src.services.translation_worker -> src.infra.image_rasterizer
+
+[importlinter:contract:models-are-pure]
+name = Models are pure and do not import framework tiers
+type = forbidden
+source_modules = src.models
+forbidden_modules =
+    src.infra
+    src.services
+    src.viewmodels
+    src.ui
+    PyQt6
+
+[importlinter:contract:ports-are-pure]
+name = Ports are pure protocols
+type = forbidden
+source_modules = src.ports
+forbidden_modules =
+    src.infra
+    src.services
+    src.viewmodels
+    src.ui
+
+[importlinter:contract:infra-cannot-import-ui]
+name = Infra cannot import presentation tiers
+type = forbidden
+source_modules = src.infra
+forbidden_modules =
+    src.viewmodels
+    src.ui

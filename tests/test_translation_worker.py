@@ -216,9 +216,8 @@ def test_worker_translates_manual_bubble_with_context(tmp_path: Path, qtbot):
     worker.workspace.save_translations({"p1_b1": "Hello"})
 
     # Mock detector to extract Japanese text in background
-    mock_engine = MagicMock(return_value="當然不行!")
-    worker.detector._engine = mock_engine
-    worker.detector._segment_bubble = MagicMock(return_value=((50, 50, 80, 80), (90, 90), "oval"))
+    mock_manual_region = MagicMock(return_value=("當然不行!", (50, 50, 80, 80), (90, 90), "oval"))
+    worker.detector.detect_and_ocr_manual_region = mock_manual_region
 
     mock_context_translate = MagicMock(return_value="Of course not!")
     mock_visual_translate = MagicMock()
@@ -232,7 +231,7 @@ def test_worker_translates_manual_bubble_with_context(tmp_path: Path, qtbot):
     success, msg = blocker.args
     assert success is True
     # Background worker performed local OCR on the manual box crop
-    assert mock_engine.call_count == 1
+    assert mock_manual_region.call_count == 1
 
     # Contextual single text translation was called with extracted text
     assert mock_context_translate.call_count == 1
@@ -270,9 +269,8 @@ def test_worker_translates_manual_bubble_standard_hybrid_mode(tmp_path: Path, qt
     worker.workspace.save_page_ocr(page1)
     worker.workspace.save_translations({"p1_b1": "Hello"})
 
-    mock_engine = MagicMock(return_value="テスト")
-    worker.detector._engine = mock_engine
-    worker.detector._segment_bubble = MagicMock(return_value=((50, 50, 80, 80), (90, 90), "oval"))
+    mock_manual_region = MagicMock(return_value=("テスト", (50, 50, 80, 80), (90, 90), "oval"))
+    worker.detector.detect_and_ocr_manual_region = mock_manual_region
 
     mock_context_translate = MagicMock(return_value="Test")
     worker.translator.translate_single_text_with_context = mock_context_translate
@@ -286,7 +284,7 @@ def test_worker_translates_manual_bubble_standard_hybrid_mode(tmp_path: Path, qt
     success, msg = blocker.args
     assert success is True
     # Background worker performed local OCR on the manual box crop
-    assert mock_engine.call_count == 1
+    assert mock_manual_region.call_count == 1
     # Translated with context
     assert mock_context_translate.call_count == 1
     # Regular chapter batch was not needed because b1 was already translated
@@ -345,6 +343,48 @@ def test_worker_multimodal_retry_and_downscale(tmp_path: Path, qtbot):
 
     trans = worker.workspace.load_translations("en")
     assert trans["p1_b1"] == "Help!"
+
+
+def test_worker_dependency_injection(tmp_path: Path):
+    dummy_detector = MagicMock()
+    dummy_provider = MagicMock()
+    dummy_repo = MagicMock()
+    dummy_sink = MagicMock()
+
+    worker = TranslationWorker(
+        folder_path=tmp_path,
+        image_paths=[],
+        detector=dummy_detector,
+        provider=dummy_provider,
+        repository=dummy_repo,
+        log_sink=dummy_sink,
+    )
+
+    assert worker.detector is dummy_detector
+    assert worker.translator is dummy_provider
+    assert worker.workspace is dummy_repo
+
+
+def test_worker_interruption_cancels_gracefully(tmp_path: Path, qtbot):
+    img1 = tmp_path / "01.png"
+    _create_dummy_image(img1)
+
+    dummy_detector = MagicMock()
+    worker = TranslationWorker(
+        folder_path=tmp_path,
+        image_paths=[img1],
+        api_key="mock-key",
+        detector=dummy_detector,
+    )
+
+    with qtbot.waitSignal(worker.translation_finished, timeout=5000) as blocker:
+        worker.start()
+        worker.requestInterruption()
+    worker.wait()
+
+    success, msg = blocker.args
+    assert success is False
+    assert "Cancelled" in msg
 
 
 

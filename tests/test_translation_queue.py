@@ -268,7 +268,7 @@ def test_queue_manager_stops_requeuing_after_max_retries():
 
 def test_queue_dialog_manual_label_tag(tmp_path: Path, qtbot):
     from src.models.translation_item import BubbleBlock, PageTranslation
-    from src.services.translation_workspace import TranslationWorkspace
+    from src.infra.json_workspace import JsonTempWorkspace as TranslationWorkspace
 
     ws = TranslationWorkspace(tmp_path)
     # Page 1: cached translation
@@ -344,4 +344,25 @@ def test_queue_dialog_ui_fixes(tmp_path: Path, qtbot):
     # 5. Hover thumbnail popup exists
     assert hasattr(dialog, "hover_popup")
     assert dialog.pages_list.hasMouseTracking() is True
+
+
+def test_queue_manager_cancel_and_state_changed():
+    qm = TranslationQueueManager(settings_getter=lambda: ("key", "url", "model"))
+    p = Path("/tmp/ch1")
+    job = qm.add_job(p, [p / "01.png"])
+
+    mock_worker = MagicMock()
+    mock_worker.isRunning.return_value = True
+    qm._current_job = job
+    qm._current_worker = mock_worker
+    qm._is_running = True
+
+    states = []
+    qm.queue_state_changed.connect(lambda s: states.append(s))
+
+    qm.stop_queue()
+    assert qm.is_running is False
+    assert mock_worker.requestInterruption.call_count == 1
+    assert states == [False]
+
 

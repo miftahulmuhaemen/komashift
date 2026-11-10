@@ -13,7 +13,8 @@ from PyQt6.QtCore import Qt, QTimer, QSettings, QPoint, QSize, QEvent
 from PyQt6.QtGui import QIcon, QPixmap, QGuiApplication
 from src.models.translation_job import TranslationJob, JobStatus, JobType
 from src.services.translation_queue import TranslationQueueManager
-from src.services.translation_workspace import TranslationWorkspace
+from src.infra.json_workspace import JsonTempWorkspace as TranslationWorkspace
+from src.infra.file_log_sink import FileLogSink
 from src.services.scanner import natural_sort_key
 from src.services.thumbnail_cache import create_thumbnail_pixmap
 from src.ui.settings_dialog import ApiTranslationSettingsWidget
@@ -694,12 +695,8 @@ class QueueDialog(QDialog):
         row = self.list_widget.currentRow()
         if 0 <= row < len(self.queue_manager.jobs):
             job = self.queue_manager.jobs[row]
-            log_file = job.folder_path / "temp" / "translation.log"
-            if log_file.exists():
-                try:
-                    log_file.write_text("", encoding="utf-8")
-                except Exception as e:
-                    logger.warning(f"Could not clear log file {log_file}: {e}")
+            sink = FileLogSink(job.folder_path / "temp" / "translation.log")
+            sink.clear()
 
     def _on_tab_changed(self, index: int):
         if hasattr(self, "hover_popup"):
@@ -902,13 +899,11 @@ class QueueDialog(QDialog):
         self.summary_text.setText(html)
 
         # Load log file if present
-        log_file = job.folder_path / "temp" / "translation.log"
-        if log_file.exists():
-            try:
-                self.log_edit.setPlainText(log_file.read_text(encoding="utf-8", errors="replace"))
-                self.log_edit.verticalScrollBar().setValue(self.log_edit.verticalScrollBar().maximum())
-            except Exception:
-                self.log_edit.setPlainText("(Could not read log file)")
+        sink = FileLogSink(job.folder_path / "temp" / "translation.log")
+        content = sink.read()
+        if content:
+            self.log_edit.setPlainText(content)
+            self.log_edit.verticalScrollBar().setValue(self.log_edit.verticalScrollBar().maximum())
         else:
             self.log_edit.setPlainText("(No logs available yet for this job)")
 

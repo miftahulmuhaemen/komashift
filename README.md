@@ -35,6 +35,23 @@ To fit your budget and hardware, the app offers two flexible translation modes:
 - **Batch Rename**: Speed up your library cleanup with quick, in-place folder renaming and convenient batch disk operations directly within the workspace.
 - **Translation**: An adaptable localization pipeline featuring both a token-saving hybrid mode (using ONNX Runtime, OpenCV, Manga OCR, and OpenAI text APIs) and a context-aware visual hybrid mode (combining ONNX bubble geometry with Vision LLM reading). Measured single-page benchmarks show 2,502 total tokens for hybrid text translation versus 3,702 total tokens for visual hybrid translation, giving users direct control over API expenditure versus contextual visual precision.
 
+## Architecture
+
+The codebase follows a Ports & Adapters (hexagonal-lite) architecture mechanically validated on every test run by `import-linter`:
+
+```
+ui  →  viewmodels  →  services  →  ports  ←  infra
+                                        ↑
+                                     models
+```
+
+- **`src/models/`**: Pure domain data models with zero external or Qt dependencies (`FolderItem`, `PageTranslation`, `BubbleBlock`, `TranslationJob`).
+- **`src/ports/`**: Pure `typing.Protocol` contracts defining seams (`PageRepository`, `TranslationProvider`, `LogSink`, `ComicTextRenderer`).
+- **`src/services/`**: Headless business logic, directory scanners, and typography layout math (`comic_text.py`, `folder_service.py`, `trash_service.py`, `manga_ocr_detector.py`). Strictly headless with zero `PyQt6.QtWidgets` imports.
+- **`src/infra/`**: Outside-world adapters implementing ports (`json_workspace.py`, `file_log_sink.py`, `qt_comic_renderer.py`, `image_rasterizer.py`).
+- **`src/viewmodels/`**: Headless presentation logic (`SettingsViewModel`, `LibraryViewModel`, `TranslationViewModel`) binding UI to services without widget dependencies.
+- **`src/ui/`**: PyQt6 presentation layer and custom widgets. Contains zero direct disk I/O or network requests.
+
 ## Installation & Local Run
 
 ```bash
