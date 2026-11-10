@@ -60,7 +60,7 @@ class LogDialog(QDialog):
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
 
-        self.refresh_btn = QPushButton("🔄 Refresh")
+        self.refresh_btn = QPushButton("Refresh")
         self.refresh_btn.clicked.connect(self.refresh_log)
         btn_layout.addWidget(self.refresh_btn)
 

@@ -2,7 +2,7 @@ import json
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, Optional, Set, List
 from src.models.translation_item import PageTranslation
 
 logger = logging.getLogger(__name__)
@@ -74,6 +74,8 @@ class TranslationWorkspace:
 
     def get_translation_file(self, target_lang: str = "en") -> Path:
         lang = (target_lang or "en").lower().strip()
+        if lang in ("mix", "mixed", "mix-lang", "all"):
+            return self.translation_file
         if lang in ("en", "english"):
             specific = self.temp_dir / "translation_results_en.json"
             if specific.exists():
@@ -82,31 +84,148 @@ class TranslationWorkspace:
         return self.temp_dir / f"translation_results_{lang}.json"
 
     def save_translations(self, translations: Dict[str, str], target_lang: str = "en"):
-        target_file = self.get_translation_file(target_lang)
-        data = {
+        # Single unified translation storage housing multi-lang bubbles
+        main_existing = self.load_translations()
+        main_merged = {**main_existing, **translations}
+        main_data = {
             "version": 1,
-            "target_lang": target_lang,
-            "translations": translations,
+            "translations": main_merged,
             "timestamp": datetime.now().isoformat()
         }
-        self._atomic_write_json(target_file, data)
-        self.append_log(f"Saved {len(translations)} translations ({target_lang.upper()}) to {target_file.name}")
+        self._atomic_write_json(self.translation_file, main_data)
 
-    def load_translations(self, target_lang: str = "en") -> Dict[str, str]:
+        target_file = self.get_translation_file(target_lang)
+        if target_file != self.translation_file:
+            existing_lang = {}
+            if target_file.exists():
+                try:
+                    with open(target_file, "r", encoding="utf-8") as f:
+                        existing_lang = json.load(f).get("translations", {})
+                except Exception:
+                    existing_lang = {}
+            merged_lang = {**existing_lang, **translations}
+            lang_data = {
+                "version": 1,
+                "target_lang": target_lang,
+                "translations": merged_lang,
+                "timestamp": datetime.now().isoformat()
+            }
+            self._atomic_write_json(target_file, lang_data)
+
+        self.append_log(f"Saved {len(translations)} translations to {self.translation_file.name}")
+
+    def load_translations(self, target_lang: Optional[str] = None) -> Dict[str, str]:
+        all_trans: Dict[str, str] = {}
+        # Load from main translation_results.json
+        if self.translation_file.exists():
+            try:
+                with open(self.translation_file, "r", encoding="utf-8") as f:
+                    all_trans.update(json.load(f).get("translations", {}))
+            except Exception as e:
+                self.append_log(f"Error reading translations from {self.translation_file.name}: {e}")
+
+        # Check legacy or language-specific files and merge any missing
+        for t_file in self.temp_dir.glob("translation_results_*.json"):
+            try:
+                with open(t_file, "r", encoding="utf-8") as f:
+                    for k, v in json.load(f).get("translations", {}).items():
+                        if k not in all_trans:
+                            all_trans[k] = v
+            except Exception:
+                pass
+
+        if target_lang and target_lang.lower().strip() not in ("all", "mix", "mixed", "mix-lang"):
+            t_file = self.get_translation_file(target_lang)
+            if t_file.exists() and t_file != self.translation_file:
+                try:
+                    with open(t_file, "r", encoding="utf-8") as f:
+                        return json.load(f).get("translations", {})
+                except Exception:
+                    pass
+
+        return all_trans
+
+    def get_page_language(self, filename: str) -> str:
+        ocr_results = self.load_ocr_results()
+        page = ocr_results.get(filename)
+        if not page or not page.bubbles:
+            return "EN"
+        langs = set()
+        for b in page.bubbles:
+            b_lang = getattr(b, "target_lang", "").lower().strip()
+            if b_lang in ("id", "indonesian"):
+                langs.add("ID")
+            elif b_lang in ("en", "english"):
+                langs.add("EN")
+        if len(langs) > 1:
+            return "Mix-Lang"
+        if len(langs) == 1:
+            return next(iter(langs))
+        return "EN"
+
+    def get_chapter_language(self) -> str:
+        ocr_results = self.load_ocr_results()
+        if not ocr_results:
+            return "EN"
+        langs = set()
+        for page in ocr_results.values():
+            for b in page.bubbles:
+                b_lang = getattr(b, "target_lang", "").lower().strip()
+                if b_lang in ("id", "indonesian"):
+                    langs.add("ID")
+                elif b_lang in ("en", "english"):
+                    langs.add("EN")
+        if len(langs) > 1:
+            return "Mix-Lang"
+        if len(langs) == 1:
+            return next(iter(langs))
+        return "EN"
+
+    def get_translated_page_filenames(self, target_lang: str = "en") -> Set[str]:
+        ocr_results = self.load_ocr_results()
+        if not ocr_results:
+            return set()
+        translations = self.load_translations(target_lang)
+        translated_pages: Set[str] = set()
+        for fn, page in ocr_results.items():
+            if not page.bubbles:
+                translated_pages.add(fn)
+            elif all(
+                (not getattr(b, "is_manual", False) or bool(b.text_ja))
+                and b.id in translations and bool(translations.get(b.id))
+                for b in page.bubbles
+            ):
+                translated_pages.add(fn)
+        return translated_pages
+
+    def get_manual_labeled_page_filenames(self, target_lang: str = "en") -> Set[str]:
+        ocr_results = self.load_ocr_results()
+        if not ocr_results:
+            return set()
+        translations = self.load_translations(target_lang)
+        manual_pages: Set[str] = set()
+        for fn, page in ocr_results.items():
+            if any(getattr(b, "is_manual", False) and (not b.text_ja or b.id not in translations or not translations.get(b.id)) for b in page.bubbles):
+                manual_pages.add(fn)
+        return manual_pages
+
+    def is_page_translated(self, filename: str, target_lang: str = "en") -> bool:
+        return filename in self.get_translated_page_filenames(target_lang)
+
+    def is_translation_complete(self, target_lang: str = "en", image_paths: Optional[List[Path]] = None) -> bool:
         target_file = self.get_translation_file(target_lang)
         if not target_file.exists():
-            return {}
-        try:
-            with open(target_file, "r", encoding="utf-8") as f:
-                data = json.load(f)
-            return data.get("translations", {})
-        except Exception as e:
-            self.append_log(f"Error reading translations from {target_file.name}: {e}")
-            return {}
-
-    def is_translation_complete(self, target_lang: str = "en") -> bool:
-        target_file = self.get_translation_file(target_lang)
-        return target_file.exists() and len(self.load_translations(target_lang)) > 0
+            return False
+        if image_paths is None:
+            return len(self.load_translations(target_lang)) > 0
+        if not image_paths:
+            return False
+        manual_untranslated = self.get_manual_labeled_page_filenames(target_lang)
+        for p in image_paths:
+            if p.name in manual_untranslated:
+                return False
+        translated = self.get_translated_page_filenames(target_lang)
+        return all(p.name in translated for p in image_paths)
 
     def clear_cache(self):
         if self.ocr_file.exists():

@@ -10,7 +10,7 @@ except ImportError:
     pyphen = None
 
 from PyQt6.QtWidgets import QWidget
-from PyQt6.QtCore import Qt, QRect, QSize, QPoint
+from PyQt6.QtCore import Qt, QRect, QSize, QPoint, pyqtSignal
 from PyQt6.QtGui import (
     QPainter, QColor, QFont, QPen, QBrush, QFontMetrics, QFontDatabase
 )
@@ -116,27 +116,96 @@ def calculate_popup_rect(
     return QRect(clamped_x, clamped_y, target_width, target_height)
 
 
-def get_hyphenation_variants(words: List[str]) -> List[List[str]]:
-    sequences = [words]
-    dic = get_hyphenator()
-    if not dic:
-        return sequences
+def split_word_to_fit(word: str, fm: QFontMetrics, max_w: int, dic=None) -> List[str]:
+    """
+    Splits a single word into chunks that each fit within max_w.
+    Prefers syllable hyphenation, falling back to character-level splitting.
+    """
+    if not word or fm.horizontalAdvance(word) <= max_w:
+        return [word]
 
-    for i, word in enumerate(words):
-        clean_word = re.sub(r'^[^\w]+|[^\w]+$', '', word)
-        if len(clean_word) >= 8:
-            try:
-                hyphenated = dic.inserted(clean_word)
-                if '-' in hyphenated:
-                    parts = hyphenated.split('-')
-                    prefix = word[:word.find(clean_word)]
-                    suffix = word[word.find(clean_word) + len(clean_word):]
-                    p1 = prefix + parts[0] + '-'
-                    p2 = ''.join(parts[1:]) + suffix
-                    sequences.append(words[:i] + [p1, p2] + words[i+1:])
-            except Exception:
-                pass
-    return sequences
+    chunks = []
+    clean_word = re.sub(r"^[^\w]+|[^\w]+$", "", word)
+    if dic and clean_word:
+        try:
+            hyphenated = dic.inserted(clean_word)
+            if "-" in hyphenated:
+                parts = hyphenated.split("-")
+                prefix = word[:word.find(clean_word)]
+                suffix = word[word.find(clean_word) + len(clean_word):]
+
+                cur_chunk = prefix
+                for i, p in enumerate(parts):
+                    is_last = (i == len(parts) - 1)
+                    test_part = cur_chunk + p + ("" if is_last else "-")
+                    if is_last:
+                        test_part += suffix
+
+                    if fm.horizontalAdvance(test_part) <= max_w:
+                        cur_chunk = test_part
+                    else:
+                        if cur_chunk:
+                            chunks.append(cur_chunk if cur_chunk.endswith("-") else cur_chunk + "-")
+                        cur_chunk = p + ("" if is_last else "-")
+                        if is_last:
+                            cur_chunk += suffix
+                if cur_chunk:
+                    chunks.append(cur_chunk)
+        except Exception:
+            pass
+
+    to_process = chunks if chunks else [word]
+    final_chunks = []
+    for ch in to_process:
+        if fm.horizontalAdvance(ch) <= max_w:
+            final_chunks.append(ch)
+        else:
+            # Character-level chunking fallback
+            rem = ch
+            while rem:
+                if fm.horizontalAdvance(rem) <= max_w:
+                    final_chunks.append(rem)
+                    break
+                sub = ""
+                for char in rem:
+                    test_sub = sub + char + "-"
+                    if fm.horizontalAdvance(test_sub) <= max_w or not sub:
+                        sub += char
+                    else:
+                        break
+                final_chunks.append(sub + "-")
+                rem = rem[len(sub):]
+    return final_chunks if final_chunks else [word]
+
+
+def wrap_words_to_width(words: List[str], fm: QFontMetrics, max_w: int, dic=None) -> List[str]:
+    """
+    Wraps a list of words to fit inside max_w, splitting overlong words as necessary.
+    Guarantees no returned line exceeds max_w.
+    """
+    lines = []
+    cur_line = []
+    cur_w = 0
+    space_w = fm.horizontalAdvance(" ")
+
+    for word in words:
+        chunks = split_word_to_fit(word, fm, max_w, dic)
+        for idx, chunk in enumerate(chunks):
+            chunk_w = fm.horizontalAdvance(chunk)
+            if not cur_line:
+                cur_line.append(chunk)
+                cur_w = chunk_w
+            else:
+                if idx == 0 and cur_w + space_w + chunk_w <= max_w:
+                    cur_line.append(chunk)
+                    cur_w += space_w + chunk_w
+                else:
+                    lines.append(" ".join(cur_line))
+                    cur_line = [chunk]
+                    cur_w = chunk_w
+    if cur_line:
+        lines.append(" ".join(cur_line))
+    return lines
 
 
 def fit_comic_text(
@@ -148,11 +217,15 @@ def fit_comic_text(
 ) -> Tuple[int, List[str], float, float, int, int]:
     """
     Computes optimal Comic font size, line wrapping, tracking and word spacing.
+    Guarantees text is wrapped within inner_w and never returns an unwrapped single line.
     Returns: (best_pt, best_lines, letter_sp, word_sp, line_height, total_h)
     """
     family = get_comic_font_family()
     base_words = text.split()
     total_words = len(base_words)
+
+    if not base_words:
+        return (10, [], 0.0, 0.0, 10, 0)
 
     aspect = inner_w / float(inner_h) if inner_h > 0 else 1.0
 
@@ -167,85 +240,68 @@ def fit_comic_text(
         word_sp = 0.0
 
     # Base scale bounds scaled by view scale factor
-    base_max_pt = 26 if total_words <= 2 else (22 if total_words <= 6 else 19)
+    base_max_pt = 32 if total_words <= 2 else (28 if total_words <= 6 else 24)
     base_min_pt = 10
+    emergency_min_pt = max(6, int(round(6 * scale_factor)))
 
     max_pt = max(base_min_pt, int(round(base_max_pt * scale_factor)))
     min_pt = max(8, int(round(base_min_pt * scale_factor)))
 
-    sequences = get_hyphenation_variants(base_words)
+    dic = get_hyphenator()
     candidates = []
+    all_wrapped_by_pt = {}
 
-    for seq in sequences:
-        for pt in range(max_pt, min_pt - 1, -1):
-            font = QFont(family, pt)
+    for pt in range(max_pt, emergency_min_pt - 1, -1):
+        font = QFont(family, pt)
+        font.setWeight(QFont.Weight.Bold)
+        font.setLetterSpacing(QFont.SpacingType.AbsoluteSpacing, letter_sp)
+        font.setWordSpacing(word_sp)
+        fm = QFontMetrics(font)
+
+        lines = wrap_words_to_width(base_words, fm, inner_w, dic)
+        if not lines:
+            continue
+
+        line_height = int(fm.height() * 1.05)
+        total_text_h = len(lines) * line_height
+        all_wrapped_by_pt[pt] = (lines, line_height, total_text_h)
+
+        if total_text_h <= inner_h:
+            fill_ratio = total_text_h / float(inner_h)
+            score = pt * 6.0
+
+            if 0.40 <= fill_ratio <= 0.90:
+                score += 30.0
+            elif fill_ratio < 0.35 and aspect >= 0.7:
+                score -= (0.35 - fill_ratio) * 40.0
+
+            if aspect >= 0.85 and len(lines) > 1:
+                orphan_count = sum(1 for line in lines if len(line.split()) == 1)
+                score -= orphan_count * 15.0
+
+            # Diamond shape bonus for ovals: wider middle lines
+            if shape == "oval" and len(lines) >= 3:
+                mid = len(lines) // 2
+                widths = [fm.horizontalAdvance(l) for l in lines]
+                if widths[mid] >= widths[0] and widths[mid] >= widths[-1]:
+                    score += 15.0
+
+            candidates.append((score, pt, lines, letter_sp, word_sp, line_height, total_text_h))
+
+    if not candidates:
+        fallback_pt = emergency_min_pt
+        if fallback_pt in all_wrapped_by_pt:
+            lines, lh, total_h = all_wrapped_by_pt[fallback_pt]
+        else:
+            font = QFont(family, fallback_pt)
             font.setWeight(QFont.Weight.Bold)
             font.setLetterSpacing(QFont.SpacingType.AbsoluteSpacing, letter_sp)
             font.setWordSpacing(word_sp)
             fm = QFontMetrics(font)
-
-            lines = []
-            cur_line = []
-            cur_w = 0
-            fits = True
-
-            for word in seq:
-                word_w = fm.horizontalAdvance(word)
-                space_w = fm.horizontalAdvance(' ')
-                if not cur_line:
-                    if word_w > inner_w:
-                        fits = False
-                        break
-                    cur_line.append(word)
-                    cur_w = word_w
-                else:
-                    if cur_w + space_w + word_w <= inner_w:
-                        cur_line.append(word)
-                        cur_w += space_w + word_w
-                    else:
-                        lines.append(' '.join(cur_line))
-                        if word_w > inner_w:
-                            fits = False
-                            break
-                        cur_line = [word]
-                        cur_w = word_w
-            if cur_line:
-                lines.append(' '.join(cur_line))
-
-            if not fits or not lines:
-                continue
-
-            line_height = int(fm.height() * 1.05)
-            total_text_h = len(lines) * line_height
-
-            if total_text_h <= inner_h:
-                fill_ratio = total_text_h / float(inner_h)
-                score = pt * 4.0
-
-                if 0.50 <= fill_ratio <= 0.85:
-                    score += 25.0
-                elif fill_ratio < 0.35 and aspect >= 0.7:
-                    score -= (0.35 - fill_ratio) * 40.0
-
-                if aspect >= 0.85 and len(lines) > 1:
-                    orphan_count = sum(1 for line in lines if len(line.split()) == 1)
-                    score -= orphan_count * 15.0
-
-                if len(seq) > len(base_words):
-                    score += 5.0
-
-                widths = [fm.horizontalAdvance(l) for l in lines]
-                score -= float(np.std(widths)) * 0.15
-
-                candidates.append((score, pt, lines, letter_sp, word_sp, line_height, total_text_h))
-
-    if not candidates:
-        fallback_pt = min_pt
-        fallback_lines = [text]
-        font = QFont(family, fallback_pt)
-        fm = QFontMetrics(font)
-        lh = int(fm.height() * 1.05)
-        return (fallback_pt, fallback_lines, 0.0, 0.0, lh, len(fallback_lines) * lh)
+            lines = wrap_words_to_width(base_words, fm, inner_w, dic)
+            lh = int(fm.height() * 1.05)
+            total_h = len(lines) * lh
+        return (fallback_pt, lines, letter_sp, word_sp, lh, total_h)
 
     candidates.sort(key=lambda x: x[0], reverse=True)
     _, best_pt, best_lines, best_letter_sp, best_word_sp, line_height, total_h = candidates[0]
@@ -253,11 +309,16 @@ def fit_comic_text(
 
 
 class TranslationOverlayWidget(QWidget):
+    manual_box_created = pyqtSignal(tuple)  # (orig_x, orig_y, orig_w, orig_h)
+
     def __init__(self, parent: Optional[QWidget] = None):
         super().__init__(parent)
         self.setAttribute(Qt.WidgetAttribute.WA_NoSystemBackground, True)
         self.setMouseTracking(True)
         self._enabled = True
+        self._manual_box_mode = False
+        self._drag_start: Optional[QPoint] = None
+        self._drag_current: Optional[QPoint] = None
         self._page: Optional[PageTranslation] = None
         self._translations: Dict[str, str] = {}
         self._orig_size = QSize(0, 0)
@@ -266,17 +327,32 @@ class TranslationOverlayWidget(QWidget):
         self._hovered_bubble_id: Optional[str] = None
         self._current_popup_rect = QRect()
 
+    def set_manual_box_mode(self, enabled: bool):
+        self._manual_box_mode = enabled
+        self._drag_start = None
+        self._drag_current = None
+        if enabled:
+            self.setCursor(Qt.CursorShape.CrossCursor)
+        else:
+            self.unsetCursor()
+        self.update()
+
+    def is_manual_box_mode(self) -> bool:
+        return self._manual_box_mode
+
     def is_overlay_enabled(self) -> bool:
         return self._enabled
 
     def set_overlay_enabled(self, enabled: bool):
         if self._enabled != enabled:
             self._enabled = enabled
-            self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, not enabled)
+            if not self._manual_box_mode:
+                self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, not enabled)
             if not enabled:
                 self._hovered_bubble_id = None
                 self._current_popup_rect = QRect()
-                self.unsetCursor()
+                if not self._manual_box_mode:
+                    self.unsetCursor()
             self.update()
 
     def toggle_visibility(self):
@@ -335,6 +411,13 @@ class TranslationOverlayWidget(QWidget):
         return None
 
     def mouseMoveEvent(self, event):
+        if self._manual_box_mode:
+            if self._drag_start is not None:
+                self._drag_current = event.position().toPoint()
+                self.update()
+            event.accept()
+            return
+
         if not self._enabled or not self._page or not self._translations:
             super().mouseMoveEvent(event)
             return
@@ -352,10 +435,15 @@ class TranslationOverlayWidget(QWidget):
         event.ignore()
 
     def leaveEvent(self, event):
+        if self._manual_box_mode and self._drag_start is not None:
+            self._drag_start = None
+            self._drag_current = None
+            self.update()
         if self._hovered_bubble_id is not None:
             self._hovered_bubble_id = None
             self._current_popup_rect = QRect()
-            self.unsetCursor()
+            if not self._manual_box_mode:
+                self.unsetCursor()
             self.update()
         super().leaveEvent(event)
 
@@ -363,95 +451,182 @@ class TranslationOverlayWidget(QWidget):
         event.ignore()
 
     def mousePressEvent(self, event):
+        if self._manual_box_mode and event.button() == Qt.MouseButton.LeftButton:
+            self._drag_start = event.position().toPoint()
+            self._drag_current = self._drag_start
+            self.update()
+            event.accept()
+            return
         event.ignore()
 
     def mouseReleaseEvent(self, event):
+        if self._manual_box_mode and event.button() == Qt.MouseButton.LeftButton and self._drag_start is not None:
+            end_pos = event.position().toPoint()
+            x1 = min(self._drag_start.x(), end_pos.x())
+            y1 = min(self._drag_start.y(), end_pos.y())
+            x2 = max(self._drag_start.x(), end_pos.x())
+            y2 = max(self._drag_start.y(), end_pos.y())
+            self._drag_start = None
+            self._drag_current = None
+            self.update()
+
+            w = x2 - x1
+            h = y2 - y1
+            # Minimum threshold: 10x10 px to avoid accidental click
+            if w >= 10 and h >= 10 and self._scaled_size.width() > 0 and self._scaled_size.height() > 0:
+                off_x, off_y = self._offset
+                sx = self._orig_size.width() / float(self._scaled_size.width())
+                sy = self._orig_size.height() / float(self._scaled_size.height())
+
+                orig_x = max(0, min(self._orig_size.width() - 1, int((x1 - off_x) * sx)))
+                orig_y = max(0, min(self._orig_size.height() - 1, int((y1 - off_y) * sy)))
+                orig_w = max(5, min(self._orig_size.width() - orig_x, int(w * sx)))
+                orig_h = max(5, min(self._orig_size.height() - orig_y, int(h * sy)))
+
+                self.manual_box_created.emit((orig_x, orig_y, orig_w, orig_h))
+
+            event.accept()
+            return
         event.ignore()
 
     def paintEvent(self, event):
-        if not self._enabled or not self._page or not self._translations:
+        has_bubbles = (self._enabled and self._page and (self._translations or any(getattr(b, "is_manual", False) for b in self._page.bubbles)))
+        has_drag = (self._manual_box_mode and self._drag_start is not None and self._drag_current is not None)
+        if not has_bubbles and not has_drag:
             return
 
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         painter.setRenderHint(QPainter.RenderHint.TextAntialiasing)
 
-        family = get_comic_font_family()
-        scale_x = self._scaled_size.width() / float(self._orig_size.width()) if self._orig_size.width() > 0 else 1.0
+        if has_bubbles and self._page:
+            family = get_comic_font_family()
+            scale_x = self._scaled_size.width() / float(self._orig_size.width()) if self._orig_size.width() > 0 else 1.0
 
-        for bubble in self._page.bubbles:
-            text_en = self._translations.get(bubble.id)
-            if not text_en:
-                continue
+            for bubble in self._page.bubbles:
+                # If this is a manual bubble that hasn't undergone OCR/queue processing yet, force untranslated display
+                if getattr(bubble, "is_manual", False) and not bubble.text_ja:
+                    text_en = None
+                else:
+                    text_en = self._translations.get(bubble.id)
+                if not text_en:
+                    if getattr(bubble, "is_manual", False):
+                        box_to_use = bubble.expanded_bbox if bubble.expanded_bbox else bubble.bbox
+                        rect = calculate_scaled_rect(
+                            box_to_use,
+                            self._orig_size,
+                            self._scaled_size,
+                            self._offset
+                        )
+                        if not rect.isEmpty():
+                            painter.save()
+                            painter.setBrush(QBrush(QColor(0, 0, 0, 110)))
+                            painter.setPen(QPen(QColor("#ffffff"), 1.4, Qt.PenStyle.DashLine))
+                            painter.drawRoundedRect(rect, 3, 3)
+                            painter.setPen(QColor("#ffffff"))
+                            font = QFont("Arial", max(8, int(10 * scale_x)), QFont.Weight.Bold)
+                            painter.setFont(font)
+                            display_text = bubble.text_ja if bubble.text_ja else "[Manual Label]"
+                            painter.drawText(rect, int(Qt.AlignmentFlag.AlignCenter | Qt.TextFlag.TextWordWrap), display_text)
+                            painter.restore()
+                    continue
 
-            # Target region for text rendering
-            box_to_use = bubble.expanded_bbox if bubble.expanded_bbox else bubble.bbox
-            rect = calculate_scaled_rect(
-                box_to_use,
-                self._orig_size,
-                self._scaled_size,
-                self._offset
-            )
-            if rect.isEmpty():
-                continue
+                # Target region for text rendering
+                box_to_use = bubble.expanded_bbox if bubble.expanded_bbox else bubble.bbox
+                rect = calculate_scaled_rect(
+                    box_to_use,
+                    self._orig_size,
+                    self._scaled_size,
+                    self._offset
+                )
+                if rect.isEmpty():
+                    continue
 
-            shape = getattr(bubble, 'shape', 'oval')
-            if shape == 'inverted':
-                # Semi-translucent dark background with white text for narration/sound effects over art
-                painter.setPen(Qt.PenStyle.NoPen)
-                painter.setBrush(QBrush(QColor(15, 15, 15, 230)))
-                painter.drawRoundedRect(rect, 4, 4)
-                text_color = QColor(245, 245, 245)
-            elif shape == 'oval':
-                painter.setPen(Qt.PenStyle.NoPen)
-                painter.setBrush(QBrush(QColor(255, 255, 255, 245)))
-                painter.drawEllipse(rect)
-                text_color = QColor(15, 15, 15)
-            else:
-                painter.setPen(Qt.PenStyle.NoPen)
-                painter.setBrush(QBrush(QColor(255, 255, 255, 245)))
-                painter.drawRoundedRect(rect, 4, 4)
-                text_color = QColor(15, 15, 15)
+                shape = getattr(bubble, 'shape', 'oval')
+                if shape == 'inverted':
+                    # Semi-translucent dark background with white text for narration/sound effects over art
+                    painter.setPen(Qt.PenStyle.NoPen)
+                    painter.setBrush(QBrush(QColor(15, 15, 15, 230)))
+                    painter.drawRoundedRect(rect, 4, 4)
+                    text_color = QColor(245, 245, 245)
+                elif shape == 'oval':
+                    painter.setPen(Qt.PenStyle.NoPen)
+                    painter.setBrush(QBrush(QColor(255, 255, 255, 245)))
+                    painter.drawEllipse(rect)
+                    text_color = QColor(15, 15, 15)
+                else:
+                    painter.setPen(Qt.PenStyle.NoPen)
+                    painter.setBrush(QBrush(QColor(255, 255, 255, 245)))
+                    painter.drawRoundedRect(rect, 4, 4)
+                    text_color = QColor(15, 15, 15)
 
-            # Calculate safe inner area
-            if shape == 'oval':
-                pad_x = max(6, int(rect.width() * 0.12))
-                pad_y = max(6, int(rect.height() * 0.10))
-            else:
-                pad_x = max(4, int(rect.width() * 0.08))
-                pad_y = max(4, int(rect.height() * 0.08))
+                # Calculate safe inner area with narrowed padding for maximum readable typography
+                if shape == 'oval':
+                    pad_x = max(4, int(rect.width() * 0.08))
+                    pad_y = max(4, int(rect.height() * 0.07))
+                else:
+                    pad_x = max(3, int(rect.width() * 0.04))
+                    pad_y = max(3, int(rect.height() * 0.03))
 
-            inner_w = max(10, rect.width() - 2 * pad_x)
-            inner_h = max(10, rect.height() - 2 * pad_y)
+                # Prevent padding from choking narrow bubbles
+                pad_x = min(pad_x, max(2, int(rect.width() * 0.12)))
+                pad_y = min(pad_y, max(2, int(rect.height() * 0.12)))
 
-            # Fit text dynamically
-            best_pt, best_lines, l_sp, w_sp, lh, total_h = fit_comic_text(
-                text_en, inner_w, inner_h, shape=shape, scale_factor=scale_x
-            )
+                inner_w = max(20, rect.width() - 2 * pad_x)
+                inner_h = max(20, rect.height() - 2 * pad_y)
 
-            font = QFont(family, best_pt)
-            font.setWeight(QFont.Weight.Bold)
-            font.setLetterSpacing(QFont.SpacingType.AbsoluteSpacing, l_sp)
-            font.setWordSpacing(w_sp)
-            painter.setFont(font)
-            fm = QFontMetrics(font)
+                # Fit text dynamically
+                best_pt, best_lines, l_sp, w_sp, lh, total_h = fit_comic_text(
+                    text_en, inner_w, inner_h, shape=shape, scale_factor=scale_x
+                )
 
-            # Scaled centroid or rect center
-            if bubble.centroid is not None and self._orig_size.width() > 0 and self._orig_size.height() > 0:
-                cx_orig, cy_orig = bubble.centroid
-                cx = self._offset[0] + int(round(cx_orig * scale_x))
-                cy = self._offset[1] + int(round(cy_orig * (self._scaled_size.height() / float(self._orig_size.height()))))
-            else:
-                cx = rect.center().x()
-                cy = rect.center().y()
+                font = QFont(family, best_pt)
+                font.setWeight(QFont.Weight.Bold)
+                font.setLetterSpacing(QFont.SpacingType.AbsoluteSpacing, l_sp)
+                font.setWordSpacing(w_sp)
+                painter.setFont(font)
+                fm = QFontMetrics(font)
 
-            start_y = cy - total_h // 2 + fm.ascent()
+                # Scaled centroid or rect center
+                if bubble.centroid is not None and self._orig_size.width() > 0 and self._orig_size.height() > 0:
+                    cx_orig, cy_orig = bubble.centroid
+                    cx = self._offset[0] + int(round(cx_orig * scale_x))
+                    cy = self._offset[1] + int(round(cy_orig * (self._scaled_size.height() / float(self._orig_size.height()))))
+                else:
+                    cx = rect.center().x()
+                    cy = rect.center().y()
 
-            painter.setPen(text_color)
-            for i, line in enumerate(best_lines):
-                lw = fm.horizontalAdvance(line)
-                lx = cx - lw // 2
-                ly = start_y + i * lh
-                painter.drawText(QPoint(lx, ly), line)
+                # Clamp centroid so it remains well inside rect
+                cx = max(rect.left() + pad_x + 2, min(rect.right() - pad_x - 2, cx))
+                cy = max(rect.top() + pad_y + 2, min(rect.bottom() - pad_y - 2, cy))
+
+                start_y = cy - total_h // 2 + fm.ascent()
+
+                painter.save()
+                painter.setClipRect(rect.adjusted(-2, -2, 2, 2))
+
+                painter.setPen(text_color)
+                for i, line in enumerate(best_lines):
+                    lw = fm.horizontalAdvance(line)
+                    lx = cx - lw // 2
+                    ly = start_y + i * lh
+                    painter.drawText(QPoint(lx, ly), line)
+
+                painter.restore()
+
+        # Render rubberband drag box when user is manually labeling a speech bubble
+        if self._manual_box_mode and self._drag_start is not None and self._drag_current is not None:
+            x1 = min(self._drag_start.x(), self._drag_current.x())
+            y1 = min(self._drag_start.y(), self._drag_current.y())
+            x2 = max(self._drag_start.x(), self._drag_current.x())
+            y2 = max(self._drag_start.y(), self._drag_current.y())
+            drag_rect = QRect(x1, y1, x2 - x1, y2 - y1)
+
+            painter.save()
+            painter.setBrush(QBrush(QColor(255, 255, 255, 30)))
+            dash_pen = QPen(QColor("#ffffff"), 1.5, Qt.PenStyle.DashLine)
+            painter.setPen(dash_pen)
+            painter.drawRect(drag_rect)
+            painter.restore()
 
         painter.end()

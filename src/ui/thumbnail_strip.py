@@ -1,9 +1,15 @@
 from pathlib import Path
 from typing import List, Optional, Dict
-from PyQt6.QtWidgets import QWidget, QHBoxLayout, QListWidget, QListWidgetItem
-from PyQt6.QtCore import pyqtSignal, Qt, QSize
-from PyQt6.QtGui import QIcon, QPixmap
+from PyQt6.QtWidgets import QWidget, QHBoxLayout, QListWidget, QListWidgetItem, QStyledItemDelegate, QStyle, QStyleOptionViewItem
+from PyQt6.QtCore import pyqtSignal, Qt, QSize, QRect, QRectF, QModelIndex
+from PyQt6.QtGui import QIcon, QPixmap, QPainter, QColor, QFont, QPen, QBrush
 from src.services.thumbnail_cache import ThumbnailCache
+
+
+class ThumbnailDelegate(QStyledItemDelegate):
+    def sizeHint(self, option: QStyleOptionViewItem, index: QModelIndex) -> QSize:
+        return QSize(108, 118)
+
 
 class ThumbnailStripWidget(QWidget):
     image_selected = pyqtSignal(object)
@@ -26,10 +32,54 @@ class ThumbnailStripWidget(QWidget):
         self.list_widget.setWrapping(False)
         self.list_widget.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.list_widget.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.list_widget.setGridSize(QSize(110, 118))
         self.list_widget.setIconSize(QSize(80, 80))
         self.list_widget.setMovement(QListWidget.Movement.Static)
-        self.list_widget.setFixedHeight(120)
+        self.list_widget.setFixedHeight(122)
         self.list_widget.setSpacing(6)
+        self.list_widget.setItemDelegate(ThumbnailDelegate(self.list_widget))
+        self.list_widget.setStyleSheet("""
+            QListWidget {
+                background-color: #141417;
+                border: none;
+                border-top: 1px solid #27272a;
+                outline: none;
+            }
+            QListWidget::item {
+                background: transparent;
+                color: #94a3b8;
+                border: none;
+                outline: none;
+                padding: 4px;
+            }
+            QListWidget::item:selected {
+                background: transparent;
+                color: #38bdf8;
+                font-weight: bold;
+                border: none;
+                outline: none;
+            }
+            QListWidget::item:hover {
+                background: rgba(255, 255, 255, 0.04);
+                border-radius: 4px;
+            }
+            QScrollBar:horizontal {
+                height: 8px;
+                background: #18181b;
+                border: none;
+            }
+            QScrollBar::handle:horizontal {
+                background: #3f3f46;
+                border-radius: 4px;
+                min-width: 20px;
+            }
+            QScrollBar::handle:horizontal:hover {
+                background: #52525b;
+            }
+            QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
+                width: 0px;
+            }
+        """)
         self.list_widget.currentRowChanged.connect(self._on_selection_changed)
         layout.addWidget(self.list_widget)
 
@@ -40,9 +90,11 @@ class ThumbnailStripWidget(QWidget):
         self.list_widget.clear()
         self._item_map.clear()
 
-        for p in paths:
+        total = len(paths)
+        for idx, p in enumerate(paths, start=1):
             item = QListWidgetItem(p.name)
             item.setData(Qt.ItemDataRole.UserRole, p)
+            item.setToolTip(f"{p.name} ({idx}/{total})")
             self.list_widget.addItem(item)
             self._item_map[str(p)] = item
             self.thumbnail_cache.load_async(p, (80, 80), self._make_callback(item, current_token))

@@ -1,4 +1,5 @@
 import sys
+import uuid
 from pathlib import Path
 from typing import Optional
 from PyQt6.QtWidgets import (
@@ -7,33 +8,36 @@ from PyQt6.QtWidgets import (
     QLabel, QStatusBar, QComboBox, QApplication,
     QProgressDialog, QFrame, QProgressBar, QMenu, QMenuBar
 )
-from PyQt6.QtCore import Qt, QSettings, QEvent, QTimer, QRectF, QSize
-from PyQt6.QtGui import QKeyEvent, QIcon, QAction, QPixmap, QPainter, QPen, QColor, QKeySequence, QShortcut
+from PyQt6.QtCore import Qt, QSettings, QEvent, QTimer, QRectF, QSize, QPoint
+from PyQt6.QtGui import QKeyEvent, QIcon, QAction, QPixmap, QPainter, QPen, QColor, QKeySequence, QShortcut, QCursor
 from src.version import __version__
 from src.models.folder_item import FolderItem
-from src.models.translation_job import TranslationJob, JobStatus
-from src.services.scanner import scan_directory
+from src.models.translation_item import PageTranslation, BubbleBlock
+from src.models.translation_job import TranslationJob, JobStatus, JobType
+from src.services.scanner import scan_directory, natural_sort_key
 from src.services.trash_service import send_folder_to_trash
 from src.services.folder_service import rename_folder
 from src.services.thumbnail_cache import ThumbnailCache
 from src.services.translation_worker import TranslationWorker
 from src.services.translation_workspace import TranslationWorkspace
 from src.services.translation_queue import TranslationQueueManager
+from src.services.manga_ocr_detector import MangaOcrDetector
+from src.services.translation_client import OpenAITranslator
 from src.ui.folder_list import FolderListWidget
 from src.ui.thumbnail_strip import ThumbnailStripWidget
 from src.ui.preview_pane import PreviewPaneWidget
 from src.ui.rename_dialog import RenameDialog
 from src.ui.batch_rename_dialog import BatchRenameDialog
 from src.ui.settings_dialog import SettingsDialog
-from src.ui.log_dialog import LogDialog
 from src.ui.queue_dialog import QueueDialog
 
-def create_sidebar_icon(color: str = "#d4d4d8", size: int = 20) -> QIcon:
+
+def create_sidebar_icon(color: str = "#ffffff", size: int = 16) -> QIcon:
     pixmap = QPixmap(size, size)
     pixmap.fill(Qt.GlobalColor.transparent)
     painter = QPainter(pixmap)
     painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-    pen = QPen(QColor(color), 1.8)
+    pen = QPen(QColor(color), 1.4)
     pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
     pen.setCapStyle(Qt.PenCapStyle.RoundCap)
     painter.setPen(pen)
@@ -41,13 +45,75 @@ def create_sidebar_icon(color: str = "#d4d4d8", size: int = 20) -> QIcon:
     margin = 2.0
     rect_w = size - 2 * margin
     rect_h = size - 2 * margin
-    painter.drawRoundedRect(QRectF(margin, margin, rect_w, rect_h), 3.0, 3.0)
+    painter.drawRoundedRect(QRectF(margin, margin, rect_w, rect_h), 2.5, 2.5)
 
     line_x = margin + rect_w * 0.38
     painter.drawLine(int(line_x), int(margin), int(line_x), int(margin + rect_h))
     painter.end()
     return QIcon(pixmap)
 
+
+def _create_white_action_icon(draw_fn, size: int = 16) -> QIcon:
+    pix = QPixmap(size, size)
+    pix.fill(Qt.GlobalColor.transparent)
+    p = QPainter(pix)
+    p.setRenderHint(QPainter.RenderHint.Antialiasing)
+    p.setPen(QPen(QColor("#ffffff"), 1.4))
+    draw_fn(p, size)
+    p.end()
+    return QIcon(pix)
+
+
+def _draw_box_tool_icon(p: QPainter, s: int):
+    pen = QPen(QColor("#ffffff"), 1.4, Qt.PenStyle.DashLine)
+    p.setPen(pen)
+    p.drawRect(2, 2, s - 5, s - 5)
+
+
+def _draw_overlay_tool_icon(p: QPainter, s: int):
+    p.setPen(QPen(QColor("#ffffff"), 1.4))
+    p.drawRoundedRect(2, 2, s - 5, s - 7, 3, 3)
+    p.drawLine(4, s - 5, 2, s - 2)
+    p.drawLine(2, s - 2, 7, s - 5)
+
+
+def _draw_fullscreen_tool_icon(p: QPainter, s: int):
+    p.setPen(QPen(QColor("#ffffff"), 1.4))
+    p.drawLine(2, 6, 2, 2)
+    p.drawLine(2, 2, 6, 2)
+    p.drawLine(s - 3, 6, s - 3, 2)
+    p.drawLine(s - 3, 2, s - 7, 2)
+    p.drawLine(2, s - 7, 2, s - 3)
+    p.drawLine(2, s - 3, 6, s - 3)
+    p.drawLine(s - 3, s - 7, s - 3, s - 3)
+    p.drawLine(s - 3, s - 3, s - 7, s - 3)
+
+
+def _draw_zoom_tool_icon(p: QPainter, s: int):
+    p.setPen(QPen(QColor("#ffffff"), 1.4))
+    p.drawEllipse(2, 2, 8, 8)
+    p.drawLine(8, 8, s - 3, s - 3)
+
+
+def _draw_add_labeling_queue_icon(p: QPainter, s: int):
+    p.setPen(QPen(QColor("#ffffff"), 1.4))
+    p.drawLine(3, 4, s - 6, 4)
+    p.drawLine(3, 8, s - 6, 8)
+    p.drawLine(3, 12, s - 8, 12)
+    p.drawLine(s - 4, 10, s - 4, 14)
+    p.drawLine(s - 6, 12, s - 2, 12)
+
+
+def _draw_rasterize_icon(p: QPainter, s: int):
+    p.setPen(QPen(QColor("#ffffff"), 1.4))
+    p.drawLine(3, s - 4, s // 2, s - 2)
+    p.drawLine(s // 2, s - 2, s - 3, s - 4)
+    p.drawLine(3, s - 7, s // 2, s - 5)
+    p.drawLine(s // 2, s - 5, s - 3, s - 7)
+    p.drawLine(s // 2, 2, s - 3, 5)
+    p.drawLine(s - 3, 5, s // 2, 8)
+    p.drawLine(s // 2, 8, 3, 5)
+    p.drawLine(3, 5, s // 2, 2)
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -108,18 +174,27 @@ class MainWindow(QMainWindow):
             QPushButton:pressed {
                 background-color: #18181b;
             }
-            QPushButton#sidebarToggleBtn {
-                background-color: transparent;
-                border: 1px solid #3f3f46;
-                border-radius: 4px;
-                padding: 2px;
-            }
-            QPushButton#sidebarToggleBtn:hover {
+            QComboBox {
                 background-color: #27272a;
-                border-color: #71717a;
+                color: #f1f5f9;
+                border: 1px solid #3f3f46;
+                padding: 3px 8px;
+                border-radius: 4px;
+                font-size: 11px;
             }
-            QPushButton#sidebarToggleBtn:pressed {
-                background-color: #18181b;
+            QComboBox:hover {
+                background-color: #3f3f46;
+            }
+            QComboBox::drop-down {
+                border: none;
+                width: 16px;
+            }
+            QComboBox QAbstractItemView {
+                background-color: #1e1e24;
+                color: #f1f5f9;
+                border: 1px solid #3f3f46;
+                selection-background-color: #27272a;
+                selection-color: #ffffff;
             }
         """)
 
@@ -130,45 +205,105 @@ class MainWindow(QMainWindow):
         # Modern panel/sidebar toggle icon button
         self.sidebar_toggle_btn = QPushButton()
         self.sidebar_toggle_btn.setObjectName("sidebarToggleBtn")
-        self.sidebar_toggle_btn.setIcon(create_sidebar_icon("#d4d4d8", 18))
-        self.sidebar_toggle_btn.setIconSize(QSize(18, 18))
+        self.sidebar_toggle_btn.setIcon(create_sidebar_icon("#ffffff", 16))
+        self.sidebar_toggle_btn.setIconSize(QSize(16, 16))
         self.sidebar_toggle_btn.setFixedSize(30, 26)
         self.sidebar_toggle_btn.setToolTip("Toggle Sidebar (Ctrl+Shift+B)")
         self.sidebar_toggle_btn.clicked.connect(self._toggle_sidebar)
         top_bar.addWidget(self.sidebar_toggle_btn)
 
-        # Translate button with dropdown options (EN / ID)
+        # Overlay toggle button with white icon
+        self.overlay_toggle_btn = QPushButton("Overlay (OFF)")
+        self.overlay_toggle_btn.setIcon(_create_white_action_icon(_draw_overlay_tool_icon))
+        self.overlay_toggle_btn.setToolTip("Toggle Translation Overlay [T]")
+        self.overlay_toggle_btn.clicked.connect(self._toggle_translation_overlay)
+        top_bar.addWidget(self.overlay_toggle_btn)
+
+        # Manual Box Select tool button with white icon
+        self.box_tool_btn = QPushButton("Box Select")
+        self.box_tool_btn.setIcon(_create_white_action_icon(_draw_box_tool_icon))
+        self.box_tool_btn.setCheckable(True)
+        self.box_tool_btn.setToolTip("Mark untranslated text with a box to OCR & translate in context [B]")
+        self.box_tool_btn.clicked.connect(self._toggle_box_select_tool)
+        top_bar.addWidget(self.box_tool_btn)
+
+        # Add labeling to Queue button with white icon and popover menu (to EN / ID)
+        self.add_labeling_queue_btn = QPushButton("Add labeling to Queue")
+        self.add_labeling_queue_btn.setIcon(_create_white_action_icon(_draw_add_labeling_queue_icon))
+        self.add_labeling_queue_btn.setToolTip("Add manually labeled pages to Translation Queue")
+        self.add_labeling_menu = QMenu(self)
+        self.add_labeling_menu.setStyleSheet("""
+            QMenu {
+                background-color: #1e1e24;
+                color: #ffffff;
+                border: 1px solid #3f3f46;
+                padding: 4px;
+            }
+            QMenu::item {
+                color: #ffffff;
+                padding: 6px 20px 6px 20px;
+                border-radius: 4px;
+            }
+            QMenu::item:selected {
+                background-color: #27272a;
+                color: #ffffff;
+            }
+        """)
+        act_lbl_en = self.add_labeling_menu.addAction("Translate to EN")
+        act_lbl_en.triggered.connect(lambda: self._on_add_labeling_to_queue("en"))
+        act_lbl_id = self.add_labeling_menu.addAction("Translate to ID")
+        act_lbl_id.triggered.connect(lambda: self._on_add_labeling_to_queue("id"))
+        self.add_labeling_queue_btn.setMenu(self.add_labeling_menu)
+        top_bar.addWidget(self.add_labeling_queue_btn)
+
+        # Rasterize button with pure white icon
+        self.rasterize_btn = QPushButton("Rasterize")
+        self.rasterize_btn.setIcon(_create_white_action_icon(_draw_rasterize_icon))
+        self.rasterize_btn.setToolTip("Rasterize and flatten translated pages permanently into destination folder")
+        self.rasterize_btn.clicked.connect(self._on_rasterize_clicked)
+        top_bar.addWidget(self.rasterize_btn)
+
+        # Zoom Controls with white icon directly on top bar
+        self.zoom_label = QLabel("Zoom:")
+        self.zoom_label.setStyleSheet("color: #ffffff; font-size: 11px;")
+        top_bar.addWidget(self.zoom_label)
+
+        self.zoom_combo = QComboBox()
+        self.zoom_combo.addItems(["Fit", "50%", "75%", "100%", "120%"])
+        self.zoom_combo.setCurrentText("Fit")
+        self.zoom_combo.currentTextChanged.connect(self._set_zoom_mode_from_preset)
+        top_bar.addWidget(self.zoom_combo)
+
+        # Fullscreen button with white icon directly on top bar
+        self.fullscreen_btn = QPushButton("Fullscreen")
+        self.fullscreen_btn.setIcon(_create_white_action_icon(_draw_fullscreen_tool_icon))
+        self.fullscreen_btn.setToolTip("Toggle Fullscreen [F12]")
+        self.fullscreen_btn.clicked.connect(self._toggle_fullscreen)
+        top_bar.addWidget(self.fullscreen_btn)
+
+        # Translate button with dropdown options (EN / ID / Bake)
+        # Visible ONLY when more than one subfolder is selected on the sidebar
         self.translate_btn = QPushButton("Translate")
-        self.translate_btn.setToolTip("Add current folder to translation queue (EN / ID)")
+        self.translate_btn.setToolTip("Add selected folders to translation queue (EN / ID)")
         self.translate_btn.setMenu(self.translate_menu)
+        self.translate_btn.setVisible(False)
         top_bar.addWidget(self.translate_btn)
 
-        # Queue Manager button
-        self.queue_mgr_btn = QPushButton("Queue Manager")
+        # Queue Manager button with counter
+        self.queue_mgr_btn = QPushButton("Queue Manager (0)")
         self.queue_mgr_btn.setToolTip("Open Translation Queue Manager [Ctrl+J]")
         self.queue_mgr_btn.clicked.connect(self._on_open_queue_dialog)
         top_bar.addWidget(self.queue_mgr_btn)
 
-        # Directory information display pill
-        self.path_label = QLabel("No root folder selected")
-        self.path_label.setStyleSheet("""
-            QLabel {
-                background-color: #141417;
-                color: #94a3b8;
-                border: 1px solid #27272a;
-                border-radius: 4px;
-                padding: 4px 10px;
-                font-size: 11px;
-                font-style: italic;
-            }
-        """)
-        top_bar.addWidget(self.path_label, 1)
+        top_bar.addStretch()
 
         # Keyboard shortcuts
         QShortcut(QKeySequence("Ctrl+Shift+B"), self, self._toggle_sidebar)
         QShortcut(QKeySequence("Ctrl+E"), self, lambda: self._on_add_to_queue("en"))
         QShortcut(QKeySequence("Ctrl+I"), self, lambda: self._on_add_to_queue("id"))
         QShortcut(QKeySequence("Ctrl+J"), self, self._on_open_queue_dialog)
+        QShortcut(QKeySequence("T"), self, self._toggle_translation_overlay)
+        QShortcut(QKeySequence("F12"), self, self._toggle_fullscreen)
 
         # Compatibility aliases for actions / tests
         self.open_btn = self.act_open
@@ -177,14 +312,6 @@ class MainWindow(QMainWindow):
         self.start_queue_btn = self.queue_mgr_btn
         self.add_queue_btn = self.translate_btn
         self.queue_btn = self.queue_mgr_btn
-        self.overlay_toggle_btn = self.act_overlay
-        self.fullscreen_btn = self.act_fullscreen
-
-        # In-memory zoom combo for tracking state
-        self.zoom_combo = QComboBox()
-        self.zoom_combo.addItems(["Fit", "50%", "75%", "100%", "120%"])
-        self.zoom_combo.setCurrentText("Fit")
-        self.zoom_combo.currentTextChanged.connect(self._set_zoom_mode_from_preset)
 
         main_layout.addWidget(self.top_bar_widget)
 
@@ -195,6 +322,8 @@ class MainWindow(QMainWindow):
         self.folder_list = FolderListWidget()
         self.folder_list.folder_selected.connect(self._on_folder_selected)
         self.folder_list.rename_requested.connect(self._on_rename_folder)
+        self.folder_list.selection_count_changed.connect(self._on_folder_selection_count_changed)
+        self.folder_list.context_menu_requested.connect(self._show_folder_context_menu)
         self.splitter.addWidget(self.folder_list)
 
         # Right container
@@ -205,6 +334,7 @@ class MainWindow(QMainWindow):
 
         self.preview_pane = PreviewPaneWidget()
         self.preview_pane.zoom_changed.connect(self._on_zoom_changed_from_preview)
+        self.preview_pane.manual_box_created.connect(self._on_manual_box_created)
         right_layout.addWidget(self.preview_pane, 1)
 
         self.thumbnail_strip = ThumbnailStripWidget(self.thumbnail_cache)
@@ -248,24 +378,20 @@ class MainWindow(QMainWindow):
         self.status_progress_bar.hide()
         self.status_bar.addPermanentWidget(self.status_progress_bar)
 
-        self.status_queue_pill = QPushButton("📋 Queue: 0")
-        self.status_queue_pill.setStyleSheet("""
-            QPushButton {
-                background-color: #1e1e24;
-                color: #38bdf8;
-                border: 1px solid #334155;
-                border-radius: 10px;
+        # Root directory path display pill in bottom footer
+        self.path_label = QLabel("No root folder selected")
+        self.path_label.setStyleSheet("""
+            QLabel {
+                background-color: #141417;
+                color: #94a3b8;
+                border: 1px solid #27272a;
+                border-radius: 4px;
                 padding: 2px 8px;
                 font-size: 11px;
-                font-weight: 600;
-            }
-            QPushButton:hover {
-                background-color: #27272a;
-                border-color: #38bdf8;
+                font-style: italic;
             }
         """)
-        self.status_queue_pill.clicked.connect(self._on_open_queue_dialog)
-        self.status_bar.addPermanentWidget(self.status_queue_pill)
+        self.status_bar.addPermanentWidget(self.path_label)
 
     def _init_menu_bar(self):
         menubar = self.menuBar()
@@ -310,19 +436,11 @@ class MainWindow(QMainWindow):
             }
         """)
 
-        # 1. File Menu: Open, Batch Rename, Settings, Exit
+        # 1. File Menu: Open Root Folder, Exit
         file_menu = menubar.addMenu("&File")
         self.act_open = file_menu.addAction("Open Root Folder...")
         self.act_open.setShortcut("Ctrl+O")
         self.act_open.triggered.connect(self._on_open_folder)
-
-        self.act_batch_rename = file_menu.addAction("Batch Rename Folders...")
-        self.act_batch_rename.setShortcut("Ctrl+B")
-        self.act_batch_rename.triggered.connect(self._on_batch_rename_folders)
-
-        self.act_settings = file_menu.addAction("Settings...")
-        self.act_settings.setShortcut("Ctrl+,")
-        self.act_settings.triggered.connect(self._on_open_settings)
 
         file_menu.addSeparator()
 
@@ -330,7 +448,14 @@ class MainWindow(QMainWindow):
         self.act_exit.setShortcut("Ctrl+Q")
         self.act_exit.triggered.connect(self.close)
 
-        # Compatibility actions for shortcuts / queue controls
+        # Standalone actions for shortcuts / queue controls / compatibility
+        self.act_batch_rename = QAction("Batch Rename Folders...", self)
+        self.act_batch_rename.triggered.connect(self._on_batch_rename_folders)
+
+        self.act_settings = QAction("Settings...", self)
+        self.act_settings.setShortcut("Ctrl+,")
+        self.act_settings.triggered.connect(self._on_open_settings)
+
         self.act_start_queue = QAction("Start Queue", self)
         self.act_start_queue.setShortcut("Ctrl+R")
         self.act_start_queue.triggered.connect(self._toggle_queue)
@@ -349,27 +474,30 @@ class MainWindow(QMainWindow):
         self.act_add_queue_id = self.translate_menu.addAction("Translate to Indonesian [ID]")
         self.act_add_queue_id.setShortcut("Ctrl+I")
         self.act_add_queue_id.triggered.connect(lambda: self._on_add_to_queue(target_lang="id"))
+        self.translate_menu.addSeparator()
+        self.act_rasterize = self.translate_menu.addAction("Bake Translated Pages to Sibling Folder...")
+        self.act_rasterize.setShortcut("Ctrl+B")
+        self.act_rasterize.triggered.connect(self._on_add_rasterize_to_queue)
         self.queue_sub = self.translate_menu
 
-        # 2. View Menu: NO dividers, NO icons (NO Hide/Show Sidebar!)
-        view_menu = menubar.addMenu("&View")
-        self.act_overlay = view_menu.addAction("Toggle Translation Overlay")
+        # Overlay & fullscreen actions for keyboard shortcuts / testing
+        self.act_overlay = QAction("Toggle Translation Overlay", self)
         self.act_overlay.setShortcut("T")
         self.act_overlay.triggered.connect(self._toggle_translation_overlay)
+        self.addAction(self.act_overlay)
 
-        self.zoom_sub = view_menu.addMenu("Zoom")
-        for z in ["Fit", "50%", "75%", "100%", "120%"]:
-            act_z = self.zoom_sub.addAction(z)
-            act_z.triggered.connect(lambda checked=False, val=z: self._set_zoom_mode_from_preset(val))
+        self.act_box_tool = QAction("Box Select Tool", self)
+        self.act_box_tool.setShortcut("B")
+        self.act_box_tool.triggered.connect(self._toggle_box_select_tool)
+        self.addAction(self.act_box_tool)
 
-        self.act_fullscreen = view_menu.addAction("Fullscreen")
+        self.act_fullscreen = QAction("Fullscreen", self)
         self.act_fullscreen.setShortcut("F12")
         self.act_fullscreen.triggered.connect(self._toggle_fullscreen)
+        self.addAction(self.act_fullscreen)
 
-        # 3. Help Menu: NO icons, NO dividers
+        # 2. Help Menu: NO icons, NO dividers
         help_menu = menubar.addMenu("&Help")
-        self.act_logs = help_menu.addAction("View Logs...")
-        self.act_logs.triggered.connect(self._on_view_logs)
 
         self.act_shortcuts = help_menu.addAction("Keyboard Shortcuts")
         self.act_shortcuts.setShortcut("F1")
@@ -399,6 +527,52 @@ class MainWindow(QMainWindow):
             QTimer.singleShot(0, self.folder_list.restore_scroll_state)
             self.sidebar_toggle_btn.setToolTip("Hide Sidebar (Ctrl+Shift+B)")
 
+    def _on_folder_selection_count_changed(self, count: int):
+        self.translate_btn.setVisible(count > 1)
+
+    def _show_folder_context_menu(self, folder_item: FolderItem, global_pos: QPoint):
+        menu = QMenu(self)
+        menu.setStyleSheet("""
+            QMenu {
+                background-color: #1e1e24;
+                color: #f1f5f9;
+                border: 1px solid #3f3f46;
+                padding: 4px 0;
+                font-size: 12px;
+            }
+            QMenu::item {
+                padding: 6px 24px 6px 12px;
+            }
+            QMenu::item:selected {
+                background-color: #27272a;
+                color: #ffffff;
+            }
+            QMenu::separator {
+                height: 1px;
+                background-color: #3f3f46;
+                margin: 4px 6px;
+            }
+        """)
+
+        act_en = menu.addAction("Translate to English [EN]")
+        act_en.setShortcut("Ctrl+E")
+        act_en.triggered.connect(lambda: self._on_add_to_queue(target_lang="en"))
+
+        act_id = menu.addAction("Translate to Indonesian [ID]")
+        act_id.setShortcut("Ctrl+I")
+        act_id.triggered.connect(lambda: self._on_add_to_queue(target_lang="id"))
+
+        act_bake = menu.addAction("Bake Translated Pages to Sibling Folder...")
+        act_bake.setShortcut("Ctrl+B")
+        act_bake.triggered.connect(self._on_add_rasterize_to_queue)
+
+        menu.addSeparator()
+
+        act_batch_rename = menu.addAction("Batch Rename Folders...")
+        act_batch_rename.triggered.connect(self._on_batch_rename_folders)
+
+        menu.exec(global_pos)
+
     def _set_zoom_mode_from_preset(self, val: str):
         if val == "Fit":
             self.preview_pane.set_zoom_mode("fit")
@@ -412,7 +586,7 @@ class MainWindow(QMainWindow):
         self.zoom_combo.blockSignals(False)
 
     def _on_clear_current_translation_cache(self):
-        folder = self.folder_list.get_selected_folder()
+        folder = self.folder_list.get_current_folder()
         if not folder:
             QMessageBox.information(self, "No Folder Selected", "Please select a folder to clear its translation cache.")
             return
@@ -481,29 +655,319 @@ class MainWindow(QMainWindow):
     def _on_image_selected(self, image_path: Optional[Path]):
         self.preview_pane.set_image(image_path)
         if image_path and image_path.exists():
+            curr_idx = self.thumbnail_strip.get_current_index() + 1
+            total_imgs = len(self.thumbnail_strip.image_paths)
+            if total_imgs > 0:
+                self.status_bar.showMessage(f"Page {curr_idx}/{total_imgs}: {image_path.name}")
             ws = TranslationWorkspace(image_path.parent)
             trans_map = {}
             for lang in ("id", "en"):
-                if ws.is_translation_complete(target_lang=lang):
-                    trans_map = ws.load_translations(target_lang=lang)
-                    break
-            if trans_map:
+                translations = ws.load_translations(target_lang=lang)
+                if translations:
+                    ocr_results = ws.load_ocr_results()
+                    page_data = ocr_results.get(image_path.name)
+                    if page_data and page_data.bubbles:
+                        if any(b.id in translations for b in page_data.bubbles):
+                            trans_map = translations
+                            self.preview_pane.set_translation_data(page_data, trans_map)
+                            break
+            if not trans_map:
                 ocr_results = ws.load_ocr_results()
                 page_data = ocr_results.get(image_path.name)
-                if page_data:
-                    self.preview_pane.set_translation_data(page_data, trans_map)
+                if page_data and page_data.bubbles:
+                    self.preview_pane.set_translation_data(page_data, {})
 
     def _toggle_translation_overlay(self):
         enabled = self.preview_pane.toggle_translation_overlay()
-        self.act_overlay.setText("Toggle Translation Overlay (ON)" if enabled else "Toggle Translation Overlay (OFF)")
+        state_str = "ON" if enabled else "OFF"
+        self.overlay_toggle_btn.setText(f"Overlay ({state_str})")
+        self.overlay_toggle_btn.setToolTip(f"Toggle Translation Overlay ({state_str}) [T]")
+        self.act_overlay.setText(f"Toggle Translation Overlay ({state_str})")
+        self.status_bar.showMessage(f"Translation overlay turned {state_str.lower()}")
+
+    def _toggle_box_select_tool(self):
+        new_state = not self.preview_pane.is_manual_box_mode()
+        self.preview_pane.set_manual_box_mode(new_state)
+        self.box_tool_btn.setChecked(new_state)
+        if new_state:
+            # Also ensure overlay text is displayed so the user sees results
+            self.preview_pane.set_translation_overlay_enabled(True)
+            self.overlay_toggle_btn.setText("Overlay (ON)")
+            self.overlay_toggle_btn.setToolTip("Toggle Translation Overlay (ON) [T]")
+            self.act_overlay.setText("Toggle Translation Overlay (ON)")
+            self.status_bar.showMessage("Box Select Mode: Click and drag over untranslated manga text to label.")
+        else:
+            self.status_bar.showMessage("Box Select Mode disabled.")
+
+    def _on_manual_box_created(self, bbox: tuple, target_lang: Optional[str] = None):
+        """
+        Triggered when user draws a box over untranslated speech/sound on the current page.
+        Immediately prompts user with 'Translate to EN' and 'Translate to ID'.
+        If chosen, records the box geometry, sets target_lang, and pushes the job into Queue Manager for this image.
+        If dismissed / cancelled, discards the box.
+        ZERO OCR, segmentation, or translation is performed directly in UI; strictly deferred to Queue Manager.
+        """
+        curr_img = self.thumbnail_strip.get_current_image()
+        if not curr_img or not curr_img.exists():
+            return
+
+        bx, by, bw, bh = bbox
+
+        if target_lang is None:
+            # Immediately show pop-up menu at cursor
+            popup = QMenu(self)
+            popup.setStyleSheet("""
+                QMenu {
+                    background-color: #1e1e24;
+                    color: #ffffff;
+                    border: 1px solid #3f3f46;
+                    padding: 4px;
+                }
+                QMenu::item {
+                    color: #ffffff;
+                    padding: 6px 20px 6px 20px;
+                    border-radius: 4px;
+                }
+                QMenu::item:selected {
+                    background-color: #27272a;
+                    color: #ffffff;
+                }
+            """)
+            act_en = popup.addAction("Translate to EN")
+            act_id = popup.addAction("Translate to ID")
+            chosen = popup.exec(QCursor.pos())
+            if not chosen:
+                # User dismissed menu / clicked outside: discard box
+                return
+
+            target_lang = "en" if chosen == act_en else "id"
+        else:
+            target_lang = target_lang.lower().strip()
+
+        folder_path = curr_img.parent
+
+        try:
+            ws = TranslationWorkspace(folder_path)
+            ocr_results = ws.load_ocr_results()
+            page_data = ocr_results.get(curr_img.name)
+            if not page_data:
+                from PIL import Image
+                with Image.open(curr_img) as im:
+                    pw, ph = im.size
+                page_data = PageTranslation(
+                    page_filename=curr_img.name,
+                    page_width=pw,
+                    page_height=ph,
+                    bubbles=[]
+                )
+                ocr_results[curr_img.name] = page_data
+
+            all_paths = self.thumbnail_strip.image_paths
+            curr_idx = all_paths.index(curr_img) if curr_img in all_paths else 0
+
+            # Store the manual box geometry with a unique ID that never collides with automatic bubble IDs or cache residue
+            translations = ws.load_translations()
+            existing_ids = {b.id for b in page_data.bubbles}
+            while True:
+                new_id = f"p{curr_idx + 1}_m_{uuid.uuid4().hex[:8]}"
+                if new_id not in existing_ids and new_id not in translations:
+                    break
+
+            new_bubble = BubbleBlock(
+                id=new_id,
+                bbox=(bx, by, bw, bh),
+                text_ja="",
+                text_en="",
+                target_lang=target_lang,
+                expanded_bbox=(bx, by, bw, bh),
+                centroid=(bx + bw // 2, by + bh // 2),
+                shape="rect",
+                is_manual=True
+            )
+            page_data.bubbles.append(new_bubble)
+            ws.save_page_ocr(page_data)
+
+            # Refresh preview overlay: ensure this ID has no translation residue and displays as [Manual Label]
+            translations.pop(new_id, None)
+            self.preview_pane.set_translation_data(page_data, translations)
+
+            # Push job into Queue Manager for this image
+            existing_job = None
+            for j in self.queue_manager.jobs:
+                if j.folder_path == folder_path and j.job_type == JobType.TRANSLATION:
+                    existing_job = j
+                    break
+
+            if existing_job:
+                if curr_img not in existing_job.image_paths:
+                    existing_job.image_paths.append(curr_img)
+                if existing_job.selected_image_paths is not None:
+                    if curr_img not in existing_job.selected_image_paths:
+                        existing_job.selected_image_paths.append(curr_img)
+                else:
+                    existing_job.selected_image_paths = [curr_img]
+
+                if existing_job.target_lang.lower() != target_lang.lower():
+                    existing_job.target_lang = "mix"
+
+                if existing_job.status in (JobStatus.COMPLETED, JobStatus.FAILED):
+                    existing_job.status = JobStatus.PENDING
+                    existing_job.status_message = "Pending manual label translation"
+                    existing_job.error_message = None
+                    existing_job.progress_pct = 0
+                self.queue_manager.queue_updated.emit()
+                self.queue_manager._emit_overall_progress()
+                job = existing_job
+            else:
+                all_imgs = sorted([
+                    p for p in folder_path.iterdir()
+                    if p.suffix.lower() in (".png", ".jpg", ".jpeg", ".webp")
+                ], key=natural_sort_key)
+                job = self.queue_manager.add_job(
+                    folder_path=folder_path,
+                    image_paths=all_imgs,
+                    target_lang=target_lang
+                )
+                job.selected_image_paths = [curr_img]
+                self.queue_manager.queue_updated.emit()
+
+            self.folder_list.set_folder_status(folder_path, "queued")
+            self.status_bar.showMessage(
+                f"Manual box ({bw}x{bh}) [Translate to {target_lang.upper()}] enqueued for {curr_img.name}."
+            )
+        except Exception as e:
+            self.status_bar.showMessage(f"Error recording manual box: {e}")
+
+    def _on_add_labeling_to_queue(self, target_lang: str = "en"):
+        curr_img = self.thumbnail_strip.get_current_image()
+        folder_path = curr_img.parent if (curr_img and curr_img.exists()) else None
+        if not folder_path:
+            folder = self.folder_list.get_current_folder()
+            folder_path = folder.path if folder else None
+        if not folder_path or not folder_path.is_dir():
+            QMessageBox.warning(self, "No Chapter Selected", "Please select a chapter folder or image first.")
+            return
+
+        api_key, *_ = self._get_api_credentials()
+        if not api_key:
+            reply = QMessageBox.question(
+                self,
+                "API Key Missing",
+                "An API Key is required for translation.\nWould you like to open Queue Manager Settings now to set it?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            )
+            if reply == QMessageBox.StandardButton.Yes:
+                self._on_open_queue_dialog(tab="settings")
+            return
+
+        ws = TranslationWorkspace(folder_path)
+        manual_fns = ws.get_manual_labeled_page_filenames(target_lang)
+
+        all_imgs = sorted([
+            p for p in folder_path.iterdir()
+            if p.suffix.lower() in (".png", ".jpg", ".jpeg", ".webp")
+        ], key=natural_sort_key)
+        if not all_imgs:
+            QMessageBox.warning(self, "No Images Found", f"No supported images found in '{folder_path.name}'.")
+            return
+
+        manual_selected = [p for p in all_imgs if p.name in manual_fns]
+        if not manual_selected and curr_img and curr_img in all_imgs:
+            manual_selected = [curr_img]
+
+        existing_job = None
+        for j in self.queue_manager.jobs:
+            if j.folder_path == folder_path and j.job_type == JobType.TRANSLATION:
+                existing_job = j
+                break
+
+        lang_code = target_lang.lower()
+        if existing_job:
+            if existing_job.target_lang.lower() != lang_code:
+                existing_job.target_lang = "mix"
+            if existing_job.status in (JobStatus.COMPLETED, JobStatus.FAILED):
+                existing_job.status = JobStatus.PENDING
+                existing_job.status_message = "Pending manual label translation"
+                existing_job.error_message = None
+                existing_job.progress_pct = 0
+            if manual_selected:
+                current_selected = set(existing_job.selected_image_paths) if existing_job.selected_image_paths else set()
+                for p in manual_selected:
+                    current_selected.add(p)
+                existing_job.selected_image_paths = [p for p in existing_job.image_paths if p in current_selected]
+            self.queue_manager.queue_updated.emit()
+            self.queue_manager._emit_overall_progress()
+            job = existing_job
+        else:
+            job = self.queue_manager.add_job(
+                folder_path=folder_path,
+                image_paths=all_imgs,
+                target_lang=lang_code
+            )
+            if manual_selected:
+                job.selected_image_paths = manual_selected
+                self.queue_manager.queue_updated.emit()
+
+        self.folder_list.set_folder_status(folder_path, "queued")
+        self.status_bar.showMessage(
+            f"Added {len(manual_selected)} page(s) with manual labels to queue ({job.lang_display})."
+        )
+        self._on_open_queue_dialog(tab="pages")
+
+    def _on_rasterize_clicked(self):
+        curr_img = self.thumbnail_strip.get_current_image()
+        folder_path = curr_img.parent if (curr_img and curr_img.exists()) else None
+        if not folder_path:
+            folder = self.folder_list.get_current_folder()
+            folder_path = folder.path if folder else None
+        if not folder_path or not folder_path.is_dir():
+            QMessageBox.warning(self, "No Chapter Selected", "Please select a chapter folder or image first.")
+            return
+
+        all_imgs = sorted([
+            p for p in folder_path.iterdir()
+            if p.suffix.lower() in (".png", ".jpg", ".jpeg", ".webp")
+        ], key=natural_sort_key)
+        if not all_imgs:
+            QMessageBox.warning(self, "No Images Found", f"No supported images found in '{folder_path.name}'.")
+            return
+
+        ws = TranslationWorkspace(folder_path)
+        translated_fns = ws.get_translated_page_filenames()
+        if not translated_fns:
+            reply = QMessageBox.question(
+                self,
+                "No Translations Found",
+                f"No translated pages detected in '{folder_path.name}'.\n"
+                f"Do you still want to enqueue rasterization for all {len(all_imgs)} pages?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            )
+            if reply != QMessageBox.StandardButton.Yes:
+                return
+
+        job = self.queue_manager.add_rasterize_job(
+            folder_path=folder_path,
+            image_paths=all_imgs
+        )
+        if translated_fns:
+            job.selected_image_paths = [p for p in all_imgs if p.name in translated_fns]
+            self.queue_manager.queue_updated.emit()
+
+        self.status_bar.showMessage(f"Rasterize job for '{folder_path.name}' added to Queue.")
+        self._on_open_queue_dialog(tab="pages")
 
     def _get_api_credentials(self):
         api_key = self.settings.value("llm_api_key", "", type=str).strip()
         base_url = self.settings.value("llm_base_url", "https://generativelanguage.googleapis.com/v1beta/openai/", type=str)
         model = self.settings.value("llm_model", "gemini-2.5-flash", type=str)
-        timeout = self.settings.value("llm_timeout_seconds", 120, type=int)
+        timeout = max(300, self.settings.value("llm_timeout_seconds", 300, type=int))
         batch_size = self.settings.value("llm_batch_size", 0, type=int)
-        return api_key, base_url, model, timeout, batch_size
+        engine_mode = self.settings.value("llm_engine_mode", "hybrid", type=str)
+        vision_scale_pct = self.settings.value("llm_vision_scale_pct", 75, type=int)
+        vision_quality = self.settings.value("llm_vision_quality", 75, type=int)
+        max_retries = max(1, min(5, self.settings.value("llm_max_retries", 3, type=int)))
+        protocol = self.settings.value("llm_protocol", "openai", type=str)
+        return api_key, base_url, model, timeout, batch_size, engine_mode, vision_scale_pct, vision_quality, max_retries, protocol
 
     def _init_queue_connections(self):
         self.queue_manager.queue_updated.connect(self._on_queue_updated)
@@ -518,16 +982,23 @@ class MainWindow(QMainWindow):
         if job:
             self.folder_list.set_folder_status(job.folder_path, "running")
 
-    def _on_open_queue_dialog(self):
+    def _on_open_queue_dialog(self, tab: str = "queue"):
         if self._queue_dialog is None:
-            self._queue_dialog = QueueDialog(self.queue_manager, parent=self)
+            self._queue_dialog = QueueDialog(
+                self.queue_manager,
+                parent=self,
+                settings=self.settings,
+                thumbnail_cache=self.thumbnail_cache
+            )
+        if tab:
+            self._queue_dialog.open_tab(tab)
         self._queue_dialog.show()
         self._queue_dialog.raise_()
         self._queue_dialog.activateWindow()
 
     def _on_add_to_queue(self, target_lang: str = "en"):
-        folder = self.folder_list.get_current_folder()
-        if not folder or not folder.image_paths:
+        folders = self.folder_list.get_selected_folders()
+        if not folders:
             QMessageBox.warning(self, "No Folder Selected", "Please select a folder containing images to add to the queue.")
             return
 
@@ -536,38 +1007,99 @@ class MainWindow(QMainWindow):
             reply = QMessageBox.question(
                 self,
                 "API Key Missing",
-                "An API Key is required for translation.\nWould you like to open Settings now to set it?",
+                "An API Key is required for translation.\nWould you like to open Queue Manager Settings now to set it?",
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
             )
             if reply == QMessageBox.StandardButton.Yes:
-                self._on_open_settings()
+                self._on_open_queue_dialog(tab="settings")
             return
 
-        ws = TranslationWorkspace(folder.path)
-        if ws.is_translation_complete(target_lang=target_lang):
-            reply = QMessageBox.question(
-                self,
-                "Translation Cache Found",
-                f"Translation ({target_lang.upper()}) data already exists for '{folder.name}'.\n\nWould you like to re-scan and translate again from scratch?",
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-            )
-            if reply == QMessageBox.StandardButton.Yes:
-                ws.clear_cache()
-            else:
-                self.status_bar.showMessage(f"Loaded existing {target_lang.upper()} translation for {folder.name}")
-                curr_img = self.thumbnail_strip.get_current_image()
-                if curr_img:
-                    self._on_image_selected(curr_img)
+        lang_name = "Indonesian [ID]" if target_lang.lower() == "id" else "English [EN]"
+
+        if len(folders) == 1:
+            folder = folders[0]
+            if not folder.image_paths:
+                QMessageBox.warning(self, "No Images Found", f"No images found in '{folder.name}'.")
                 return
 
-        job = self.queue_manager.add_job(
-            folder_path=folder.path,
-            image_paths=folder.image_paths,
-            target_lang=target_lang
-        )
-        self.folder_list.set_folder_status(folder.path, "queued")
-        lang_name = "Indonesian [ID]" if target_lang.lower() == "id" else "English [EN]"
-        self.status_bar.showMessage(f"Added '{folder.name}' to queue ({lang_name}). Click 'Start Translate' to begin.")
+            self.queue_manager.add_job(
+                folder_path=folder.path,
+                image_paths=folder.image_paths,
+                target_lang=target_lang
+            )
+            self.folder_list.set_folder_status(folder.path, "queued")
+            self.status_bar.showMessage(f"Added '{folder.name}' to queue ({lang_name}). Click 'Start Queue' to begin.")
+        else:
+            added_count = 0
+            for folder in folders:
+                if not folder.image_paths:
+                    continue
+                self.queue_manager.add_job(
+                    folder_path=folder.path,
+                    image_paths=folder.image_paths,
+                    target_lang=target_lang
+                )
+                self.folder_list.set_folder_status(folder.path, "queued")
+                added_count += 1
+            self.status_bar.showMessage(f"Added {added_count} folders to translation queue ({lang_name}). Open Queue Manager to start.")
+
+    def _on_add_rasterize_to_queue(self):
+        folders = self.folder_list.get_selected_folders()
+        if not folders:
+            QMessageBox.warning(self, "No Folder Selected", "Please select a folder containing images to bake.")
+            return
+
+        if len(folders) == 1:
+            folder = folders[0]
+            if not folder or not folder.image_paths:
+                QMessageBox.warning(self, "No Folder Selected", "Please select a folder containing images to bake.")
+                return
+
+            ws = TranslationWorkspace(folder.path)
+            translated_en = ws.get_translated_page_filenames("en")
+            translated_id = ws.get_translated_page_filenames("id")
+            if not translated_en and not translated_id:
+                QMessageBox.warning(
+                    self,
+                    "No Translations Found",
+                    f"No translation data was found for '{folder.name}'.\n\nPlease translate pages first before baking them into permanent images."
+                )
+                return
+
+            target_lang = "id" if (translated_id and not translated_en) else "en"
+            self.queue_manager.add_rasterize_job(
+                folder_path=folder.path,
+                image_paths=folder.image_paths,
+                target_lang=target_lang
+            )
+            self.status_bar.showMessage(f"Added '{folder.name}' to queue for baking. Open Queue Manager to start.")
+            self._on_open_queue_dialog()
+        else:
+            added_count = 0
+            for folder in folders:
+                if not folder.image_paths:
+                    continue
+                ws = TranslationWorkspace(folder.path)
+                translated_en = ws.get_translated_page_filenames("en")
+                translated_id = ws.get_translated_page_filenames("id")
+                if not translated_en and not translated_id:
+                    continue
+                target_lang = "id" if (translated_id and not translated_en) else "en"
+                self.queue_manager.add_rasterize_job(
+                    folder_path=folder.path,
+                    image_paths=folder.image_paths,
+                    target_lang=target_lang
+                )
+                added_count += 1
+            if added_count == 0:
+                QMessageBox.warning(
+                    self,
+                    "No Translations Found",
+                    "None of the selected folders have completed translations to bake."
+                )
+                return
+            self.status_bar.showMessage(f"Added {added_count} folders to queue for baking. Open Queue Manager to start.")
+            self._on_open_queue_dialog()
 
     def _toggle_queue(self):
         if self.queue_manager.is_running:
@@ -578,20 +1110,54 @@ class MainWindow(QMainWindow):
                 reply = QMessageBox.question(
                     self,
                     "API Key Missing",
-                    "An API Key is required for translation.\nWould you like to open Settings now to set it?",
+                    "An API Key is required for translation.\nWould you like to open Queue Manager Settings now to set it?",
                     QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
                 )
                 if reply == QMessageBox.StandardButton.Yes:
-                    self._on_open_settings()
+                    self._on_open_queue_dialog(tab="settings")
                 return
+
+            for job in self.queue_manager.jobs:
+                if job.status == JobStatus.PENDING and job.job_type == JobType.TRANSLATION:
+                    selected = job.selected_image_paths if job.selected_image_paths else job.image_paths
+                    if not selected:
+                        continue
+                    ws = TranslationWorkspace(job.folder_path)
+                    translated_fns = ws.get_translated_page_filenames(job.target_lang)
+                    cached_selected = [p for p in selected if p.name in translated_fns]
+
+                    if cached_selected:
+                        if len(cached_selected) == len(selected):
+                            page_desc = f"all {len(selected)} selected image(s)"
+                        else:
+                            page_desc = f"{len(cached_selected)} of {len(selected)} selected image(s)"
+
+                        reply = QMessageBox.question(
+                            self,
+                            "Translation Cache Found",
+                            f"Translation ({job.lang_display}) data already exists for {page_desc} in '{job.folder_name}'.\n\n"
+                            "Would you like to re-scan and translate them again from scratch?\n\n"
+                            "- Yes: Re-translate and overwrite cached pages.\n"
+                            "- No: Skip already translated pages and only process untranslated ones.",
+                            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No | QMessageBox.StandardButton.Cancel,
+                            QMessageBox.StandardButton.No
+                        )
+                        if reply == QMessageBox.StandardButton.Cancel:
+                            return
+                        elif reply == QMessageBox.StandardButton.No:
+                            untranslated = [p for p in selected if p.name not in translated_fns]
+                            if not untranslated:
+                                job.status = JobStatus.COMPLETED
+                                job.status_message = "All selected pages already translated"
+                                continue
+                            job.selected_image_paths = untranslated
+
             self.queue_manager.start_queue()
 
     def _on_queue_updated(self):
         pending = self.queue_manager.pending_count
-        mgr_text = f"Queue Manager ({pending})" if pending > 0 else "Queue Manager"
-        self.queue_mgr_btn.setText(mgr_text)
+        self.queue_mgr_btn.setText(f"Queue Manager ({pending})")
         self.act_queue_mgr.setText(f"Translation Queue Manager... ({pending})")
-        self.status_queue_pill.setText(f"📋 Queue: {pending}")
 
         is_running = self.queue_manager.is_running
         if is_running:
@@ -623,26 +1189,20 @@ class MainWindow(QMainWindow):
         if job:
             self.folder_list.set_folder_status(job.folder_path, "done" if success else "failed")
         if success:
-            self.status_bar.showMessage(f"✓ Translated '{job_name}' successfully.")
+            self.status_bar.showMessage(f"Translated '{job_name}' successfully.")
             curr_folder = self.folder_list.get_current_folder()
             if curr_folder and job and curr_folder.path == job.folder_path:
                 curr_img = self.thumbnail_strip.get_current_image()
                 if curr_img:
                     self._on_image_selected(curr_img)
         else:
-            self.status_bar.showMessage(f"✕ Translation failed for '{job_name}': {message}")
+            self.status_bar.showMessage(f"Translation failed for '{job_name}': {message}")
 
     def _on_translate_folder(self):
         """Compatibility trigger: adds current folder to queue and starts processing."""
         self._on_add_to_queue(target_lang="en")
         if self.queue_manager.pending_count > 0 and not self.queue_manager.is_running:
             self._toggle_queue()
-
-    def _on_view_logs(self):
-        folder = self.folder_list.get_current_folder()
-        log_path = (folder.path / "temp" / "translation.log") if folder else None
-        dialog = LogDialog(parent=self, log_path=log_path)
-        dialog.exec()
 
     def _on_folder_selected(self, folder_item):
         if folder_item is None:
@@ -668,29 +1228,36 @@ class MainWindow(QMainWindow):
 
     def _toggle_fullscreen(self):
         if self.isFullScreen():
-            if getattr(self, "_was_maximized", False):
-                self.showMaximized()
-            else:
-                self.showNormal()
+            self.menuBar().show()
             self.top_bar_widget.show()
             if not getattr(self, "_sidebar_hidden", False):
                 self.folder_list.show()
             self.thumbnail_strip.show()
             self.status_bar.show()
-            if hasattr(self, "_saved_splitter_sizes") and self._saved_splitter_sizes:
+            if getattr(self, "_was_maximized", False):
+                self.showMaximized()
+            else:
+                self.showNormal()
+            if hasattr(self, "_saved_splitter_sizes") and self._saved_splitter_sizes and self._saved_splitter_sizes[0] > 0:
                 self.splitter.setSizes(self._saved_splitter_sizes)
+            else:
+                self.splitter.setSizes([260, max(100, self.width() - 260)])
             self.folder_list.scroll_to_current()
             self.thumbnail_strip.scroll_to_current()
             self.act_fullscreen.setText("Fullscreen")
+            self.fullscreen_btn.setText("Fullscreen")
         else:
             self._was_maximized = self.isMaximized()
             self._saved_splitter_sizes = self.splitter.sizes()
+            self.menuBar().hide()
             self.top_bar_widget.hide()
             self.folder_list.hide()
+            self.splitter.setSizes([0, max(1, self.width())])
             self.thumbnail_strip.hide()
             self.status_bar.hide()
             self.showFullScreen()
             self.act_fullscreen.setText("Exit Fullscreen")
+            self.fullscreen_btn.setText("Exit Fullscreen")
         self.setFocus()
 
     def _on_rename_folder(self, folder_to_rename: Optional[FolderItem] = None):
@@ -775,7 +1342,7 @@ class MainWindow(QMainWindow):
                 if progress.wasCanceled():
                     break
 
-                progress.setLabelText(f"Renaming ({i+1}/{total}):\n{folder.name}\n→ {new_name}")
+                progress.setLabelText(f"Renaming ({i+1}/{total}):\n{folder.name}\n-> {new_name}")
                 progress.setValue(i)
                 QApplication.processEvents()
 
@@ -856,19 +1423,7 @@ class MainWindow(QMainWindow):
         QMessageBox.information(self, "Shortcuts & Information", info_text)
 
     def _on_open_settings(self):
-        dialog = SettingsDialog(
-            parent=self,
-            settings=self.settings,
-            is_queue_running=self.queue_manager.is_running
-        )
-        self.queue_manager.queue_state_changed.connect(dialog.set_queue_running)
-        try:
-            dialog.exec()
-        finally:
-            try:
-                self.queue_manager.queue_state_changed.disconnect(dialog.set_queue_running)
-            except (TypeError, RuntimeError):
-                pass
+        self._on_open_queue_dialog(tab="settings")
 
     def _navigate_next(self):
         if not self.thumbnail_strip.select_next():

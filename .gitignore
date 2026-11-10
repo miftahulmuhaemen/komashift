@@ -47,9 +47,11 @@ debug_*
 /*.png
 /*.jpg
 /*.jpeg
+/graphify-out
+
 # Explicitly keep repository assets
-!assets/icon.png
-!assets/icon.ico
+!assets/*.png
+!assets/*.ico
 !assets/fonts/
 
 # Orca & Agent Workspace Artifacts

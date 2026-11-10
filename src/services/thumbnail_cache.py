@@ -90,10 +90,12 @@ class ThumbnailCache(QObject):
         def handle_finished(path_str: str, qimg: QImage):
             self._active_workers.discard(worker)
             try:
-                pixmap = QPixmap.fromImage(qimg)
-                self.put(key, pixmap)
-                on_loaded(path_str, pixmap)
-            except RuntimeError:
+                if qimg is not None and not qimg.isNull():
+                    pixmap = QPixmap.fromImage(qimg)
+                    if not pixmap.isNull():
+                        self.put(key, pixmap)
+                        on_loaded(path_str, pixmap)
+            except (RuntimeError, Exception):
                 pass
 
         worker.signals.finished.connect(handle_finished, Qt.ConnectionType.QueuedConnection)

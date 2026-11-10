@@ -4,7 +4,7 @@ from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QListWidget, QListWidgetItem,
     QLineEdit
 )
-from PyQt6.QtCore import pyqtSignal, Qt
+from PyQt6.QtCore import pyqtSignal, Qt, QPoint
 from PyQt6.QtGui import QColor
 from src.models.folder_item import FolderItem
 from src.services.scanner import natural_sort_key
@@ -12,6 +12,8 @@ from src.services.scanner import natural_sort_key
 class FolderListWidget(QWidget):
     folder_selected = pyqtSignal(object)
     rename_requested = pyqtSignal(object)
+    selection_count_changed = pyqtSignal(int)
+    context_menu_requested = pyqtSignal(object, object)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -34,7 +36,26 @@ class FolderListWidget(QWidget):
         self.list_widget.setSelectionMode(QListWidget.SelectionMode.ExtendedSelection)
         self.list_widget.currentRowChanged.connect(self._on_row_changed)
         self.list_widget.itemDoubleClicked.connect(self._on_item_double_clicked)
+        self.list_widget.itemSelectionChanged.connect(self._on_selection_changed)
+        self.list_widget.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.list_widget.customContextMenuRequested.connect(self._on_custom_context_menu)
         layout.addWidget(self.list_widget)
+
+    def _on_selection_changed(self):
+        count = len(self.list_widget.selectedItems())
+        self.selection_count_changed.emit(count)
+
+    def _on_custom_context_menu(self, pos: QPoint):
+        item = self.list_widget.itemAt(pos)
+        if item:
+            if not item.isSelected():
+                self.list_widget.clearSelection()
+                item.setSelected(True)
+                self.list_widget.setCurrentItem(item)
+            data = item.data(Qt.ItemDataRole.UserRole)
+            if isinstance(data, FolderItem):
+                global_pos = self.list_widget.mapToGlobal(pos)
+                self.context_menu_requested.emit(data, global_pos)
 
     def _on_item_double_clicked(self, item: QListWidgetItem):
         data = item.data(Qt.ItemDataRole.UserRole)
@@ -87,6 +108,7 @@ class FolderListWidget(QWidget):
 
         list_item.setText(f"{item.name} ({item.image_count}){badge}")
         list_item.setForeground(color)
+        list_item.setToolTip(f"{item.name}\n{item.path}")
 
     def _refresh_single_item_display(self, folder_path: Path):
         target_path = folder_path.resolve()
@@ -140,6 +162,9 @@ class FolderListWidget(QWidget):
         if 0 <= row < len(self._filtered_items):
             return self._filtered_items[row]
         return None
+
+    def get_selected_folder(self) -> Optional[FolderItem]:
+        return self.get_current_folder()
 
     def get_selected_folders(self) -> List[FolderItem]:
         selected_items = self.list_widget.selectedItems()

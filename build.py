@@ -35,18 +35,25 @@ def increment_version() -> str:
     return version_str
 
 def build():
+    no_bump = "--no-bump" in sys.argv
     if not sys.platform.startswith("win"):
         ps_path = Path("/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe")
         if ps_path.exists():
             print("Detected Linux/WSL environment. Auto-delegating build to Windows PowerShell to produce .exe...")
             unc_path = r"\\wsl.localhost\Ubuntu\home\sahana\Code_Repository\personal\win-folder-thumbnail"
-            cmd = [str(ps_path), "-NoProfile", "-Command", f"Set-Location '{unc_path}'; python build.py"]
+            extra = " --no-bump" if no_bump else ""
+            cmd = [str(ps_path), "-NoProfile", "-Command", f"Set-Location '{unc_path}'; python build.py{extra}"]
             with open("/dev/null", "r") as devnull:
                 sys.exit(subprocess.call(cmd, stdin=devnull))
         else:
             sys.exit("ERROR: build.py must be executed in Windows environment to produce a Windows .exe binary.")
 
-    version_str = increment_version()
+    if no_bump:
+        from src.version import __version__
+        version_str = __version__
+        print(f"Re-building current version v{version_str}")
+    else:
+        version_str = increment_version()
     app_name = f"FolderImagePreviewer_v{version_str}"
 
     sep = ";" if sys.platform.startswith("win") else ":"

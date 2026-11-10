@@ -7,9 +7,11 @@ class BubbleBlock:
     bbox: Tuple[int, int, int, int]  # (x, y, w, h)
     text_ja: str
     text_en: str = ""
+    target_lang: str = ""
     expanded_bbox: Optional[Tuple[int, int, int, int]] = None
     centroid: Optional[Tuple[int, int]] = None
     shape: str = "oval"
+    is_manual: bool = False
 
     def to_dict(self) -> Dict[str, Any]:
         res = {
@@ -19,6 +21,10 @@ class BubbleBlock:
             "text_en": self.text_en,
             "shape": self.shape,
         }
+        if self.target_lang:
+            res["target_lang"] = self.target_lang
+        if self.is_manual:
+            res["is_manual"] = True
         if self.expanded_bbox is not None:
             res["expanded_bbox"] = list(self.expanded_bbox)
         if self.centroid is not None:
@@ -37,9 +43,11 @@ class BubbleBlock:
             bbox=(int(bbox_data[0]), int(bbox_data[1]), int(bbox_data[2]), int(bbox_data[3])),
             text_ja=str(data.get("text_ja", "")),
             text_en=str(data.get("text_en", "")),
+            target_lang=str(data.get("target_lang", "")),
             expanded_bbox=exp_bbox,
             centroid=centroid,
             shape=str(data.get("shape", "oval")),
+            is_manual=bool(data.get("is_manual", False)),
         )
 
 @dataclass

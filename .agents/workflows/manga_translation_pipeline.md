@@ -56,3 +56,15 @@ The translation pipeline operates in 5 strictly decoupled stages:
   QT_QPA_PLATFORM=offscreen .venv/bin/pytest tests/test_translation_*.py tests/test_manga_ocr_detector.py tests/test_onnx_bubble_detector.py
   ```
 - Confirm all overlay toggle (`T`), hover inspection, and queue operations pass cleanly.
+
+### Step 7: Mandatory Proof of Translation Changes
+Whenever modifications are made to the core translation logic, prompts, models, OCR algorithms, bubble detection, or typography rendering:
+1. **Render Full-Page Result Previews**:
+   - Generate and present the full-page rendered image preview for both approaches:
+     - **Approach 1: Token-Efficient Hybrid (Local ONNX + Manga OCR + Text LLM)**
+     - **Approach 2: Highest Quality Visual Hybrid (Local ONNX Segmentation + Vision LLM)**
+2. **Report Token Spend**:
+   - Provide the exact token consumption (prompt tokens, completion tokens, and total tokens) for every approach.
+3. **Output Discipline**:
+   - Do not serve this proof for unrelated UI, queue management, or file system changes where translation algorithms and prompts remain untouched.
+   - Present strictly the full rendered image previews and token expenditures. Do not provide side-by-side bubble crops or granular text diffs unless explicitly requested.

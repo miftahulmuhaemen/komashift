@@ -1,8 +1,8 @@
 import logging
 from pathlib import Path
 from typing import List, Optional
-from PyQt6.QtCore import QObject, pyqtSignal
-from src.models.translation_job import TranslationJob, JobStatus
+from PyQt6.QtCore import QObject, pyqtSignal, QTimer, QThread
+from src.models.translation_job import TranslationJob, JobStatus, JobType
 from src.services.translation_worker import TranslationWorker
 from src.services.manga_ocr_detector import MangaOcrDetector
 
@@ -44,11 +44,18 @@ class TranslationQueueManager(QObject):
                 return j
         return None
 
-    def add_job(self, folder_path: Path, image_paths: List[Path], target_lang: str = "en") -> TranslationJob:
+    def add_job(
+        self,
+        folder_path: Path,
+        image_paths: List[Path],
+        target_lang: str = "en",
+        job_type: JobType = JobType.TRANSLATION,
+        output_dir: Optional[Path] = None
+    ) -> TranslationJob:
         folder_path = Path(folder_path)
         # Check if job already exists in pending or running state
         for j in self.jobs:
-            if j.folder_path == folder_path and j.status in (JobStatus.PENDING, JobStatus.RUNNING):
+            if j.folder_path == folder_path and j.job_type == job_type and j.status in (JobStatus.PENDING, JobStatus.RUNNING):
                 j.target_lang = target_lang
                 self.queue_updated.emit()
                 return j
@@ -58,6 +65,8 @@ class TranslationQueueManager(QObject):
             folder_name=folder_path.name,
             image_paths=list(image_paths),
             target_lang=target_lang,
+            job_type=job_type,
+            output_dir=output_dir,
             status=JobStatus.PENDING
         )
         self.jobs.append(job)
@@ -69,6 +78,21 @@ class TranslationQueueManager(QObject):
             self._process_next()
 
         return job
+
+    def add_rasterize_job(
+        self,
+        folder_path: Path,
+        image_paths: List[Path],
+        target_lang: str = "en",
+        output_dir: Optional[Path] = None
+    ) -> TranslationJob:
+        return self.add_job(
+            folder_path=folder_path,
+            image_paths=image_paths,
+            target_lang=target_lang,
+            job_type=JobType.RASTERIZE,
+            output_dir=output_dir
+        )
 
     def remove_job(self, job_id: str):
         job = self.get_job(job_id)
@@ -115,7 +139,8 @@ class TranslationQueueManager(QObject):
 
         self._is_running = True
         self.queue_state_changed.emit(True)
-        self._process_next()
+        # Soft start: yield back to Qt event loop so UI repaints immediately without stutter
+        QTimer.singleShot(40, self._process_next)
 
     def pause_queue(self):
         self._is_running = False
@@ -141,35 +166,57 @@ class TranslationQueueManager(QObject):
             self._emit_overall_progress()
             return
 
+        # Check if there are selected pages
+        selected_pages = next_job.selected_image_paths if next_job.selected_image_paths else next_job.image_paths
+        if not selected_pages:
+            next_job.status = JobStatus.FAILED
+            next_job.status_message = "No pages selected"
+            next_job.error_message = "No images were selected for this job."
+            self.queue_updated.emit()
+            self._emit_overall_progress()
+            self._process_next()
+            return
+
         self._current_job = next_job
         next_job.status = JobStatus.RUNNING
         next_job.status_message = "Starting..."
         self.job_started.emit(next_job.id)
         self.queue_updated.emit()
 
-        api_key, base_url, model, timeout, batch_size = self._get_api_credentials()
+        api_key, base_url, model, timeout, batch_size, engine_mode, vision_scale_pct, vision_quality, max_retries, protocol = self._get_api_credentials()
         self._current_worker = TranslationWorker(
             folder_path=next_job.folder_path,
-            image_paths=next_job.image_paths,
+            image_paths=selected_pages,
             api_key=api_key,
             base_url=base_url,
             model=model,
             target_lang=next_job.target_lang,
             detector=self.detector,
             timeout=timeout,
-            batch_size=batch_size
+            batch_size=batch_size,
+            engine_mode=engine_mode,
+            vision_scale_pct=vision_scale_pct,
+            vision_quality=vision_quality,
+            max_retries=max_retries,
+            protocol=protocol,
+            job_type=next_job.job_type.value if hasattr(next_job.job_type, "value") else str(next_job.job_type),
+            output_dir=next_job.output_dir
         )
         self._current_worker.progress_updated.connect(self._on_worker_progress)
         self._current_worker.translation_finished.connect(self._on_worker_finished)
-        self._current_worker.start()
+        self._current_worker.start(QThread.Priority.NormalPriority)
 
     def _get_api_credentials(self):
         if self.settings_getter:
             res = self.settings_getter()
+            if len(res) >= 10:
+                return res[0], res[1], res[2], res[3], res[4], res[5], res[6], res[7], res[8], res[9]
+            if len(res) >= 8:
+                return res[0], res[1], res[2], res[3], res[4], res[5], res[6], res[7], 3, "openai"
             if len(res) >= 5:
-                return res[0], res[1], res[2], res[3], res[4]
-            return res[0], res[1], res[2], 120.0, 40
-        return ("", "https://generativelanguage.googleapis.com/v1beta/openai/", "gemini-2.5-flash", 120.0, 40)
+                return res[0], res[1], res[2], res[3], res[4], "hybrid", 75, 75, 3, "openai"
+            return res[0], res[1], res[2], 300.0, 40, "hybrid", 75, 75, 3, "openai"
+        return ("", "https://generativelanguage.googleapis.com/v1beta/openai/", "gemini-2.5-flash", 300.0, 40, "hybrid", 75, 75, 3, "openai")
 
     def _on_worker_progress(self, message: str, current: int, total: int):
         if self._current_job:
@@ -179,7 +226,39 @@ class TranslationQueueManager(QObject):
     def _on_worker_finished(self, success: bool, message: str):
         if self._current_job:
             job_id = self._current_job.id
-            if success:
+            failed_images = list(getattr(self._current_worker, "failed_image_paths", []))
+            was_cancelled = (message == "Cancelled by user")
+
+            if not was_cancelled and failed_images and self._current_job.retry_count < self._current_job.max_retries:
+                if success:
+                    self._current_job.status = JobStatus.COMPLETED
+                    self._current_job.progress_pct = 100
+                    self._current_job.status_message = f"Done ({len(failed_images)} failed re-queued)"
+                    self._current_job.error_message = None
+                else:
+                    self._current_job.status = JobStatus.FAILED
+                    self._current_job.status_message = f"Failed ({len(failed_images)} pages re-queued)"
+                    self._current_job.error_message = message
+
+                retry_job = TranslationJob(
+                    folder_path=self._current_job.folder_path,
+                    folder_name=f"{self._current_job.folder_name} (Retry)",
+                    image_paths=failed_images,
+                    selected_image_paths=list(failed_images),
+                    target_lang=self._current_job.target_lang,
+                    job_type=self._current_job.job_type,
+                    output_dir=self._current_job.output_dir,
+                    status=JobStatus.PENDING,
+                    status_message=f"Pending retry ({len(failed_images)} pages)",
+                    retry_count=self._current_job.retry_count + 1,
+                    max_retries=self._current_job.max_retries
+                )
+                self.jobs.append(retry_job)
+                logger.info(
+                    f"Re-queued {len(failed_images)} failed images for '{self._current_job.folder_name}' "
+                    f"(retry {retry_job.retry_count}/{retry_job.max_retries})"
+                )
+            elif success:
                 self._current_job.status = JobStatus.COMPLETED
                 self._current_job.progress_pct = 100
                 self._current_job.status_message = "Completed"

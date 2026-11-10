@@ -29,7 +29,7 @@ class MangaOcrDetector:
         self._engine = ocr_engine
         self.min_variance = float(min_variance)
         self._onnx_detector = OnnxBubbleDetector()
-        self._init_engine()
+        # Engine is loaded lazily on demand when OCR is first needed in background thread
 
     def _init_engine(self):
         if self._engine is not None:
@@ -77,7 +77,14 @@ class MangaOcrDetector:
             obs_closed = cv2.morphologyEx(
                 obs, cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (13, 13))
             )
-            obs_closed[tb_y1:tb_y2, tb_x1:tb_x2] = 0
+            # Inset obstacle clearing by 8% to preserve bubble and narration box boundary walls
+            ix = max(4, int(bw * 0.08))
+            iy = max(4, int(bh * 0.08))
+            obs = (crop <= 140).astype(np.uint8)
+            obs_closed = cv2.morphologyEx(
+                obs, cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (11, 11))
+            )
+            obs_closed[tb_y1 + iy:tb_y2 - iy, tb_x1 + ix:tb_x2 - ix] = 0
 
             trav = (obs_closed == 0).astype(np.uint8) * 255
             cx = (tb_x1 + tb_x2) // 2
@@ -101,38 +108,63 @@ class MangaOcrDetector:
                 return pad_rect, (bx + bw // 2, by + bh // 2), "inverted"
 
             cnts, _ = cv2.findContours(filled, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-            if cnts:
-                best_cnt = max(cnts, key=cv2.contourArea)
-                rx, ry, rw, rh = cv2.boundingRect(best_cnt)
-                gx, gy = x1 + rx, y1 + ry
+            if not cnts:
+                return default_res
 
-                hull = cv2.convexHull(best_cnt)
-                hull_area = cv2.contourArea(hull)
-                solidity = cv2.contourArea(best_cnt) / hull_area if hull_area > 0 else 0
-                peri = cv2.arcLength(best_cnt, True)
-                circ = 4 * np.pi * cv2.contourArea(best_cnt) / (peri * peri) if peri > 0 else 0
+            best_cnt = max(cnts, key=cv2.contourArea)
+            rx, ry, rw, rh = cv2.boundingRect(best_cnt)
+            gx, gy = x1 + rx, y1 + ry
 
-                # Reject leaks: if floodfill escaped into artwork/gutters, solidity or circularity collapses
-                if solidity < 0.78 or circ < 0.25:
-                    pad_rect = (
-                        max(0, bx - 10),
-                        max(0, by - 10),
-                        min(orig_w - bx + 10, bw + 20),
-                        min(orig_h - by + 10, bh + 20)
-                    )
-                    return pad_rect, (bx + bw // 2, by + bh // 2), "box"
+            area = cv2.contourArea(best_cnt)
+            hull = cv2.convexHull(best_cnt)
+            hull_area = cv2.contourArea(hull)
+            solidity = area / hull_area if hull_area > 0 else 0
+            peri = cv2.arcLength(best_cnt, True)
+            circ = 4 * np.pi * area / (peri * peri) if peri > 0 else 0
+            rect_fill = area / (rw * rh) if rw * rh > 0 else 0
 
-                M = cv2.moments(best_cnt)
-                if M["m00"] > 0:
-                    mcx = int(M["m10"] / M["m00"])
-                    mcy = int(M["m01"] / M["m00"])
-                else:
-                    mcx, mcy = rx + rw // 2, ry + rh // 2
-                centroid = (x1 + mcx, y1 + mcy)
+            # Check if region is a clean, solid rectangular box
+            is_solid_box = (rect_fill >= 0.88 and solidity >= 0.90)
 
-                approx = cv2.approxPolyDP(best_cnt, 0.03 * peri, True)
-                shape_type = "box" if len(approx) == 4 and circ < 0.8 else "oval"
-                return (gx, gy, rw, rh), centroid, shape_type
+            # Reject leaks: gutter leaks, extreme blowouts, or geometric breakdown
+            has_leaked = (
+                (gx <= 2 and bx > 40) or
+                (gy <= 2 and by > 40) or
+                (gx + rw >= orig_w - 2 and bx + bw < orig_w - 40) or
+                (rw > bw * 3.5) or
+                (rh > bh * 2.5) or
+                (not is_solid_box and (
+                    solidity < 0.80 or
+                    circ < 0.28 or
+                    rw > bw * 1.65 or
+                    rh > bh * 1.65 or
+                    bx - gx > 50 or
+                    (gx + rw) - (bx + bw) > 50
+                ))
+            )
+            if has_leaked:
+                pad_rect = (
+                    max(0, bx - 8),
+                    max(0, by - 8),
+                    min(orig_w - bx + 8, bw + 16),
+                    min(orig_h - by + 8, bh + 16)
+                )
+                return pad_rect, (bx + bw // 2, by + bh // 2), "box"
+
+            M = cv2.moments(best_cnt)
+            if M["m00"] > 0:
+                mcx = int(M["m10"] / M["m00"])
+                mcy = int(M["m01"] / M["m00"])
+            else:
+                mcx, mcy = rx + rw // 2, ry + rh // 2
+            centroid = (x1 + mcx, y1 + mcy)
+
+            approx = cv2.approxPolyDP(best_cnt, 0.03 * peri, True)
+            if rect_fill >= 0.88 or len(approx) == 4 or circ < 0.60:
+                shape_type = "box"
+            else:
+                shape_type = "oval"
+            return (gx, gy, rw, rh), centroid, shape_type
         except Exception as e:
             logger.debug(f"Bubble expansion failed for bbox {bbox}: {e}")
         return default_res
@@ -144,10 +176,15 @@ class MangaOcrDetector:
     ) -> List[Tuple[int, int, int, int]]:
         """
         Detects if a bounding box covers a multi-lobe / figure-8 bubble with two separate text clusters
-        and splits it into distinct dialogue bboxes.
+        and splits it into distinct dialogue bboxes. Never splits rectangular narration boxes.
         """
         bx, by, bw, bh = bbox
         if bw < 50 or bh < 120:
+            return [bbox]
+
+        # Never split rectangular narration boxes
+        _, _, shape_type = self._segment_bubble(full_img, bbox)
+        if shape_type == "box":
             return [bbox]
 
         try:
@@ -204,6 +241,7 @@ class MangaOcrDetector:
         - Pre-scales oversized scans (>1600px) for rapid ONNX detection.
         - Maps detected bounding boxes back to native resolution for precise cropping and UI overlay.
         """
+        image_path = Path(image_path)
         full_img = None
         detect_img = None
         try:
@@ -282,7 +320,12 @@ class MangaOcrDetector:
 
             bubbles: List[BubbleBlock] = []
             for bx, by, bw, bh in detected_bboxes:
-                crop = full_img.crop((bx, by, bx + bw, by + bh))
+                # Safe crop with 6px padding to prevent boundary glyph strokes from being clipped
+                crop_x1 = max(0, bx - 6)
+                crop_y1 = max(0, by - 6)
+                crop_x2 = min(orig_width, bx + bw + 6)
+                crop_y2 = min(orig_height, by + bh + 6)
+                crop = full_img.crop((crop_x1, crop_y1, crop_x2, crop_y2))
 
                 # Skip low-variance/blank crops (e.g. solid white/blank boxes, uniform screentone with no text)
                 if self.min_variance > 0:

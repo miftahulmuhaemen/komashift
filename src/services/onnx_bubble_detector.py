@@ -51,10 +51,13 @@ class OnnxBubbleDetector:
 
     def _get_session(self):
         if self._session is None and self.is_available():
+            import os
             import onnxruntime as ort
             opts = ort.SessionOptions()
-            # 0 lets ONNX Runtime automatically leverage all available CPU cores
-            opts.intra_op_num_threads = 0
+            # Soft CPU allocation: reserve core headroom for the OS and UI thread
+            total_cores = os.cpu_count() or 4
+            opts.intra_op_num_threads = max(1, min(4, total_cores - 1))
+            opts.inter_op_num_threads = max(1, min(2, total_cores // 2))
             opts.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
             self._session = ort.InferenceSession(
                 str(self.model_path),

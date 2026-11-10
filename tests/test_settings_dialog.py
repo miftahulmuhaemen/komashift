@@ -178,3 +178,46 @@ def test_settings_dialog_provider_switching_memory_and_custom_blank(qtbot):
     assert dialog2.api_key_input.text() == "AIzaSy_google_secret"
 
     settings.clear()
+
+
+def test_settings_dialog_engine_mode_multimodal(qtbot):
+    settings = QSettings("FolderImagePreviewerTest", "TestEngineMode")
+    settings.clear()
+
+    dialog = SettingsDialog(settings=settings)
+    qtbot.addWidget(dialog)
+
+    # Defaults: hybrid mode
+    assert dialog.engine_combo.currentData() == "hybrid"
+    assert dialog.vision_scale_combo.isEnabled() is False
+    assert dialog.vision_quality_combo.isEnabled() is False
+
+    # Switch to multimodal mode
+    multi_idx = dialog.engine_combo.findData("multimodal")
+    dialog.engine_combo.setCurrentIndex(multi_idx)
+
+    assert dialog.vision_scale_combo.isEnabled() is True
+    assert dialog.vision_quality_combo.isEnabled() is True
+
+    # Change vision scale and quality
+    s_idx = dialog.vision_scale_combo.findData(50)
+    dialog.vision_scale_combo.setCurrentIndex(s_idx)
+
+    q_idx = dialog.vision_quality_combo.findData(90)
+    dialog.vision_quality_combo.setCurrentIndex(q_idx)
+
+    dialog._on_save()
+
+    assert settings.value("llm_engine_mode") == "multimodal"
+    assert settings.value("llm_vision_scale_pct", type=int) == 50
+    assert settings.value("llm_vision_quality", type=int) == 90
+
+    # Re-open and verify persistence
+    dialog2 = SettingsDialog(settings=settings)
+    qtbot.addWidget(dialog2)
+    assert dialog2.engine_combo.currentData() == "multimodal"
+    assert dialog2.vision_scale_combo.currentData() == 50
+    assert dialog2.vision_quality_combo.currentData() == 90
+
+    settings.clear()
+

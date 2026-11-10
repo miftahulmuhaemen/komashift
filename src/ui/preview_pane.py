@@ -10,6 +10,7 @@ ZOOM_PRESETS = [0.50, 0.75, 1.00, 1.20]
 
 class PreviewPaneWidget(QWidget):
     zoom_changed = pyqtSignal(str)
+    manual_box_created = pyqtSignal(tuple)  # (orig_x, orig_y, orig_w, orig_h)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -32,9 +33,16 @@ class PreviewPaneWidget(QWidget):
         self.image_label.setStyleSheet("color: #888888; font-size: 14px;")
 
         self.overlay = TranslationOverlayWidget(self.image_label)
+        self.overlay.manual_box_created.connect(self.manual_box_created.emit)
 
         self.scroll_area.setWidget(self.image_label)
         layout.addWidget(self.scroll_area)
+
+    def set_manual_box_mode(self, enabled: bool):
+        self.overlay.set_manual_box_mode(enabled)
+
+    def is_manual_box_mode(self) -> bool:
+        return self.overlay.is_manual_box_mode()
 
     def set_zoom_mode(self, mode: Union[str, float]):
         if isinstance(mode, str):
@@ -116,10 +124,10 @@ class PreviewPaneWidget(QWidget):
         self._page_translation = None
         self._translations = {}
         self._image_path = image_path
-        self.overlay.clear()
 
         if not image_path or not image_path.exists():
             self._current_pixmap = None
+            self.overlay.clear()
             self.image_label.setText("No Image Selected")
             self.image_label.setPixmap(QPixmap())
             self.image_label.resize(self.scroll_area.viewport().size())
@@ -130,6 +138,7 @@ class PreviewPaneWidget(QWidget):
         pixmap = QPixmap(str(image_path))
         if pixmap.isNull():
             self._current_pixmap = None
+            self.overlay.clear()
             self.image_label.setText("Failed to load image")
             self.image_label.setPixmap(QPixmap())
             self.image_label.resize(self.scroll_area.viewport().size())

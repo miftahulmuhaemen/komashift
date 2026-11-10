@@ -46,3 +46,28 @@ def test_workspace_logging(tmp_path: Path):
     log_file = ws.get_temp_dir() / "translation.log"
     assert log_file.exists()
     assert "Starting OCR" in log_file.read_text(encoding="utf-8")
+
+
+def test_workspace_manual_labeled_pages(tmp_path: Path):
+    ws = TranslationWorkspace(tmp_path)
+    bubble1 = BubbleBlock("p1_b1", (0, 0, 50, 50), "はい", text_en="Yes", is_manual=False)
+    page1 = PageTranslation("01.png", 800, 1200, [bubble1])
+    ws.save_page_ocr(page1)
+    ws.save_translations({"p1_b1": "Yes"}, target_lang="en")
+
+    # Page 1 is fully translated and not manual
+    assert "01.png" in ws.get_translated_page_filenames("en")
+    assert "01.png" not in ws.get_manual_labeled_page_filenames("en")
+
+    # Add manual bubble to page 2 (untranslated)
+    bubble2 = BubbleBlock("p2_b1", (10, 10, 60, 60), "當然不行!", text_en="", is_manual=True)
+    page2 = PageTranslation("02.png", 800, 1200, [bubble2])
+    ws.save_page_ocr(page2)
+
+    assert "02.png" in ws.get_manual_labeled_page_filenames("en")
+    assert "02.png" not in ws.get_translated_page_filenames("en")
+
+    # When translated, page 2 transitions from manual label to cached
+    ws.save_translations({"p1_b1": "Yes", "p2_b1": "Of course not!"}, target_lang="en")
+    assert "02.png" not in ws.get_manual_labeled_page_filenames("en")
+    assert "02.png" in ws.get_translated_page_filenames("en")

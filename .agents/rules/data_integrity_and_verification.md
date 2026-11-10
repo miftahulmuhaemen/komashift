@@ -63,3 +63,25 @@ Strict rules governing data authenticity, OCR bounding box accuracy, translation
 2. **Graceful Fallback on Missing Models**:
    - If `comic-text-detector.onnx` is missing from `assets/models/`, `OnnxBubbleDetector.is_available()` must return `False` cleanly without throwing unhandled exceptions.
    - The UI must notify the user with actionable guidance rather than crashing.
+
+---
+
+## 5. Mandatory Translation Feature Proof Standards
+
+Whenever changes are made to the core translation logic, prompts, models, OCR algorithms, bubble detection, or typography rendering (changes that alter translated text, bounding coordinates, or visual rendering):
+
+1. **Mandatory Visual Proof**:
+   - The agent MUST render and display the full-page image result preview for both translation approaches directly in the report:
+     - **Approach 1: Token-Efficient Hybrid (Local ONNX + Manga OCR + Text LLM)**
+     - **Approach 2: Highest Quality Visual Hybrid (Local ONNX Segmentation + Vision LLM)**
+   - Both full-page preview images must be generated using the application's actual rendering engine and the configured translation model.
+
+2. **Mandatory Token Expenditure Report**:
+   - The agent MUST report the exact token spend for every approach:
+     - Prompt Tokens
+     - Completion Tokens
+     - Total Tokens
+
+3. **Scope Clarification**:
+   - Do NOT serve this proof for unrelated UI, queue management, or file system changes where translation algorithms and prompts remain untouched.
+   - Do NOT provide granular side-by-side bubble crops or text diff breakdowns unless explicitly requested. The required proof is strictly the full-page rendered image previews of both approaches and their corresponding token consumption metrics.
