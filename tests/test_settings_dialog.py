@@ -1,3 +1,4 @@
+from unittest.mock import patch
 from PyQt6.QtCore import QSettings
 from PyQt6.QtWidgets import QLineEdit
 from src.ui.settings_dialog import SettingsDialog
@@ -67,6 +68,9 @@ def test_settings_dialog_inputs_disabled_when_queue_running(qtbot):
     assert dialog.api_key_input.isEnabled() is False
     assert dialog.base_url_input.isEnabled() is False
     assert dialog.model_input.isEnabled() is False
+    assert dialog.hardware_accel_combo.isEnabled() is False
+    assert dialog.manga_ocr_model_input.isEnabled() is False
+    assert dialog.manga_ocr_browse_btn.isEnabled() is False
     assert dialog.save_btn.isEnabled() is False
     assert not dialog.running_notice.isHidden()
 
@@ -77,6 +81,9 @@ def test_settings_dialog_inputs_disabled_when_queue_running(qtbot):
     assert dialog.api_key_input.isEnabled() is True
     assert dialog.base_url_input.isEnabled() is True
     assert dialog.model_input.isEnabled() is True
+    assert dialog.hardware_accel_combo.isEnabled() is True
+    assert dialog.manga_ocr_model_input.isEnabled() is True
+    assert dialog.manga_ocr_browse_btn.isEnabled() is True
     assert dialog.save_btn.isEnabled() is True
     assert dialog.running_notice.isHidden()
     settings.clear()
@@ -220,4 +227,114 @@ def test_settings_dialog_engine_mode_multimodal(qtbot):
     assert dialog2.vision_quality_combo.currentData() == 90
 
     settings.clear()
+
+
+def test_settings_dialog_hardware_accel_and_custom_ocr_model(qtbot):
+    settings = QSettings("FolderImagePreviewerTest", "TestAccelOcr")
+    settings.clear()
+
+    # Initial defaults
+    dialog = SettingsDialog(settings=settings)
+    qtbot.addWidget(dialog)
+
+    # Hardware acceleration defaults to auto-detect
+    assert dialog.hardware_accel_combo.currentData() == "auto"
+    assert dialog.manga_ocr_model_input.text() == ""
+    assert "Detected ONNX providers:" in dialog.accel_info_label.text()
+
+    # Change to CPU Only and specify a custom HuggingFace model repo
+    cpu_idx = dialog.hardware_accel_combo.findData("cpu")
+    dialog.hardware_accel_combo.setCurrentIndex(cpu_idx)
+    dialog.manga_ocr_model_input.setText("my-custom-user/manga-ocr-finetuned")
+
+    dialog._on_save()
+
+    assert settings.value("onnx_force_cpu", type=bool) is True
+    assert settings.value("manga_ocr_model", type=str) == "my-custom-user/manga-ocr-finetuned"
+
+    # Re-open dialog in new instance and verify persistence
+    dialog2 = SettingsDialog(settings=settings)
+    qtbot.addWidget(dialog2)
+    assert dialog2.hardware_accel_combo.currentData() == "cpu"
+    assert dialog2.manga_ocr_model_input.text() == "my-custom-user/manga-ocr-finetuned"
+
+    settings.clear()
+
+
+def test_settings_dialog_browse_manga_ocr_model(qtbot, tmp_path):
+    settings = QSettings("FolderImagePreviewerTest", "TestBrowseOcr")
+    settings.clear()
+
+    dialog = SettingsDialog(settings=settings)
+    qtbot.addWidget(dialog)
+
+    model_dir = tmp_path / "custom_ocr_model"
+    model_dir.mkdir()
+
+    with patch("PyQt6.QtWidgets.QFileDialog.getExistingDirectory", return_value=str(model_dir)):
+        dialog.manga_ocr_browse_btn.click()
+        assert dialog.manga_ocr_model_input.text() == str(model_dir)
+
+    settings.clear()
+
+
+def test_settings_dialog_ocr_cache_check_and_download_flow(qtbot):
+    settings = QSettings("FolderImagePreviewerTest", "TestDownloadFlow")
+    settings.clear()
+
+    dialog = SettingsDialog(settings=settings)
+    qtbot.addWidget(dialog)
+    dialog.show()
+
+    # Mock uncached model
+    with patch("src.services.ai_assets_manager.AiAssetsManager.is_ocr_model_cached", return_value=False):
+        dialog.manga_ocr_model_input.setText("uncached/manga-ocr")
+        dialog._check_ocr_model_cache()
+        qtbot.waitUntil(lambda: not dialog.manga_ocr_download_btn.isHidden(), timeout=2000)
+
+        assert dialog.manga_ocr_download_btn.isVisible() is True
+        assert "not in local cache" in dialog.manga_ocr_status_badge.text().lower()
+
+    # Click Download with mock download worker
+    with patch("src.infra.model_download_worker.ModelDownloadWorker.start"):
+        dialog.manga_ocr_download_btn.click()
+        assert dialog.manga_ocr_pause_btn.isVisible() is True
+        assert dialog.manga_ocr_cancel_btn.isVisible() is True
+        assert dialog.manga_ocr_progress_bar.isVisible() is True
+
+        # Click Cancel
+        dialog.manga_ocr_cancel_btn.click()
+        # Input should revert to empty (default)
+        assert dialog.manga_ocr_model_input.text() == ""
+        assert settings.value("manga_ocr_model") == ""
+        assert dialog.manga_ocr_pause_btn.isVisible() is False
+        assert dialog.manga_ocr_cancel_btn.isVisible() is False
+
+    dialog.cleanup()
+    settings.clear()
+
+
+def test_settings_dialog_ocr_cached_local_folder(qtbot, tmp_path):
+    settings = QSettings("FolderImagePreviewerTest", "TestLocalCached")
+    settings.clear()
+
+    dialog = SettingsDialog(settings=settings)
+    qtbot.addWidget(dialog)
+    dialog.show()
+
+    model_dir = tmp_path / "valid_model"
+    model_dir.mkdir()
+    (model_dir / "encoder_model.onnx").touch()
+    (model_dir / "decoder_model.onnx").touch()
+
+    dialog.manga_ocr_model_input.setText(str(model_dir))
+    dialog._check_ocr_model_cache()
+    qtbot.waitUntil(lambda: "Local Model Directory" in dialog.manga_ocr_status_badge.text(), timeout=2000)
+
+    assert "Local Model Directory" in dialog.manga_ocr_status_badge.text()
+    assert dialog.manga_ocr_download_btn.isVisible() is False
+
+    dialog.cleanup()
+    settings.clear()
+
 

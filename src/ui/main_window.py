@@ -119,10 +119,10 @@ def _draw_rasterize_icon(p: QPainter, s: int):
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle(f"Windows Folder Image Previewer v{__version__}")
+        self.setWindowTitle("KomaShift")
         self.resize(1200, 780)
         self._set_app_icon()
-        self.settings = QSettings("FolderImagePreviewer", "FolderImagePreviewer")
+        self.settings = QSettings("KomaShift", "KomaShift")
         self.settings_vm = SettingsViewModel(self.settings, parent=self)
         self.library_vm = LibraryViewModel(parent=self)
         self.thumbnail_cache = ThumbnailCache()
@@ -611,8 +611,8 @@ class MainWindow(QMainWindow):
     def _on_show_about(self):
         QMessageBox.about(
             self,
-            "About Windows Folder Image Previewer",
-            f"<h3>Windows Folder Image Previewer v{__version__}</h3>"
+            "About KomaShift",
+            f"<h3>KomaShift v{__version__}</h3>"
             "<p>Offline local comic & manga image reader with AI machine translation and Handbrake-style background queue.</p>"
         )
 
@@ -624,11 +624,15 @@ class MainWindow(QMainWindow):
         self.folder_list.installEventFilter(self)
         self.thumbnail_strip.installEventFilter(self)
 
-
     def _restore_last_folder(self):
         last_dir = self.settings_vm.get_last_root_folder()
         if last_dir and Path(last_dir).is_dir():
             self._load_root_folder(Path(last_dir))
+        if "pytest" not in sys.modules:
+            self.settings_vm.check_for_updates(
+                lambda v: self.status_bar.showMessage(f"KomaShift v{v} is available!", 15000)
+                if getattr(self, "status_bar", None) else None
+            )
 
     def _load_root_folder(self, root_path: Path):
         self.path_label.setText(str(root_path))

@@ -255,7 +255,7 @@ class QueueDialog(QDialog):
     def __init__(self, queue_manager: TranslationQueueManager, parent=None, settings: Optional[QSettings] = None, thumbnail_cache=None):
         super().__init__(parent)
         self.queue_manager = queue_manager
-        self.settings = settings or QSettings("FolderImagePreviewer", "FolderImagePreviewer")
+        self.settings = settings or QSettings("KomaShift", "KomaShift")
         self.thumbnail_cache = thumbnail_cache
         self._is_populating_pages = False
         self.setWindowTitle("Translation Queue")
@@ -534,7 +534,10 @@ class QueueDialog(QDialog):
 
         # Tab 4: API & Translation (use && so Qt renders literal '&' without mnemonic underline)
         self.settings_widget = ApiTranslationSettingsWidget(
-            parent=self, settings=self.settings, is_queue_running=self.queue_manager.is_running
+            parent=self,
+            settings=self.settings,
+            is_queue_running=self.queue_manager.is_running,
+            queue_manager=self.queue_manager,
         )
         self.tab_widget.addTab(self.settings_widget, "API && Translation")
 
@@ -929,3 +932,13 @@ class QueueDialog(QDialog):
             if isinstance(widget, JobListItemWidget) and widget.job.id == job_id:
                 widget.update_data()
                 break
+
+    def closeEvent(self, event):
+        if hasattr(self, "settings_widget") and hasattr(self.settings_widget, "cleanup"):
+            self.settings_widget.cleanup()
+        super().closeEvent(event)
+
+    def reject(self):
+        if hasattr(self, "settings_widget") and hasattr(self.settings_widget, "cleanup"):
+            self.settings_widget.cleanup()
+        super().reject()

@@ -25,6 +25,28 @@ class TranslationQueueManager(QObject):
         self._is_running = False
         self._current_worker: Optional[TranslationWorker] = None
         self._current_job: Optional[TranslationJob] = None
+        self._is_model_downloading = False
+        self._model_download_message = ""
+
+    @property
+    def is_model_downloading(self) -> bool:
+        return self._is_model_downloading
+
+    def set_model_downloading(self, downloading: bool, message: str = ""):
+        self._is_model_downloading = bool(downloading)
+        self._model_download_message = message or ("Waiting for model download..." if downloading else "")
+        if self._is_model_downloading:
+            for j in self.jobs:
+                if j.status == JobStatus.PENDING:
+                    j.status_message = self._model_download_message
+            self.queue_updated.emit()
+        else:
+            for j in self.jobs:
+                if j.status == JobStatus.PENDING:
+                    j.status_message = "Pending"
+            self.queue_updated.emit()
+            if self._is_running and self._current_worker is None:
+                QTimer.singleShot(40, self._process_next)
 
     @property
     def is_running(self) -> bool:
@@ -170,6 +192,11 @@ class TranslationQueueManager(QObject):
             self._emit_overall_progress()
             return
 
+        if self._is_model_downloading:
+            next_job.status_message = self._model_download_message or "Waiting for model download..."
+            self.queue_updated.emit()
+            return
+
         # Check if there are selected pages
         selected_pages = next_job.selected_image_paths if next_job.selected_image_paths else next_job.image_paths
         if not selected_pages:
@@ -187,7 +214,7 @@ class TranslationQueueManager(QObject):
         self.job_started.emit(next_job.id)
         self.queue_updated.emit()
 
-        api_key, base_url, model, timeout, batch_size, engine_mode, vision_scale_pct, vision_quality, max_retries, protocol = self._get_api_credentials()
+        api_key, base_url, model, timeout, batch_size, engine_mode, vision_scale_pct, vision_quality, max_retries, protocol, manga_ocr_model, onnx_force_cpu = self._get_api_credentials()
         self._current_worker = TranslationWorker(
             folder_path=next_job.folder_path,
             image_paths=selected_pages,
@@ -203,6 +230,8 @@ class TranslationQueueManager(QObject):
             vision_quality=vision_quality,
             max_retries=max_retries,
             protocol=protocol,
+            manga_ocr_model=manga_ocr_model,
+            onnx_force_cpu=onnx_force_cpu,
             job_type=next_job.job_type.value if hasattr(next_job.job_type, "value") else str(next_job.job_type),
             output_dir=next_job.output_dir
         )
@@ -213,14 +242,40 @@ class TranslationQueueManager(QObject):
     def _get_api_credentials(self):
         if self.settings_getter:
             res = self.settings_getter()
+            if len(res) >= 12:
+                return (
+                    res[0], res[1], res[2], res[3], res[4],
+                    res[5], res[6], res[7], res[8], res[9],
+                    res[10], res[11]
+                )
             if len(res) >= 10:
-                return res[0], res[1], res[2], res[3], res[4], res[5], res[6], res[7], res[8], res[9]
+                return (
+                    res[0], res[1], res[2], res[3], res[4],
+                    res[5], res[6], res[7], res[8], res[9],
+                    "", False
+                )
             if len(res) >= 8:
-                return res[0], res[1], res[2], res[3], res[4], res[5], res[6], res[7], 3, "openai"
+                return (
+                    res[0], res[1], res[2], res[3], res[4],
+                    res[5], res[6], res[7], 3, "openai",
+                    "", False
+                )
             if len(res) >= 5:
-                return res[0], res[1], res[2], res[3], res[4], "hybrid", 75, 75, 3, "openai"
-            return res[0], res[1], res[2], 300.0, 40, "hybrid", 75, 75, 3, "openai"
-        return ("", "https://generativelanguage.googleapis.com/v1beta/openai/", "gemini-2.5-flash", 300.0, 40, "hybrid", 75, 75, 3, "openai")
+                return (
+                    res[0], res[1], res[2], res[3], res[4],
+                    "hybrid", 75, 75, 3, "openai",
+                    "", False
+                )
+            return (
+                res[0], res[1], res[2], 300.0, 40,
+                "hybrid", 75, 75, 3, "openai",
+                "", False
+            )
+        return (
+            "", "https://generativelanguage.googleapis.com/v1beta/openai/",
+            "gemini-2.5-flash", 300.0, 40, "hybrid", 75, 75, 3, "openai",
+            "", False
+        )
 
     def _on_worker_progress(self, message: str, current: int, total: int):
         if self._current_job:

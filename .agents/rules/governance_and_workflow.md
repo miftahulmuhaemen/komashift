@@ -5,7 +5,7 @@ description: Operating safety, plan governance, two-phase pre-commit verificatio
 
 # Governance, Safety & Release Standards
 
-Strict rules governing execution safety, planning invariants, verification cadence, architectural layering, and git release conventions for the Windows Folder Image Previewer.
+Strict rules governing execution safety, planning invariants, verification cadence, architectural layering, and git release conventions for KomaShift.
 
 ---
 

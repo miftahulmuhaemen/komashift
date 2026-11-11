@@ -5,7 +5,7 @@ description: Sequential lifecycle for development verification, user commit dire
 
 # Workflow: Two-Phase Pre-Commit & Release Lifecycle
 
-This workflow governs the exact sequence required when implementing code changes and preparing git commits for the Windows Folder Image Previewer.
+This workflow governs the exact sequence required when implementing code changes and preparing git commits for KomaShift.
 
 ---
 

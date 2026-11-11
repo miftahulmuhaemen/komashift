@@ -350,7 +350,7 @@ def test_persistent_folder_restore(qtbot, tmp_path: Path):
 
     # Set setting
     from PyQt6.QtCore import QSettings
-    settings = QSettings("FolderImagePreviewer", "FolderImagePreviewer")
+    settings = QSettings("KomaShift", "KomaShift")
     settings.setValue("last_root_folder", str(root))
 
     window = MainWindow()

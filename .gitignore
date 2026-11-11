@@ -21,6 +21,7 @@ dist/
 *.dylib
 *.pyd
 FolderImagePreviewer*
+KomaShift*
 
 # Machine Learning & AI Models (Large Binaries)
 assets/models/

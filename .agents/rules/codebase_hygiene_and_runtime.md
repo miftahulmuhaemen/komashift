@@ -5,7 +5,7 @@ description: Python virtual environment standards, PyQt6 offscreen test runtime,
 
 # Codebase Hygiene, Tooling & Runtime Standards
 
-Strict rules governing execution runtimes, repository cleanliness, documentation synchronization, PyQt6 threading safety, and file system invariants for the Windows Folder Image Previewer.
+Strict rules governing execution runtimes, repository cleanliness, documentation synchronization, PyQt6 threading safety, and file system invariants for KomaShift.
 
 ---
 
@@ -68,3 +68,6 @@ Strict rules governing execution runtimes, repository cleanliness, documentation
    - Whenever keyboard shortcuts, CLI flags, configuration settings, architectural topology, or new dependencies are introduced or altered, `README.md` MUST be updated in the same changeset.
 2. **README Structure Standards**:
    - System Overview, Core Feature List, Keyboard Shortcuts Table, Requirements, Installation & Local Run, Building Executable (.exe), Running Tests, License.
+3. **Copywriting Standards**:
+   - Never use em dash (—) in user-facing copywriting, documentation, or UI labels. Use standard punctuation such as commas, parentheses, colons, or hyphens instead.
+

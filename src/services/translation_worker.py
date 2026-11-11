@@ -38,6 +38,8 @@ class TranslationWorker(QThread):
         provider: Optional[Any] = None,
         repository: Optional[Any] = None,
         log_sink: Optional[Any] = None,
+        manga_ocr_model: str = "",
+        onnx_force_cpu: bool = False,
     ):
         super().__init__(parent)
         self.folder_path = Path(folder_path)
@@ -56,6 +58,8 @@ class TranslationWorker(QThread):
         self.protocol = str(protocol).lower()
         self.job_type = str(job_type)
         self.output_dir = Path(output_dir) if output_dir else None
+        self.manga_ocr_model = str(manga_ocr_model).strip()
+        self.onnx_force_cpu = bool(onnx_force_cpu)
         if repository is not None:
             self.workspace = repository
         else:
@@ -77,7 +81,9 @@ class TranslationWorker(QThread):
         self.detector = detector or MangaOcrDetector(
             api_key=self.api_key,
             base_url=self.base_url,
-            model=self.model
+            model=self.model,
+            ocr_model_path=self.manga_ocr_model,
+            force_cpu=self.onnx_force_cpu
         )
 
         if self.job_type == "rasterize":

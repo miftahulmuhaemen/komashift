@@ -49,6 +49,24 @@ def test_fit_comic_text_empty(qapp):
     assert th == 0
 
 
+def test_fit_comic_text_avoids_aggressive_word_chopping(qapp):
+    # Short words like "Hello." must fit intact on one line rather than being chopped into "H- el- lo."
+    pt, lines, _, _, _, _ = fit_comic_text("Hello.", 45, 180, "oval")
+    assert lines == ["Hello."]
+
+    # "Nice to meet you." in slender vertical bubble must not chop "Nice" or "meet"
+    pt, lines, _, _, _, _ = fit_comic_text("Nice to meet you.", 50, 220, "oval")
+    assert lines == ["Nice", "to", "meet", "you."]
+
+    # "It's pretty, isn't it?" must not chop "pretty" into "pre- t- ty,"
+    pt, lines, _, _, _, _ = fit_comic_text("It's pretty, isn't it?", 55, 240, "oval")
+    assert lines == ["It's", "pretty,", "isn't", "it?"]
+
+    # "called" and "today" must not be hyphenated
+    pt, lines, _, _, _, _ = fit_comic_text("So, the reason I called you today is", 50, 260, "oval")
+    assert lines == ["So, the", "reason", "I", "called", "you", "today", "is"]
+
+
 def test_qt_comic_renderer_renders_bubbles(qapp):
     pixmap = QPixmap(200, 200)
     pixmap.fill()

@@ -21,6 +21,20 @@ def test_settings_viewmodel(tmp_path: Path):
     vm.set_api_key("sk-test-12345")
     creds = vm.get_api_credentials()
     assert creds[0] == "sk-test-12345"
+    assert len(creds) == 12
+
+    assert vm.get_manga_ocr_model() == ""
+    vm.set_manga_ocr_model("custom-user/manga-ocr")
+    assert vm.get_manga_ocr_model() == "custom-user/manga-ocr"
+
+    assert vm.get_onnx_force_cpu() is False
+    vm.set_onnx_force_cpu(True)
+    assert vm.get_onnx_force_cpu() is True
+
+    providers = vm.get_detected_providers()
+    assert isinstance(providers, list)
+    assert len(providers) >= 1
+
 
 
 def test_library_viewmodel(tmp_path: Path):

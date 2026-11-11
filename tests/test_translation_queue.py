@@ -366,3 +366,51 @@ def test_queue_manager_cancel_and_state_changed():
     assert states == [False]
 
 
+def test_queue_manager_extracts_custom_ocr_and_acceleration_credentials():
+    # 12-tuple from settings_getter
+    getter_12 = lambda: (
+        "key", "url", "model", 400, 10, "hybrid", 75, 75, 3, "openai", "custom/ocr-model", True
+    )
+    qm = TranslationQueueManager(settings_getter=getter_12)
+    creds = qm._get_api_credentials()
+    assert len(creds) == 12
+    assert creds[10] == "custom/ocr-model"
+    assert creds[11] is True
+
+    # 10-tuple backward compatibility
+    getter_10 = lambda: (
+        "key", "url", "model", 400, 10, "hybrid", 75, 75, 3, "openai"
+    )
+    qm10 = TranslationQueueManager(settings_getter=getter_10)
+    creds10 = qm10._get_api_credentials()
+    assert len(creds10) == 12
+    assert creds10[10] == ""
+    assert creds10[11] is False
+
+
+def test_translation_queue_model_download_interlock(tmp_path):
+    qm = TranslationQueueManager()
+    folder = tmp_path / "test_folder"
+    folder.mkdir()
+    img = folder / "01.jpg"
+    img.touch()
+
+    job = qm.add_job(folder, [img])
+    assert qm.is_model_downloading is False
+
+    # Activate download interlock
+    qm.set_model_downloading(True, "Waiting for custom model...")
+    assert qm.is_model_downloading is True
+    assert job.status_message == "Waiting for custom model..."
+
+    # When starting queue while model is downloading, worker must NOT be started
+    qm.start_queue()
+    assert qm._current_worker is None
+
+    # Releasing interlock resets pending status message
+    qm.set_model_downloading(False)
+    assert qm.is_model_downloading is False
+    assert job.status_message == "Pending"
+
+
+

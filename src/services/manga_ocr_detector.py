@@ -21,14 +21,19 @@ class MangaOcrDetector:
         base_url: str = "",
         model: str = "",
         ocr_engine=None,
-        min_variance: float = 6.0
+        min_variance: float = 6.0,
+        ocr_model_path: str = "",
+        force_cpu: bool = False,
+        detector: Optional[OnnxBubbleDetector] = None,
     ):
         self.api_key = api_key.strip()
         self.base_url = base_url.strip()
         self.model = model.strip()
         self._engine = ocr_engine
         self.min_variance = float(min_variance)
-        self._onnx_detector = OnnxBubbleDetector()
+        self.ocr_model_path = ocr_model_path.strip() if ocr_model_path else ""
+        self.force_cpu = bool(force_cpu)
+        self._onnx_detector = detector or OnnxBubbleDetector(force_cpu=self.force_cpu)
         # Engine is loaded lazily on demand when OCR is first needed in background thread
 
     def _init_engine(self):
@@ -36,7 +41,10 @@ class MangaOcrDetector:
             return
         try:
             from manga_ocr import MangaOcr  # type: ignore
-            self._engine = MangaOcr()
+            kwargs = {"force_cpu": self.force_cpu}
+            if self.ocr_model_path:
+                kwargs["pretrained_model_name_or_path"] = self.ocr_model_path
+            self._engine = MangaOcr(**kwargs)
             logger.info("Loaded local manga-ocr engine successfully.")
         except Exception as e:
             logger.warning(f"Could not initialize local manga-ocr engine: {e}")
@@ -52,10 +60,11 @@ class MangaOcrDetector:
     def segment_bubble(
         self,
         full_img: Image.Image,
-        bbox: Tuple[int, int, int, int]
+        bbox: Tuple[int, int, int, int],
+        other_bboxes: Optional[List[Tuple[int, int, int, int]]] = None
     ) -> Tuple[Tuple[int, int, int, int], Tuple[int, int], str]:
         """Calculates expanded speech balloon bounding box, true centroid, and shape classification."""
-        return self._segment_bubble(full_img, bbox)
+        return self._segment_bubble(full_img, bbox, other_bboxes=other_bboxes)
 
     def detect_and_ocr_manual_region(
         self,
@@ -85,10 +94,12 @@ class MangaOcrDetector:
     def _segment_bubble(
         self,
         full_img: Image.Image,
-        bbox: Tuple[int, int, int, int]
+        bbox: Tuple[int, int, int, int],
+        other_bboxes: Optional[List[Tuple[int, int, int, int]]] = None
     ) -> Tuple[Tuple[int, int, int, int], Tuple[int, int], str]:
         """
         Calculates expanded speech balloon bounding box, true centroid, and shape classification (oval vs box).
+        Masks out neighboring speech bubbles to prevent floodfill expansion from colliding across boundaries.
         """
         bx, by, bw, bh = bbox
         default_res = ((bx, by, bw, bh), (bx + bw // 2, by + bh // 2), "oval")
@@ -125,6 +136,19 @@ class MangaOcrDetector:
                 obs, cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (11, 11))
             )
             obs_closed[tb_y1 + iy:tb_y2 - iy, tb_x1 + ix:tb_x2 - ix] = 0
+
+            # If neighboring dialogue boxes exist in the crop window, mark them as solid obstacles
+            # so floodfill never leaks into or swallows adjacent dialogue balloons
+            if other_bboxes:
+                for obx, oby, obw, obh in other_bboxes:
+                    if (obx, oby, obw, obh) == (bx, by, bw, bh):
+                        continue
+                    ox1 = max(0, obx - x1)
+                    oy1 = max(0, oby - y1)
+                    ox2 = min(w_c, obx + obw - x1)
+                    oy2 = min(h_c, oby + obh - y1)
+                    if ox2 > ox1 and oy2 > oy1:
+                        obs_closed[oy1:oy2, ox1:ox2] = 1
 
             trav = (obs_closed == 0).astype(np.uint8) * 255
             cx = (tb_x1 + tb_x2) // 2
@@ -385,7 +409,9 @@ class MangaOcrDetector:
                     except Exception as e:
                         logger.warning(f"Error OCR-ing bubble {b_id}: {e}")
 
-                exp_bbox, cent, shape_type = self._segment_bubble(full_img, (bx, by, bw, bh))
+                exp_bbox, cent, shape_type = self._segment_bubble(
+                    full_img, (bx, by, bw, bh), other_bboxes=detected_bboxes
+                )
 
                 bubbles.append(
                     BubbleBlock(
@@ -398,6 +424,44 @@ class MangaOcrDetector:
                         shape=shape_type
                     )
                 )
+
+            # Post-segmentation boundary resolution:
+            # If two sibling bubbles overlap vertically or horizontally, clamp their touching boundary to avoid occluding each other
+            for i in range(len(bubbles)):
+                b1 = bubbles[i]
+                if not b1.expanded_bbox:
+                    continue
+                x1, y1, w1, h1 = b1.expanded_bbox
+                for j in range(i + 1, len(bubbles)):
+                    b2 = bubbles[j]
+                    if not b2.expanded_bbox:
+                        continue
+                    x2, y2, w2, h2 = b2.expanded_bbox
+                    # Check horizontal alignment
+                    inter_x1 = max(x1, x2)
+                    inter_x2 = min(x1 + w1, x2 + w2)
+                    inter_w = max(0, inter_x2 - inter_x1)
+                    if inter_w > min(w1, w2) * 0.35:
+                        # Stacking collision: b1 above b2
+                        if y1 < y2 and (y1 + h1) > y2:
+                            overlap = (y1 + h1) - y2
+                            if 0 < overlap < min(h1, h2) * 0.70:
+                                split_y = y2 + overlap // 2
+                                new_h1 = max(b1.bbox[3], split_y - y1)
+                                new_y2 = min(b2.bbox[1], split_y)
+                                new_h2 = max(b2.bbox[3], (y2 + h2) - new_y2)
+                                b1.expanded_bbox = (x1, y1, w1, new_h1)
+                                b2.expanded_bbox = (x2, new_y2, w2, new_h2)
+                        # Stacking collision: b2 above b1
+                        elif y2 < y1 and (y2 + h2) > y1:
+                            overlap = (y2 + h2) - y1
+                            if 0 < overlap < min(h1, h2) * 0.70:
+                                split_y = y1 + overlap // 2
+                                new_h2 = max(b2.bbox[3], split_y - y2)
+                                new_y1 = min(b1.bbox[1], split_y)
+                                new_h1 = max(b1.bbox[3], (y1 + h1) - new_y1)
+                                b2.expanded_bbox = (x2, y2, w2, new_h2)
+                                b1.expanded_bbox = (x1, new_y1, w1, new_h1)
 
             msg = f"Extracted {len(bubbles)} dialogue bubbles locally on {image_path.name}"
             logger.info(msg)

@@ -5,7 +5,7 @@ description: Prohibition of synthetic/fabricated OCR and translation data, dual-
 
 # Data Integrity, OCR & Translation Verification Standards
 
-Strict rules governing data authenticity, OCR bounding box accuracy, translation workspace contracts, offline-first privacy standards, and model binary protection for the Windows Folder Image Previewer.
+Strict rules governing data authenticity, OCR bounding box accuracy, translation workspace contracts, offline-first privacy standards, and model binary protection for KomaShift.
 
 ---
 
@@ -46,7 +46,8 @@ Strict rules governing data authenticity, OCR bounding box accuracy, translation
 
 ## 3. Offline-First Privacy & API Key Protection
 
-1. **Offline-First Privacy Standard**:
+1. **AI / LLM Usage Policy & Offline-First Privacy Standard**:
+   - NEVER use LLMs/external APIs to consume or process images. LLMs must strictly only receive plain text (e.g., text translation). All image processing, text detection, and OCR must be performed 100% locally.
    - Speech bubble segmentation and Japanese text recognition are 100% offline by design. Raw comic images must NEVER be transmitted to external servers or cloud services unless the user explicitly enables multimodal cloud vision in settings.
    - For standard translations, only extracted text dialogue strings are dispatched to translation APIs.
 2. **API Key Protection**:

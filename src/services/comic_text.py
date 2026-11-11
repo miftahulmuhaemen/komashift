@@ -123,16 +123,43 @@ def calculate_popup_rect(
     return QRect(clamped_x, clamped_y, target_width, target_height)
 
 
-def split_word_to_fit(word: str, fm: QFontMetrics, max_w: int, dic=None) -> List[str]:
+def _char_level_split(word: str, fm: QFontMetrics, max_w: int) -> List[str]:
+    """Fallback character-level splitting for indivisible long words in extreme narrow containers."""
+    final_chunks = []
+    rem = word
+    while rem:
+        if fm.horizontalAdvance(rem) <= max_w:
+            final_chunks.append(rem)
+            break
+        sub = ""
+        for char in rem:
+            test_sub = sub + char + "-"
+            if fm.horizontalAdvance(test_sub) <= max_w or not sub:
+                sub += char
+            else:
+                break
+        final_chunks.append(sub + "-")
+        rem = rem[len(sub):]
+    return final_chunks if final_chunks else [word]
+
+
+def split_word_to_fit(word: str, fm: QFontMetrics, max_w: int, dic=None, allow_char_split: bool = False) -> List[str]:
     """
     Splits a single word into chunks that each fit within max_w.
-    Prefers syllable hyphenation, falling back to character-level splitting.
+    Prefers syllable hyphenation for long words (length >= 7),
+    strictly disallowing hyphenating short words (<= 6 chars) or producing tiny fragments (< 3 chars).
     """
     if not word or fm.horizontalAdvance(word) <= max_w:
         return [word]
 
+    clean_word = re.sub(r"^\W+|\W+$", "", word)
+    # Typographic rule: Never hyphenate short words (<= 6 letters) like Hello, Nice, meet, pretty, called
+    if len(clean_word) <= 6:
+        if allow_char_split:
+            return _char_level_split(word, fm, max_w)
+        return [word]
+
     chunks = []
-    clean_word = re.sub(r"^[^\w]+|[^\w]+$", "", word)
     if dic and clean_word:
         try:
             hyphenated = dic.inserted(clean_word)
@@ -151,54 +178,50 @@ def split_word_to_fit(word: str, fm: QFontMetrics, max_w: int, dic=None) -> List
                     if fm.horizontalAdvance(test_part) <= max_w:
                         cur_chunk = test_part
                     else:
-                        if cur_chunk:
+                        clean_cur = cur_chunk.rstrip("-")
+                        clean_next = p.rstrip("-")
+                        # Typographic rule: Ensure at least 3 letters before hyphen and at least 2 after
+                        if len(clean_cur) >= 3 and len(clean_next) >= 2:
                             chunks.append(cur_chunk if cur_chunk.endswith("-") else cur_chunk + "-")
-                        cur_chunk = p + ("" if is_last else "-")
-                        if is_last:
-                            cur_chunk += suffix
+                            cur_chunk = p + ("" if is_last else "-")
+                            if is_last:
+                                cur_chunk += suffix
+                        else:
+                            cur_chunk = test_part
                 if cur_chunk:
                     chunks.append(cur_chunk)
         except Exception:
             pass
 
-    to_process = chunks if chunks else [word]
-    final_chunks = []
-    for ch in to_process:
-        if fm.horizontalAdvance(ch) <= max_w:
-            final_chunks.append(ch)
-        else:
-            # Character-level chunking fallback
-            rem = ch
-            while rem:
-                if fm.horizontalAdvance(rem) <= max_w:
-                    final_chunks.append(rem)
-                    break
-                sub = ""
-                for char in rem:
-                    test_sub = sub + char + "-"
-                    if fm.horizontalAdvance(test_sub) <= max_w or not sub:
-                        sub += char
-                    else:
-                        break
-                final_chunks.append(sub + "-")
-                rem = rem[len(sub):]
-    return final_chunks if final_chunks else [word]
+    if chunks and all(fm.horizontalAdvance(ch) <= max_w for ch in chunks):
+        return chunks
+
+    if allow_char_split:
+        return _char_level_split(word, fm, max_w)
+
+    return [word]
 
 
-def wrap_words_to_width(words: List[str], fm: QFontMetrics, max_w: int, dic=None) -> List[str]:
+def _wrap_words_to_width_scored(words: List[str], fm: QFontMetrics, max_w: int, dic=None, allow_char_split: bool = False) -> Tuple[List[str], bool, int]:
     """
-    Wraps a list of words to fit inside max_w, splitting overlong words as necessary.
-    Guarantees no returned line exceeds max_w.
+    Wraps a list of words to fit inside max_w.
+    Returns: (lines, has_overflow, hyphen_count)
     """
     lines = []
     cur_line = []
     cur_w = 0
     space_w = fm.horizontalAdvance(" ")
+    has_overflow = False
+    hyphen_count = 0
 
     for word in words:
-        chunks = split_word_to_fit(word, fm, max_w, dic)
+        chunks = split_word_to_fit(word, fm, max_w, dic, allow_char_split=allow_char_split)
+        if len(chunks) > 1:
+            hyphen_count += (len(chunks) - 1)
         for idx, chunk in enumerate(chunks):
             chunk_w = fm.horizontalAdvance(chunk)
+            if chunk_w > max_w:
+                has_overflow = True
             if not cur_line:
                 cur_line.append(chunk)
                 cur_w = chunk_w
@@ -212,6 +235,15 @@ def wrap_words_to_width(words: List[str], fm: QFontMetrics, max_w: int, dic=None
                     cur_w = chunk_w
     if cur_line:
         lines.append(" ".join(cur_line))
+    return lines, has_overflow, hyphen_count
+
+
+def wrap_words_to_width(words: List[str], fm: QFontMetrics, max_w: int, dic=None) -> List[str]:
+    """
+    Wraps a list of words to fit inside max_w, splitting overlong words as necessary.
+    Guarantees no returned line exceeds max_w.
+    """
+    lines, _, _ = _wrap_words_to_width_scored(words, fm, max_w, dic, allow_char_split=True)
     return lines
 
 
@@ -224,7 +256,7 @@ def fit_comic_text(
 ) -> Tuple[int, List[str], float, float, int, int]:
     """
     Computes optimal Comic font size, line wrapping, tracking and word spacing.
-    Guarantees text is wrapped within inner_w and never returns an unwrapped single line.
+    Prioritizes word integrity over font size, preventing aggressive syllable breakdown.
     Returns: (best_pt, best_lines, letter_sp, word_sp, line_height, total_h)
     """
     family = get_comic_font_family()
@@ -265,8 +297,8 @@ def fit_comic_text(
         font.setWordSpacing(word_sp)
         fm = QFontMetrics(font)
 
-        lines = wrap_words_to_width(base_words, fm, inner_w, dic)
-        if not lines:
+        lines, has_overflow, hyphen_count = _wrap_words_to_width_scored(base_words, fm, inner_w, dic, allow_char_split=False)
+        if not lines or has_overflow:
             continue
 
         line_height = int(fm.height() * 1.05)
@@ -275,7 +307,8 @@ def fit_comic_text(
 
         if total_text_h <= inner_h:
             fill_ratio = total_text_h / float(inner_h)
-            score = pt * 6.0
+            # Base score rewards legible font size, but heavily penalizes hyphenation
+            score = pt * 6.0 - (hyphen_count * 45.0)
 
             if 0.40 <= fill_ratio <= 0.90:
                 score += 30.0
@@ -296,7 +329,22 @@ def fit_comic_text(
             candidates.append((score, pt, lines, letter_sp, word_sp, line_height, total_text_h))
 
     if not candidates:
+        # Fallback: test from min_pt down allowing emergency syllable/char splitting if unavoidable
         fallback_pt = emergency_min_pt
+        for pt in range(min_pt, emergency_min_pt - 1, -1):
+            font = QFont(family, pt)
+            font.setWeight(QFont.Weight.Bold)
+            font.setLetterSpacing(QFont.SpacingType.AbsoluteSpacing, letter_sp)
+            font.setWordSpacing(word_sp)
+            fm = QFontMetrics(font)
+            lines, _, hyphens = _wrap_words_to_width_scored(base_words, fm, inner_w, dic, allow_char_split=True)
+            lh = int(fm.height() * 1.05)
+            total_h = len(lines) * lh
+            if total_h <= inner_h:
+                fallback_pt = pt
+                all_wrapped_by_pt[pt] = (lines, lh, total_h)
+                break
+
         if fallback_pt in all_wrapped_by_pt:
             lines, lh, total_h = all_wrapped_by_pt[fallback_pt]
         else:
@@ -305,7 +353,7 @@ def fit_comic_text(
             font.setLetterSpacing(QFont.SpacingType.AbsoluteSpacing, letter_sp)
             font.setWordSpacing(word_sp)
             fm = QFontMetrics(font)
-            lines = wrap_words_to_width(base_words, fm, inner_w, dic)
+            lines, _, _ = _wrap_words_to_width_scored(base_words, fm, inner_w, dic, allow_char_split=True)
             lh = int(fm.height() * 1.05)
             total_h = len(lines) * lh
         return (fallback_pt, lines, letter_sp, word_sp, lh, total_h)

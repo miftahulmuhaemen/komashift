@@ -5,7 +5,7 @@ description: PyQt6 UI design standards, dark theme palette, keyboard navigation 
 
 # UI & PyQt6 Desktop Application Standards
 
-Strict design, component hierarchy, keyboard navigation, and comic typography standards for the Windows Folder Image Previewer.
+Strict design, component hierarchy, keyboard navigation, and comic typography standards for KomaShift.
 
 ---
 

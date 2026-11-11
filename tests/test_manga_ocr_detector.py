@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 from pathlib import Path
 from PIL import Image, ImageDraw
 from src.models.translation_item import PageTranslation
@@ -109,4 +109,81 @@ def test_manga_ocr_detection_prescaling(tmp_path: Path):
     assert abs(by - 100) <= 2
     assert abs(bw - 50) <= 2
     assert abs(bh - 150) <= 2
+
+
+def test_manga_ocr_segment_bubble_obstacle_masking():
+    # Verify that passing neighboring bubbles as obstacles prevents floodfill from spilling across bounds
+    img = Image.new("L", (200, 300), color=255)
+    detector = MangaOcrDetector()
+
+    b1 = (50, 40, 80, 80)
+    b2 = (50, 140, 80, 80)
+
+    # Segmenting b1 with b2 as obstacle should not expand down into b2's region
+    exp_b1, _, _ = detector.segment_bubble(img, b1, other_bboxes=[b2])
+    # The bottom of b1's expanded rect should be constrained
+    assert exp_b1[1] + exp_b1[3] <= b2[1] + 15
+
+
+def test_manga_ocr_overlap_resolution(tmp_path: Path):
+    img_path = tmp_path / "overlap_page.png"
+    img = Image.new("RGB", (600, 800), color="white")
+    draw = ImageDraw.Draw(img)
+    # Box 1 (upper)
+    draw.rectangle([110, 110, 150, 180], fill="black")
+    # Box 2 (lower, vertically adjacent)
+    draw.rectangle([110, 200, 150, 270], fill="black")
+    img.save(img_path)
+
+    detector = MangaOcrDetector()
+    detector._onnx_detector.is_available = MagicMock(return_value=True)
+    detector._onnx_detector.detect_bubbles = MagicMock(return_value=[
+        (100, 100, 60, 90),
+        (100, 195, 60, 90),
+    ])
+    mock_engine = MagicMock(side_effect=["Top text", "Bottom text"])
+    detector._engine = mock_engine
+
+    page = detector.detect_page(img_path, page_index=1)
+    assert len(page.bubbles) == 2
+    b1_exp = page.bubbles[0].expanded_bbox
+    b2_exp = page.bubbles[1].expanded_bbox
+
+    # Neither expanded box should significantly occlude or swallow the other
+    assert b1_exp[1] + b1_exp[3] <= b2_exp[1] + 10
+
+
+def test_manga_ocr_detector_custom_model_and_acceleration():
+    # 1. Custom model and force_cpu = True
+    detector_custom = MangaOcrDetector(
+        ocr_model_path="custom/hf-repo-id",
+        force_cpu=True
+    )
+    assert detector_custom.ocr_model_path == "custom/hf-repo-id"
+    assert detector_custom.force_cpu is True
+    assert detector_custom._onnx_detector.force_cpu is True
+
+    with patch("manga_ocr.MangaOcr") as mock_mocr:
+        detector_custom._init_engine()
+        assert mock_mocr.call_count == 1
+        _, kwargs = mock_mocr.call_args
+        assert kwargs["pretrained_model_name_or_path"] == "custom/hf-repo-id"
+        assert kwargs["force_cpu"] is True
+
+    # 2. Default model with GPU auto-detect (force_cpu = False)
+    detector_default = MangaOcrDetector(
+        ocr_model_path="",
+        force_cpu=False
+    )
+    assert detector_default.ocr_model_path == ""
+    assert detector_default.force_cpu is False
+    assert detector_default._onnx_detector.force_cpu is False
+
+    with patch("manga_ocr.MangaOcr") as mock_mocr_def:
+        detector_default._init_engine()
+        assert mock_mocr_def.call_count == 1
+        _, kwargs_def = mock_mocr_def.call_args
+        assert "pretrained_model_name_or_path" not in kwargs_def
+        assert kwargs_def["force_cpu"] is False
+
 

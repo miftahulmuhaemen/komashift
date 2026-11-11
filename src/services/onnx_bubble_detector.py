@@ -11,24 +11,27 @@ class OnnxBubbleDetector:
     Local manga speech bubble detector using ONNX Runtime.
     Fast, offline, and produces exact pixel bounding boxes for speech bubbles.
     """
-    def __init__(self, model_path: Optional[Path] = None):
-        self.model_path = model_path or self._resolve_model_path()
+    def __init__(self, model_path: Optional[Path] = None, force_cpu: bool = False):
+        if model_path:
+            self.model_path = Path(model_path)
+        else:
+            self.model_path = self._resolve_model_path()
+        self.force_cpu = bool(force_cpu)
         self._session = None
         self._available = None
 
+    @staticmethod
+    def get_detected_providers() -> List[str]:
+        """Returns the list of available ONNX Runtime execution providers."""
+        try:
+            import onnxruntime as ort
+            return ort.get_available_providers()
+        except Exception:
+            return ["CPUExecutionProvider"]
+
     def _resolve_model_path(self) -> Optional[Path]:
-        candidates = [
-            # PyInstaller bundle path
-            Path(getattr(sys, "_MEIPASS", "")) / "assets" / "models" / "comic-text-detector.onnx",
-            # Repo source path
-            Path(__file__).parent.parent.parent / "assets" / "models" / "comic-text-detector.onnx",
-            # Cache directory
-            Path.home() / ".cache" / "comic_text_detector" / "comic-text-detector.onnx",
-        ]
-        for c in candidates:
-            if c.is_file():
-                return c
-        return None
+        from src.services.ai_assets_manager import AiAssetsManager
+        return AiAssetsManager().get_comic_model_path()
 
     def is_available(self) -> bool:
         if self._available is not None:
@@ -59,10 +62,29 @@ class OnnxBubbleDetector:
             opts.intra_op_num_threads = max(1, min(4, total_cores - 1))
             opts.inter_op_num_threads = max(1, min(2, total_cores // 2))
             opts.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
+
+            if self.force_cpu:
+                providers = ["CPUExecutionProvider"]
+            else:
+                available_providers = ort.get_available_providers()
+                preferred_providers = [
+                    "TensorrtExecutionProvider",
+                    "CUDAExecutionProvider",
+                    "CoreMLExecutionProvider",
+                    "DmlExecutionProvider",
+                    "OpenVINOExecutionProvider",
+                    "ROCmExecutionProvider",
+                    "CPUExecutionProvider",
+                ]
+                providers = [p for p in preferred_providers if p in available_providers]
+                if not providers:
+                    providers = ["CPUExecutionProvider"]
+
+            logger.info(f"OnnxBubbleDetector initialized with execution providers: {providers}")
             self._session = ort.InferenceSession(
                 str(self.model_path),
                 sess_options=opts,
-                providers=["CPUExecutionProvider"]
+                providers=providers
             )
         return self._session
 
@@ -149,7 +171,31 @@ class OnnxBubbleDetector:
         if len(indices) == 0:
             return []
 
-        filtered_boxes = [tuple(boxes[idx]) for idx in indices.flatten()]
+        nms_boxes = [tuple(boxes[idx]) for idx in indices.flatten()]
+
+        # Containment (IoMin) suppression: drop duplicate child boxes largely inside another larger box
+        nms_boxes.sort(key=lambda b: b[2] * b[3], reverse=True)
+        filtered_boxes = []
+        for b in nms_boxes:
+            bx, by, bw, bh = b
+            b_area = bw * bh
+            is_contained = False
+            for kx, ky, kw, kh in filtered_boxes:
+                ix1 = max(bx, kx)
+                iy1 = max(by, ky)
+                ix2 = min(bx + bw, kx + kw)
+                iy2 = min(by + bh, ky + kh)
+                iw = max(0, ix2 - ix1)
+                ih = max(0, iy2 - iy1)
+                inter_area = iw * ih
+                if inter_area > 0 and b_area > 0:
+                    io_min = inter_area / float(b_area)
+                    if io_min >= 0.65:
+                        is_contained = True
+                        break
+            if not is_contained:
+                filtered_boxes.append(b)
+
         filtered_boxes.sort(key=lambda b: (b[1] // 160, -b[0]))
 
         return filtered_boxes

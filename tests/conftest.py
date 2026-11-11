@@ -21,7 +21,7 @@ def isolated_qsettings(tmp_path: Path):
     QSettings.setDefaultFormat(QSettings.Format.IniFormat)
     QSettings.setPath(QSettings.Format.IniFormat, QSettings.Scope.UserScope, str(tmp_path))
 
-    s = QSettings("FolderImagePreviewer", "FolderImagePreviewer")
+    s = QSettings("KomaShift", "KomaShift")
     s.clear()
     s.setValue("llm_api_key", "test-api-key")
     s.setValue("llm_model", "test-model")
@@ -31,7 +31,7 @@ def isolated_qsettings(tmp_path: Path):
     yield
 
     try:
-        s2 = QSettings("FolderImagePreviewer", "FolderImagePreviewer")
+        s2 = QSettings("KomaShift", "KomaShift")
         s2.clear()
         del s2
     except Exception:

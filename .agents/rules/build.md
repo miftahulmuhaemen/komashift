@@ -22,7 +22,7 @@ Execution without `--explicit-user-request` is physically blocked by a mechanica
 2. **Redirect Stdin (`< /dev/null`)**: Always append `< /dev/null` at the end to prevent PowerShell from hanging waiting on input.
 3. **UNC Path**: The project is accessed from Windows via `\\wsl.localhost\Ubuntu\home\sahana\Code_Repository\personal\win-folder-thumbnail`.
 4. **Pre-configured Windows Environment**: The Windows Python environment (`hermes-agent\venv` / Python 3.11) already has PyInstaller, PyQt6, ONNX Runtime, manga-ocr, unidic-lite, and transformers installed. Do not attempt to reinstall or check dependencies.
-5. **Automatic Version Bumping**: `build.py` automatically increments `PATCH` and `BUILD` in `src/version.py`, runs PyInstaller with `--onefile --windowed`, and outputs `dist/FolderImagePreviewer_v<version>.exe`.
+5. **Static Versioning & Clean Replacement**: `build.py` does NOT increment version numbers automatically. The version is statically controlled in `src/version.py` and bumped strictly via PRs following Semantic Versioning (MAJOR.MINOR.PATCH). Each build automatically cleans and replaces previous local outputs in `dist/`.
 
 ---
 

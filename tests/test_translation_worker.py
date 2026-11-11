@@ -387,5 +387,25 @@ def test_worker_interruption_cancels_gracefully(tmp_path: Path, qtbot):
     assert "Cancelled" in msg
 
 
+def test_worker_passes_custom_ocr_and_acceleration_settings(tmp_path: Path):
+    img1 = tmp_path / "01.png"
+    _create_dummy_image(img1)
+
+    worker = TranslationWorker(
+        folder_path=tmp_path,
+        image_paths=[img1],
+        api_key="mock-key",
+        manga_ocr_model="custom/ocr-model",
+        onnx_force_cpu=True
+    )
+
+    assert worker.manga_ocr_model == "custom/ocr-model"
+    assert worker.onnx_force_cpu is True
+    assert worker.detector.ocr_model_path == "custom/ocr-model"
+    assert worker.detector.force_cpu is True
+    assert worker.detector._onnx_detector.force_cpu is True
+
+
+
 
 

@@ -5,7 +5,7 @@ description: Sequential lifecycle for creating, executing, updating, and pruning
 
 # Workflow: Plan Lifecycle & Task Execution
 
-This workflow defines the procedural steps for executing multi-step tasks across agent sessions for the Windows Folder Image Previewer.
+This workflow defines the procedural steps for executing multi-step tasks across agent sessions for KomaShift.
 
 ---
 
