@@ -11,7 +11,7 @@
       "_origin": "ast",
       "id": "build",
       "community": 28,
-      "community_name": "Build & Compilation Instructions (.exe)",
+      "community_name": "build",
       "norm_label": "build.py"
     },
     {
@@ -22,7 +22,7 @@
       "_origin": "ast",
       "id": "build_bump_version",
       "community": 28,
-      "community_name": "Build & Compilation Instructions (.exe)",
+      "community_name": "build",
       "norm_label": "bump_version()"
     },
     {
@@ -33,7 +33,7 @@
       "_origin": "ast",
       "id": "build_find_iscc",
       "community": 28,
-      "community_name": "Build & Compilation Instructions (.exe)",
+      "community_name": "build",
       "norm_label": "find_iscc()"
     },
     {
@@ -44,7 +44,7 @@
       "_origin": "ast",
       "id": "build_py_path",
       "community": 28,
-      "community_name": "Build & Compilation Instructions (.exe)",
+      "community_name": "build",
       "norm_label": "path"
     },
     {
@@ -55,7 +55,7 @@
       "_origin": "ast",
       "id": "build_build",
       "community": 28,
-      "community_name": "Build & Compilation Instructions (.exe)",
+      "community_name": "build",
       "norm_label": "build()"
     },
     {
@@ -66,7 +66,7 @@
       "_origin": "ast",
       "id": "src_init",
       "community": 31,
-      "community_name": "Workflow: Plan Lifecycle & Task Execution",
+      "community_name": "src/__init__.py",
       "norm_label": "src/__init__.py"
     },
     {
@@ -88,7 +88,7 @@
       "_origin": "ast",
       "id": "src_infra_file_log_sink",
       "community": 34,
-      "community_name": "6. Test Strategy",
+      "community_name": "FileLogSink",
       "norm_label": "file_log_sink.py"
     },
     {
@@ -99,7 +99,7 @@
       "_origin": "ast",
       "id": "src_infra_file_log_sink_filelogsink",
       "community": 34,
-      "community_name": "6. Test Strategy",
+      "community_name": "FileLogSink",
       "norm_label": "filelogsink"
     },
     {
@@ -110,7 +110,7 @@
       "_origin": "ast",
       "id": "src_infra_file_log_sink_filelogsink_init",
       "community": 34,
-      "community_name": "6. Test Strategy",
+      "community_name": "FileLogSink",
       "norm_label": ".__init__()"
     },
     {
@@ -121,7 +121,7 @@
       "_origin": "ast",
       "id": "src_infra_file_log_sink_py_path",
       "community": 34,
-      "community_name": "6. Test Strategy",
+      "community_name": "FileLogSink",
       "norm_label": "path"
     },
     {
@@ -132,7 +132,7 @@
       "_origin": "ast",
       "id": "src_infra_file_log_sink_filelogsink_append",
       "community": 34,
-      "community_name": "6. Test Strategy",
+      "community_name": "FileLogSink",
       "norm_label": ".append()"
     },
     {
@@ -143,7 +143,7 @@
       "_origin": "ast",
       "id": "src_infra_file_log_sink_filelogsink_read",
       "community": 34,
-      "community_name": "6. Test Strategy",
+      "community_name": "FileLogSink",
       "norm_label": ".read()"
     },
     {
@@ -154,7 +154,7 @@
       "_origin": "ast",
       "id": "src_infra_file_log_sink_filelogsink_clear",
       "community": 34,
-      "community_name": "6. Test Strategy",
+      "community_name": "FileLogSink",
       "norm_label": ".clear()"
     },
     {
@@ -165,7 +165,7 @@
       "_origin": "ast",
       "id": "src_infra_file_log_sink_rationale_9",
       "community": 34,
-      "community_name": "6. Test Strategy",
+      "community_name": "FileLogSink",
       "norm_label": "concrete filesystem adapter implementing logsink writing to a text log file."
     },
     {
@@ -252,8 +252,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_infra_json_workspace",
-      "community": 44,
-      "community_name": "ChapterStatus",
+      "community": 34,
+      "community_name": "FileLogSink",
       "norm_label": "json_workspace.py"
     },
     {
@@ -263,8 +263,8 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "src_infra_json_workspace_jsontempworkspace",
-      "community": 37,
-      "community_name": "JsonTempWorkspace",
+      "community": 2,
+      "community_name": "FolderItem",
       "norm_label": "jsontempworkspace"
     },
     {
@@ -274,8 +274,8 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "src_infra_json_workspace_jsontempworkspace_init",
-      "community": 62,
-      "community_name": "Path",
+      "community": 2,
+      "community_name": "FolderItem",
       "norm_label": ".__init__()"
     },
     {
@@ -285,8 +285,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_infra_json_workspace_py_path",
-      "community": 62,
-      "community_name": "Path",
+      "community": 2,
+      "community_name": "FolderItem",
       "norm_label": "path"
     },
     {
@@ -296,8 +296,8 @@
       "source_location": "L23",
       "_origin": "ast",
       "id": "src_infra_json_workspace_jsontempworkspace_ensure_temp_dir",
-      "community": 62,
-      "community_name": "Path",
+      "community": 2,
+      "community_name": "FolderItem",
       "norm_label": "._ensure_temp_dir()"
     },
     {
@@ -307,8 +307,8 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "src_infra_json_workspace_jsontempworkspace_get_temp_dir",
-      "community": 62,
-      "community_name": "Path",
+      "community": 2,
+      "community_name": "FolderItem",
       "norm_label": ".get_temp_dir()"
     },
     {
@@ -318,8 +318,8 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "src_infra_json_workspace_jsontempworkspace_ocr_file",
-      "community": 62,
-      "community_name": "Path",
+      "community": 2,
+      "community_name": "FolderItem",
       "norm_label": ".ocr_file()"
     },
     {
@@ -329,8 +329,8 @@
       "source_location": "L34",
       "_origin": "ast",
       "id": "src_infra_json_workspace_jsontempworkspace_translation_file",
-      "community": 62,
-      "community_name": "Path",
+      "community": 2,
+      "community_name": "FolderItem",
       "norm_label": ".translation_file()"
     },
     {
@@ -340,8 +340,8 @@
       "source_location": "L38",
       "_origin": "ast",
       "id": "src_infra_json_workspace_jsontempworkspace_log_file",
-      "community": 62,
-      "community_name": "Path",
+      "community": 2,
+      "community_name": "FolderItem",
       "norm_label": ".log_file()"
     },
     {
@@ -549,8 +549,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "src_infra_json_workspace_rationale_15",
-      "community": 37,
-      "community_name": "JsonTempWorkspace",
+      "community": 2,
+      "community_name": "FolderItem",
       "norm_label": "concrete filesystem adapter implementing pagerepository using <folder>/temp json"
     },
     {
@@ -968,7 +968,7 @@
       "_origin": "ast",
       "id": "src_main",
       "community": 27,
-      "community_name": "Typography Engine Overflow Investigation and Fix Plan",
+      "community_name": "main.py",
       "norm_label": "main.py"
     },
     {
@@ -979,7 +979,7 @@
       "_origin": "ast",
       "id": "src_main_get_app_icon",
       "community": 27,
-      "community_name": "Typography Engine Overflow Investigation and Fix Plan",
+      "community_name": "main.py",
       "norm_label": "get_app_icon()"
     },
     {
@@ -990,7 +990,7 @@
       "_origin": "ast",
       "id": "src_main_py_qicon",
       "community": 27,
-      "community_name": "Typography Engine Overflow Investigation and Fix Plan",
+      "community_name": "main.py",
       "norm_label": "qicon"
     },
     {
@@ -1001,7 +1001,7 @@
       "_origin": "ast",
       "id": "src_main_main",
       "community": 27,
-      "community_name": "Typography Engine Overflow Investigation and Fix Plan",
+      "community_name": "main.py",
       "norm_label": "main()"
     },
     {
@@ -1012,7 +1012,7 @@
       "_origin": "ast",
       "id": "src_models_init",
       "community": 33,
-      "community_name": "2. Current State \u2014 Evidence",
+      "community_name": "FolderItem",
       "norm_label": "models/__init__.py"
     },
     {
@@ -1023,7 +1023,7 @@
       "_origin": "ast",
       "id": "src_models_folder_item",
       "community": 33,
-      "community_name": "2. Current State \u2014 Evidence",
+      "community_name": "FolderItem",
       "norm_label": "folder_item.py"
     },
     {
@@ -1034,7 +1034,7 @@
       "_origin": "ast",
       "id": "src_models_folder_item_folderitem",
       "community": 33,
-      "community_name": "2. Current State \u2014 Evidence",
+      "community_name": "FolderItem",
       "norm_label": "folderitem"
     },
     {
@@ -1045,7 +1045,7 @@
       "_origin": "ast",
       "id": "src_models_folder_item_folderitem_image_count",
       "community": 33,
-      "community_name": "2. Current State \u2014 Evidence",
+      "community_name": "FolderItem",
       "norm_label": ".image_count()"
     },
     {
@@ -1056,7 +1056,7 @@
       "_origin": "ast",
       "id": "src_models_folder_item_folderitem_first_image",
       "community": 33,
-      "community_name": "2. Current State \u2014 Evidence",
+      "community_name": "FolderItem",
       "norm_label": ".first_image()"
     },
     {
@@ -1067,7 +1067,7 @@
       "_origin": "ast",
       "id": "src_models_folder_item_py_path",
       "community": 33,
-      "community_name": "2. Current State \u2014 Evidence",
+      "community_name": "FolderItem",
       "norm_label": "path"
     },
     {
@@ -1166,7 +1166,7 @@
       "_origin": "ast",
       "id": "src_models_translation_job",
       "community": 24,
-      "community_name": "Data Integrity, OCR & Translation Verification Standards",
+      "community_name": "queue_dialog.py",
       "norm_label": "translation_job.py"
     },
     {
@@ -1177,7 +1177,7 @@
       "_origin": "ast",
       "id": "src_models_translation_job_jobstatus",
       "community": 24,
-      "community_name": "Data Integrity, OCR & Translation Verification Standards",
+      "community_name": "queue_dialog.py",
       "norm_label": "jobstatus"
     },
     {
@@ -1188,7 +1188,7 @@
       "_origin": "ast",
       "id": "str",
       "community": 24,
-      "community_name": "Data Integrity, OCR & Translation Verification Standards",
+      "community_name": "queue_dialog.py",
       "norm_label": "str"
     },
     {
@@ -1199,7 +1199,7 @@
       "_origin": "ast",
       "id": "enum",
       "community": 24,
-      "community_name": "Data Integrity, OCR & Translation Verification Standards",
+      "community_name": "queue_dialog.py",
       "norm_label": "enum"
     },
     {
@@ -1210,7 +1210,7 @@
       "_origin": "ast",
       "id": "src_models_translation_job_jobtype",
       "community": 24,
-      "community_name": "Data Integrity, OCR & Translation Verification Standards",
+      "community_name": "queue_dialog.py",
       "norm_label": "jobtype"
     },
     {
@@ -1364,7 +1364,7 @@
       "_origin": "ast",
       "id": "src_ports_init",
       "community": 44,
-      "community_name": "ChapterStatus",
+      "community_name": "ports/__init__.py",
       "norm_label": "ports/__init__.py"
     },
     {
@@ -1451,8 +1451,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_ports_log_sink",
-      "community": 44,
-      "community_name": "ChapterStatus",
+      "community": 34,
+      "community_name": "FileLogSink",
       "norm_label": "log_sink.py"
     },
     {
@@ -1462,8 +1462,8 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "src_ports_log_sink_logsink",
-      "community": 44,
-      "community_name": "ChapterStatus",
+      "community": 34,
+      "community_name": "FileLogSink",
       "norm_label": "logsink"
     },
     {
@@ -1473,8 +1473,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_ports_log_sink_py_protocol",
-      "community": 44,
-      "community_name": "ChapterStatus",
+      "community": 34,
+      "community_name": "FileLogSink",
       "norm_label": "protocol"
     },
     {
@@ -1484,8 +1484,8 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "src_ports_log_sink_logsink_append",
-      "community": 44,
-      "community_name": "ChapterStatus",
+      "community": 34,
+      "community_name": "FileLogSink",
       "norm_label": ".append()"
     },
     {
@@ -1495,8 +1495,8 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "src_ports_log_sink_logsink_read",
-      "community": 44,
-      "community_name": "ChapterStatus",
+      "community": 34,
+      "community_name": "FileLogSink",
       "norm_label": ".read()"
     },
     {
@@ -1506,8 +1506,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "src_ports_log_sink_logsink_clear",
-      "community": 44,
-      "community_name": "ChapterStatus",
+      "community": 34,
+      "community_name": "FileLogSink",
       "norm_label": ".clear()"
     },
     {
@@ -1517,8 +1517,8 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "src_ports_log_sink_rationale_5",
-      "community": 44,
-      "community_name": "ChapterStatus",
+      "community": 34,
+      "community_name": "FileLogSink",
       "norm_label": "port defining logging persistence and inspection contract."
     },
     {
@@ -1528,8 +1528,8 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "src_ports_log_sink_rationale_12",
-      "community": 44,
-      "community_name": "ChapterStatus",
+      "community": 34,
+      "community_name": "FileLogSink",
       "norm_label": "read all log entries as a string."
     },
     {
@@ -1539,8 +1539,8 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "src_ports_log_sink_rationale_16",
-      "community": 44,
-      "community_name": "ChapterStatus",
+      "community": 34,
+      "community_name": "FileLogSink",
       "norm_label": "clear all log entries."
     },
     {
@@ -1551,7 +1551,7 @@
       "_origin": "ast",
       "id": "src_ports_page_repository",
       "community": 44,
-      "community_name": "ChapterStatus",
+      "community_name": "ports/__init__.py",
       "norm_label": "page_repository.py"
     },
     {
@@ -1562,7 +1562,7 @@
       "_origin": "ast",
       "id": "src_ports_page_repository_chapterstatus",
       "community": 44,
-      "community_name": "ChapterStatus",
+      "community_name": "ports/__init__.py",
       "norm_label": "chapterstatus"
     },
     {
@@ -1573,7 +1573,7 @@
       "_origin": "ast",
       "id": "src_ports_page_repository_chapterstatus_is_translation_complete",
       "community": 44,
-      "community_name": "ChapterStatus",
+      "community_name": "ports/__init__.py",
       "norm_label": ".is_translation_complete()"
     },
     {
@@ -1584,7 +1584,7 @@
       "_origin": "ast",
       "id": "src_ports_page_repository_py_path",
       "community": 44,
-      "community_name": "ChapterStatus",
+      "community_name": "ports/__init__.py",
       "norm_label": "path"
     },
     {
@@ -1661,7 +1661,7 @@
       "_origin": "ast",
       "id": "src_ports_page_repository_pagerepository_status",
       "community": 44,
-      "community_name": "ChapterStatus",
+      "community_name": "ports/__init__.py",
       "norm_label": ".status()"
     },
     {
@@ -1683,7 +1683,7 @@
       "_origin": "ast",
       "id": "src_ports_page_repository_rationale_9",
       "community": 44,
-      "community_name": "ChapterStatus",
+      "community_name": "ports/__init__.py",
       "norm_label": "read-only snapshot of chapter ocr and translation state."
     },
     {
@@ -1694,7 +1694,7 @@
       "_origin": "ast",
       "id": "src_ports_page_repository_rationale_17",
       "community": 44,
-      "community_name": "ChapterStatus",
+      "community_name": "ports/__init__.py",
       "norm_label": "helper to determine whether all given images are fully translated."
     },
     {
@@ -1760,7 +1760,7 @@
       "_origin": "ast",
       "id": "src_ports_page_repository_rationale_46",
       "community": 44,
-      "community_name": "ChapterStatus",
+      "community_name": "ports/__init__.py",
       "norm_label": "query the current chapter status (ocr and translation completion)."
     },
     {
@@ -1954,7 +1954,7 @@
       "label": "AiAssetsManager",
       "file_type": "code",
       "source_file": "src/services/ai_assets_manager.py",
-      "source_location": "L21",
+      "source_location": "L20",
       "_origin": "ast",
       "id": "src_services_ai_assets_manager_aiassetsmanager",
       "community": 14,
@@ -1965,7 +1965,7 @@
       "label": ".__init__()",
       "file_type": "code",
       "source_file": "src/services/ai_assets_manager.py",
-      "source_location": "L24",
+      "source_location": "L23",
       "_origin": "ast",
       "id": "src_services_ai_assets_manager_aiassetsmanager_init",
       "community": 14,
@@ -1987,7 +1987,7 @@
       "label": ".get_comic_model_path()",
       "file_type": "code",
       "source_file": "src/services/ai_assets_manager.py",
-      "source_location": "L27",
+      "source_location": "L26",
       "_origin": "ast",
       "id": "src_services_ai_assets_manager_aiassetsmanager_get_comic_model_path",
       "community": 14,
@@ -1998,7 +1998,7 @@
       "label": ".is_comic_model_available()",
       "file_type": "code",
       "source_file": "src/services/ai_assets_manager.py",
-      "source_location": "L47",
+      "source_location": "L46",
       "_origin": "ast",
       "id": "src_services_ai_assets_manager_aiassetsmanager_is_comic_model_available",
       "community": 14,
@@ -2009,7 +2009,7 @@
       "label": ".download_comic_model()",
       "file_type": "code",
       "source_file": "src/services/ai_assets_manager.py",
-      "source_location": "L50",
+      "source_location": "L49",
       "_origin": "ast",
       "id": "src_services_ai_assets_manager_aiassetsmanager_download_comic_model",
       "community": 14,
@@ -2020,7 +2020,7 @@
       "label": ".is_ocr_model_cached()",
       "file_type": "code",
       "source_file": "src/services/ai_assets_manager.py",
-      "source_location": "L98",
+      "source_location": "L97",
       "_origin": "ast",
       "id": "src_services_ai_assets_manager_aiassetsmanager_is_ocr_model_cached",
       "community": 14,
@@ -2031,7 +2031,7 @@
       "label": ".download_ocr_model()",
       "file_type": "code",
       "source_file": "src/services/ai_assets_manager.py",
-      "source_location": "L127",
+      "source_location": "L126",
       "_origin": "ast",
       "id": "src_services_ai_assets_manager_aiassetsmanager_download_ocr_model",
       "community": 14,
@@ -2042,9 +2042,9 @@
       "label": "Manages AI model assets (ComicTextDetector ONNX, MangaOCR cache), providing reso",
       "file_type": "rationale",
       "source_file": "src/services/ai_assets_manager.py",
-      "source_location": "L22",
+      "source_location": "L21",
       "_origin": "ast",
-      "id": "src_services_ai_assets_manager_rationale_22",
+      "id": "src_services_ai_assets_manager_rationale_21",
       "community": 14,
       "community_name": "LogDialog",
       "norm_label": "manages ai model assets (comictextdetector onnx, mangaocr cache), providing reso"
@@ -2053,9 +2053,9 @@
       "label": "Resolves local comic text detector model path across install directory, cache, a",
       "file_type": "rationale",
       "source_file": "src/services/ai_assets_manager.py",
-      "source_location": "L28",
+      "source_location": "L27",
       "_origin": "ast",
-      "id": "src_services_ai_assets_manager_rationale_28",
+      "id": "src_services_ai_assets_manager_rationale_27",
       "community": 14,
       "community_name": "LogDialog",
       "norm_label": "resolves local comic text detector model path across install directory, cache, a"
@@ -2064,9 +2064,9 @@
       "label": "Downloads comic-text-detector.onnx to the user cache directory with progress cal",
       "file_type": "rationale",
       "source_file": "src/services/ai_assets_manager.py",
-      "source_location": "L56",
+      "source_location": "L55",
       "_origin": "ast",
-      "id": "src_services_ai_assets_manager_rationale_56",
+      "id": "src_services_ai_assets_manager_rationale_55",
       "community": 14,
       "community_name": "LogDialog",
       "norm_label": "downloads comic-text-detector.onnx to the user cache directory with progress cal"
@@ -2075,9 +2075,9 @@
       "label": "Checks whether the specified Manga OCR model is available locally.         Retur",
       "file_type": "rationale",
       "source_file": "src/services/ai_assets_manager.py",
-      "source_location": "L99",
+      "source_location": "L98",
       "_origin": "ast",
-      "id": "src_services_ai_assets_manager_rationale_99",
+      "id": "src_services_ai_assets_manager_rationale_98",
       "community": 14,
       "community_name": "LogDialog",
       "norm_label": "checks whether the specified manga ocr model is available locally.         retur"
@@ -2086,9 +2086,9 @@
       "label": "Downloads the specified Manga OCR model from Hugging Face into the local HF cach",
       "file_type": "rationale",
       "source_file": "src/services/ai_assets_manager.py",
-      "source_location": "L134",
+      "source_location": "L133",
       "_origin": "ast",
-      "id": "src_services_ai_assets_manager_rationale_134",
+      "id": "src_services_ai_assets_manager_rationale_133",
       "community": 14,
       "community_name": "LogDialog",
       "norm_label": "downloads the specified manga ocr model from hugging face into the local hf cach"
@@ -2364,8 +2364,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_services_folder_service",
-      "community": 42,
-      "community_name": ".rasterize_page",
+      "community": 20,
+      "community_name": "LibraryViewModel",
       "norm_label": "folder_service.py"
     },
     {
@@ -2375,8 +2375,8 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "src_services_folder_service_rename_folder",
-      "community": 42,
-      "community_name": ".rasterize_page",
+      "community": 20,
+      "community_name": "LibraryViewModel",
       "norm_label": "rename_folder()"
     },
     {
@@ -2386,8 +2386,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_services_folder_service_py_path",
-      "community": 42,
-      "community_name": ".rasterize_page",
+      "community": 20,
+      "community_name": "LibraryViewModel",
       "norm_label": "path"
     },
     {
@@ -2453,7 +2453,7 @@
       "_origin": "ast",
       "id": "src_services_manga_ocr_detector_mangaocrdetector",
       "community": 32,
-      "community_name": "1. Goal & Scope",
+      "community_name": "MangaOcrDetector",
       "norm_label": "mangaocrdetector"
     },
     {
@@ -2463,8 +2463,8 @@
       "source_location": "L18",
       "_origin": "ast",
       "id": "src_services_manga_ocr_detector_mangaocrdetector_init",
-      "community": 5,
-      "community_name": "TranslationOverlayWidget",
+      "community": 30,
+      "community_name": "TranslationViewModel",
       "norm_label": ".__init__()"
     },
     {
@@ -2475,7 +2475,7 @@
       "_origin": "ast",
       "id": "src_services_manga_ocr_detector_mangaocrdetector_init_engine",
       "community": 32,
-      "community_name": "1. Goal & Scope",
+      "community_name": "MangaOcrDetector",
       "norm_label": "._init_engine()"
     },
     {
@@ -2486,7 +2486,7 @@
       "_origin": "ast",
       "id": "src_services_manga_ocr_detector_mangaocrdetector_recognize_crop",
       "community": 32,
-      "community_name": "1. Goal & Scope",
+      "community_name": "MangaOcrDetector",
       "norm_label": ".recognize_crop()"
     },
     {
@@ -2497,7 +2497,7 @@
       "_origin": "ast",
       "id": "image",
       "community": 32,
-      "community_name": "1. Goal & Scope",
+      "community_name": "MangaOcrDetector",
       "norm_label": "image"
     },
     {
@@ -2508,7 +2508,7 @@
       "_origin": "ast",
       "id": "src_services_manga_ocr_detector_mangaocrdetector_segment_bubble",
       "community": 32,
-      "community_name": "1. Goal & Scope",
+      "community_name": "MangaOcrDetector",
       "norm_label": ".segment_bubble()"
     },
     {
@@ -2519,7 +2519,7 @@
       "_origin": "ast",
       "id": "src_services_manga_ocr_detector_mangaocrdetector_detect_and_ocr_manual_region",
       "community": 32,
-      "community_name": "1. Goal & Scope",
+      "community_name": "MangaOcrDetector",
       "norm_label": ".detect_and_ocr_manual_region()"
     },
     {
@@ -2530,7 +2530,7 @@
       "_origin": "ast",
       "id": "src_services_manga_ocr_detector_mangaocrdetector_split_multi_lobe_bubble",
       "community": 32,
-      "community_name": "1. Goal & Scope",
+      "community_name": "MangaOcrDetector",
       "norm_label": "._split_multi_lobe_bubble()"
     },
     {
@@ -2541,7 +2541,7 @@
       "_origin": "ast",
       "id": "src_services_manga_ocr_detector_mangaocrdetector_detect_page",
       "community": 32,
-      "community_name": "1. Goal & Scope",
+      "community_name": "MangaOcrDetector",
       "norm_label": ".detect_page()"
     },
     {
@@ -2552,7 +2552,7 @@
       "_origin": "ast",
       "id": "src_services_manga_ocr_detector_py_path",
       "community": 32,
-      "community_name": "1. Goal & Scope",
+      "community_name": "MangaOcrDetector",
       "norm_label": "path"
     },
     {
@@ -2563,7 +2563,7 @@
       "_origin": "ast",
       "id": "src_services_manga_ocr_detector_rationale_12",
       "community": 32,
-      "community_name": "1. Goal & Scope",
+      "community_name": "MangaOcrDetector",
       "norm_label": "100% local manga speech bubble detection and ocr engine.     - detection: comict"
     },
     {
@@ -2574,7 +2574,7 @@
       "_origin": "ast",
       "id": "src_services_manga_ocr_detector_rationale_54",
       "community": 32,
-      "community_name": "1. Goal & Scope",
+      "community_name": "MangaOcrDetector",
       "norm_label": "run local ocr on a cropped image region, returning recognized text."
     },
     {
@@ -2585,7 +2585,7 @@
       "_origin": "ast",
       "id": "src_services_manga_ocr_detector_rationale_66",
       "community": 32,
-      "community_name": "1. Goal & Scope",
+      "community_name": "MangaOcrDetector",
       "norm_label": "calculates expanded speech balloon bounding box, true centroid, and shape classi"
     },
     {
@@ -2596,7 +2596,7 @@
       "_origin": "ast",
       "id": "src_services_manga_ocr_detector_rationale_74",
       "community": 32,
-      "community_name": "1. Goal & Scope",
+      "community_name": "MangaOcrDetector",
       "norm_label": "public method to ocr and segment a manual bounding box on a full page image."
     },
     {
@@ -2607,7 +2607,7 @@
       "_origin": "ast",
       "id": "src_services_manga_ocr_detector_rationale_100",
       "community": 32,
-      "community_name": "1. Goal & Scope",
+      "community_name": "MangaOcrDetector",
       "norm_label": "calculates expanded speech balloon bounding box, true centroid, and shape classi"
     },
     {
@@ -2618,7 +2618,7 @@
       "_origin": "ast",
       "id": "src_services_manga_ocr_detector_rationale_241",
       "community": 32,
-      "community_name": "1. Goal & Scope",
+      "community_name": "MangaOcrDetector",
       "norm_label": "detects if a bounding box covers a multi-lobe / figure-8 bubble with two separat"
     },
     {
@@ -2629,7 +2629,7 @@
       "_origin": "ast",
       "id": "src_services_manga_ocr_detector_rationale_301",
       "community": 32,
-      "community_name": "1. Goal & Scope",
+      "community_name": "MangaOcrDetector",
       "norm_label": "detect speech bubbles and extract text 100% locally.         optimized single-de"
     },
     {
@@ -2639,8 +2639,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_services_onnx_bubble_detector",
-      "community": 5,
-      "community_name": "TranslationOverlayWidget",
+      "community": 30,
+      "community_name": "TranslationViewModel",
       "norm_label": "onnx_bubble_detector.py"
     },
     {
@@ -2650,8 +2650,8 @@
       "source_location": "L9",
       "_origin": "ast",
       "id": "src_services_onnx_bubble_detector_onnxbubbledetector",
-      "community": 5,
-      "community_name": "TranslationOverlayWidget",
+      "community": 30,
+      "community_name": "TranslationViewModel",
       "norm_label": "onnxbubbledetector"
     },
     {
@@ -2661,8 +2661,8 @@
       "source_location": "L14",
       "_origin": "ast",
       "id": "src_services_onnx_bubble_detector_onnxbubbledetector_init",
-      "community": 5,
-      "community_name": "TranslationOverlayWidget",
+      "community": 30,
+      "community_name": "TranslationViewModel",
       "norm_label": ".__init__()"
     },
     {
@@ -2672,8 +2672,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_services_onnx_bubble_detector_py_path",
-      "community": 5,
-      "community_name": "TranslationOverlayWidget",
+      "community": 30,
+      "community_name": "TranslationViewModel",
       "norm_label": "path"
     },
     {
@@ -2683,8 +2683,8 @@
       "source_location": "L24",
       "_origin": "ast",
       "id": "src_services_onnx_bubble_detector_onnxbubbledetector_get_detected_providers",
-      "community": 5,
-      "community_name": "TranslationOverlayWidget",
+      "community": 30,
+      "community_name": "TranslationViewModel",
       "norm_label": ".get_detected_providers()"
     },
     {
@@ -2694,8 +2694,8 @@
       "source_location": "L32",
       "_origin": "ast",
       "id": "src_services_onnx_bubble_detector_onnxbubbledetector_resolve_model_path",
-      "community": 5,
-      "community_name": "TranslationOverlayWidget",
+      "community": 30,
+      "community_name": "TranslationViewModel",
       "norm_label": "._resolve_model_path()"
     },
     {
@@ -2705,8 +2705,8 @@
       "source_location": "L36",
       "_origin": "ast",
       "id": "src_services_onnx_bubble_detector_onnxbubbledetector_is_available",
-      "community": 5,
-      "community_name": "TranslationOverlayWidget",
+      "community": 30,
+      "community_name": "TranslationViewModel",
       "norm_label": ".is_available()"
     },
     {
@@ -2716,8 +2716,8 @@
       "source_location": "L55",
       "_origin": "ast",
       "id": "src_services_onnx_bubble_detector_onnxbubbledetector_get_session",
-      "community": 5,
-      "community_name": "TranslationOverlayWidget",
+      "community": 30,
+      "community_name": "TranslationViewModel",
       "norm_label": "._get_session()"
     },
     {
@@ -2727,8 +2727,8 @@
       "source_location": "L91",
       "_origin": "ast",
       "id": "src_services_onnx_bubble_detector_onnxbubbledetector_detect_bubbles",
-      "community": 5,
-      "community_name": "TranslationOverlayWidget",
+      "community": 30,
+      "community_name": "TranslationViewModel",
       "norm_label": ".detect_bubbles()"
     },
     {
@@ -2738,8 +2738,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_services_onnx_bubble_detector_py_any",
-      "community": 5,
-      "community_name": "TranslationOverlayWidget",
+      "community": 30,
+      "community_name": "TranslationViewModel",
       "norm_label": "any"
     },
     {
@@ -2749,8 +2749,8 @@
       "source_location": "L10",
       "_origin": "ast",
       "id": "src_services_onnx_bubble_detector_rationale_10",
-      "community": 5,
-      "community_name": "TranslationOverlayWidget",
+      "community": 30,
+      "community_name": "TranslationViewModel",
       "norm_label": "local manga speech bubble detector using onnx runtime.     fast, offline, and pr"
     },
     {
@@ -2760,8 +2760,8 @@
       "source_location": "L25",
       "_origin": "ast",
       "id": "src_services_onnx_bubble_detector_rationale_25",
-      "community": 5,
-      "community_name": "TranslationOverlayWidget",
+      "community": 30,
+      "community_name": "TranslationViewModel",
       "norm_label": "returns the list of available onnx runtime execution providers."
     },
     {
@@ -2771,8 +2771,8 @@
       "source_location": "L97",
       "_origin": "ast",
       "id": "src_services_onnx_bubble_detector_rationale_97",
-      "community": 5,
-      "community_name": "TranslationOverlayWidget",
+      "community": 30,
+      "community_name": "TranslationViewModel",
       "norm_label": "returns list of (x, y, w, h) bounding boxes in original image coordinates,"
     },
     {
@@ -2782,8 +2782,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_services_scanner",
-      "community": 54,
-      "community_name": "QIcon",
+      "community": 20,
+      "community_name": "LibraryViewModel",
       "norm_label": "scanner.py"
     },
     {
@@ -2793,8 +2793,8 @@
       "source_location": "L11",
       "_origin": "ast",
       "id": "src_services_scanner_natural_sort_key",
-      "community": 54,
-      "community_name": "QIcon",
+      "community": 20,
+      "community_name": "LibraryViewModel",
       "norm_label": "natural_sort_key()"
     },
     {
@@ -2804,8 +2804,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_services_scanner_py_path",
-      "community": 54,
-      "community_name": "QIcon",
+      "community": 20,
+      "community_name": "LibraryViewModel",
       "norm_label": "path"
     },
     {
@@ -2815,8 +2815,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "src_services_scanner_scan_directory",
-      "community": 54,
-      "community_name": "QIcon",
+      "community": 20,
+      "community_name": "LibraryViewModel",
       "norm_label": "scan_directory()"
     },
     {
@@ -3124,7 +3124,7 @@
       "_origin": "ast",
       "id": "src_services_translation_queue",
       "community": 24,
-      "community_name": "Data Integrity, OCR & Translation Verification Standards",
+      "community_name": "queue_dialog.py",
       "norm_label": "translation_queue.py"
     },
     {
@@ -3157,7 +3157,7 @@
       "_origin": "ast",
       "id": "src_services_translation_queue_translationqueuemanager_init",
       "community": 32,
-      "community_name": "1. Goal & Scope",
+      "community_name": "MangaOcrDetector",
       "norm_label": ".__init__()"
     },
     {
@@ -3222,8 +3222,8 @@
       "source_location": "L63",
       "_origin": "ast",
       "id": "src_services_translation_queue_translationqueuemanager_get_job",
-      "community": 41,
-      "community_name": ".add_job",
+      "community": 9,
+      "community_name": "RenameDialog",
       "norm_label": ".get_job()"
     },
     {
@@ -3233,8 +3233,8 @@
       "source_location": "L69",
       "_origin": "ast",
       "id": "src_services_translation_queue_translationqueuemanager_add_job",
-      "community": 41,
-      "community_name": ".add_job",
+      "community": 12,
+      "community_name": "OnnxBubbleDetector",
       "norm_label": ".add_job()"
     },
     {
@@ -3244,8 +3244,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_services_translation_queue_py_path",
-      "community": 41,
-      "community_name": ".add_job",
+      "community": 12,
+      "community_name": "OnnxBubbleDetector",
       "norm_label": "path"
     },
     {
@@ -3255,8 +3255,8 @@
       "source_location": "L104",
       "_origin": "ast",
       "id": "src_services_translation_queue_translationqueuemanager_add_rasterize_job",
-      "community": 41,
-      "community_name": ".add_job",
+      "community": 12,
+      "community_name": "OnnxBubbleDetector",
       "norm_label": ".add_rasterize_job()"
     },
     {
@@ -3266,8 +3266,8 @@
       "source_location": "L119",
       "_origin": "ast",
       "id": "src_services_translation_queue_translationqueuemanager_remove_job",
-      "community": 41,
-      "community_name": ".add_job",
+      "community": 9,
+      "community_name": "RenameDialog",
       "norm_label": ".remove_job()"
     },
     {
@@ -3288,8 +3288,8 @@
       "source_location": "L143",
       "_origin": "ast",
       "id": "src_services_translation_queue_translationqueuemanager_clear_completed",
-      "community": 41,
-      "community_name": ".add_job",
+      "community": 9,
+      "community_name": "RenameDialog",
       "norm_label": ".clear_completed()"
     },
     {
@@ -3332,8 +3332,8 @@
       "source_location": "L177",
       "_origin": "ast",
       "id": "src_services_translation_queue_translationqueuemanager_process_next",
-      "community": 41,
-      "community_name": ".add_job",
+      "community": 9,
+      "community_name": "RenameDialog",
       "norm_label": "._process_next()"
     },
     {
@@ -3343,8 +3343,8 @@
       "source_location": "L242",
       "_origin": "ast",
       "id": "src_services_translation_queue_translationqueuemanager_get_api_credentials",
-      "community": 41,
-      "community_name": ".add_job",
+      "community": 9,
+      "community_name": "RenameDialog",
       "norm_label": "._get_api_credentials()"
     },
     {
@@ -3365,8 +3365,8 @@
       "source_location": "L285",
       "_origin": "ast",
       "id": "src_services_translation_queue_translationqueuemanager_on_worker_finished",
-      "community": 41,
-      "community_name": ".add_job",
+      "community": 9,
+      "community_name": "RenameDialog",
       "norm_label": "._on_worker_finished()"
     },
     {
@@ -3376,8 +3376,8 @@
       "source_location": "L340",
       "_origin": "ast",
       "id": "src_services_translation_queue_translationqueuemanager_notify_overall_progress",
-      "community": 41,
-      "community_name": ".add_job",
+      "community": 9,
+      "community_name": "RenameDialog",
       "norm_label": ".notify_overall_progress()"
     },
     {
@@ -3387,8 +3387,8 @@
       "source_location": "L344",
       "_origin": "ast",
       "id": "src_services_translation_queue_translationqueuemanager_emit_overall_progress",
-      "community": 41,
-      "community_name": ".add_job",
+      "community": 9,
+      "community_name": "RenameDialog",
       "norm_label": "._emit_overall_progress()"
     },
     {
@@ -3409,8 +3409,8 @@
       "source_location": "L341",
       "_origin": "ast",
       "id": "src_services_translation_queue_rationale_341",
-      "community": 41,
-      "community_name": ".add_job",
+      "community": 9,
+      "community_name": "RenameDialog",
       "norm_label": "public trigger to recalculate and emit overall progress."
     },
     {
@@ -3552,8 +3552,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_services_trash_service",
-      "community": 51,
-      "community_name": "Protocol",
+      "community": 20,
+      "community_name": "LibraryViewModel",
       "norm_label": "trash_service.py"
     },
     {
@@ -3563,8 +3563,8 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "src_services_trash_service_send_folder_to_trash",
-      "community": 51,
-      "community_name": "Protocol",
+      "community": 20,
+      "community_name": "LibraryViewModel",
       "norm_label": "send_folder_to_trash()"
     },
     {
@@ -3574,8 +3574,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_services_trash_service_py_path",
-      "community": 51,
-      "community_name": "Protocol",
+      "community": 20,
+      "community_name": "LibraryViewModel",
       "norm_label": "path"
     },
     {
@@ -3586,7 +3586,7 @@
       "_origin": "ast",
       "id": "src_services_update_checker",
       "community": 30,
-      "community_name": "UI & PyQt6 Desktop Application Standards",
+      "community_name": "TranslationViewModel",
       "norm_label": "update_checker.py"
     },
     {
@@ -3597,7 +3597,7 @@
       "_origin": "ast",
       "id": "src_services_update_checker_releaseinfo",
       "community": 30,
-      "community_name": "UI & PyQt6 Desktop Application Standards",
+      "community_name": "TranslationViewModel",
       "norm_label": "releaseinfo"
     },
     {
@@ -3608,7 +3608,7 @@
       "_origin": "ast",
       "id": "src_services_update_checker_parse_semver",
       "community": 30,
-      "community_name": "UI & PyQt6 Desktop Application Standards",
+      "community_name": "TranslationViewModel",
       "norm_label": "parse_semver()"
     },
     {
@@ -3619,7 +3619,7 @@
       "_origin": "ast",
       "id": "src_services_update_checker_is_newer_version",
       "community": 30,
-      "community_name": "UI & PyQt6 Desktop Application Standards",
+      "community_name": "TranslationViewModel",
       "norm_label": "is_newer_version()"
     },
     {
@@ -3630,7 +3630,7 @@
       "_origin": "ast",
       "id": "src_services_update_checker_updatecheckerservice",
       "community": 30,
-      "community_name": "UI & PyQt6 Desktop Application Standards",
+      "community_name": "TranslationViewModel",
       "norm_label": "updatecheckerservice"
     },
     {
@@ -3641,7 +3641,7 @@
       "_origin": "ast",
       "id": "src_services_update_checker_updatecheckerservice_init",
       "community": 30,
-      "community_name": "UI & PyQt6 Desktop Application Standards",
+      "community_name": "TranslationViewModel",
       "norm_label": ".__init__()"
     },
     {
@@ -3652,7 +3652,7 @@
       "_origin": "ast",
       "id": "src_services_update_checker_updatecheckerservice_check_for_updates",
       "community": 30,
-      "community_name": "UI & PyQt6 Desktop Application Standards",
+      "community_name": "TranslationViewModel",
       "norm_label": ".check_for_updates()"
     },
     {
@@ -3663,7 +3663,7 @@
       "_origin": "ast",
       "id": "src_services_update_checker_updatecheckworker",
       "community": 30,
-      "community_name": "UI & PyQt6 Desktop Application Standards",
+      "community_name": "TranslationViewModel",
       "norm_label": "updatecheckworker"
     },
     {
@@ -3674,7 +3674,7 @@
       "_origin": "ast",
       "id": "src_services_update_checker_py_qthread",
       "community": 30,
-      "community_name": "UI & PyQt6 Desktop Application Standards",
+      "community_name": "TranslationViewModel",
       "norm_label": "qthread"
     },
     {
@@ -3685,7 +3685,7 @@
       "_origin": "ast",
       "id": "src_services_update_checker_updatecheckworker_init",
       "community": 30,
-      "community_name": "UI & PyQt6 Desktop Application Standards",
+      "community_name": "TranslationViewModel",
       "norm_label": ".__init__()"
     },
     {
@@ -3696,7 +3696,7 @@
       "_origin": "ast",
       "id": "src_services_update_checker_updatecheckworker_run",
       "community": 30,
-      "community_name": "UI & PyQt6 Desktop Application Standards",
+      "community_name": "TranslationViewModel",
       "norm_label": ".run()"
     },
     {
@@ -3707,7 +3707,7 @@
       "_origin": "ast",
       "id": "src_services_update_checker_rationale_47",
       "community": 30,
-      "community_name": "UI & PyQt6 Desktop Application Standards",
+      "community_name": "TranslationViewModel",
       "norm_label": "checks github releases api for new komashift versions."
     },
     {
@@ -3718,7 +3718,7 @@
       "_origin": "ast",
       "id": "src_services_update_checker_rationale_53",
       "community": 30,
-      "community_name": "UI & PyQt6 Desktop Application Standards",
+      "community_name": "TranslationViewModel",
       "norm_label": "queries the github api for latest release.         returns releaseinfo if a newe"
     },
     {
@@ -3729,7 +3729,7 @@
       "_origin": "ast",
       "id": "src_services_update_checker_rationale_104",
       "community": 30,
-      "community_name": "UI & PyQt6 Desktop Application Standards",
+      "community_name": "TranslationViewModel",
       "norm_label": "background worker thread to check for updates without freezing ui."
     },
     {
@@ -3740,7 +3740,7 @@
       "_origin": "ast",
       "id": "src_ui_init",
       "community": 33,
-      "community_name": "2. Current State \u2014 Evidence",
+      "community_name": "FolderItem",
       "norm_label": "ui/__init__.py"
     },
     {
@@ -3751,7 +3751,7 @@
       "_origin": "ast",
       "id": "src_ui_batch_rename_dialog",
       "community": 33,
-      "community_name": "2. Current State \u2014 Evidence",
+      "community_name": "FolderItem",
       "norm_label": "batch_rename_dialog.py"
     },
     {
@@ -3971,7 +3971,7 @@
       "_origin": "ast",
       "id": "src_ui_circular_progress",
       "community": 35,
-      "community_name": "test_comic_text.py",
+      "community_name": "CircularSpinner",
       "norm_label": "circular_progress.py"
     },
     {
@@ -3982,7 +3982,7 @@
       "_origin": "ast",
       "id": "src_ui_circular_progress_circularspinner",
       "community": 35,
-      "community_name": "test_comic_text.py",
+      "community_name": "CircularSpinner",
       "norm_label": "circularspinner"
     },
     {
@@ -3993,7 +3993,7 @@
       "_origin": "ast",
       "id": "src_ui_circular_progress_py_qwidget",
       "community": 35,
-      "community_name": "test_comic_text.py",
+      "community_name": "CircularSpinner",
       "norm_label": "qwidget"
     },
     {
@@ -4004,7 +4004,7 @@
       "_origin": "ast",
       "id": "src_ui_circular_progress_circularspinner_init",
       "community": 35,
-      "community_name": "test_comic_text.py",
+      "community_name": "CircularSpinner",
       "norm_label": ".__init__()"
     },
     {
@@ -4015,7 +4015,7 @@
       "_origin": "ast",
       "id": "src_ui_circular_progress_circularspinner_rotate",
       "community": 35,
-      "community_name": "test_comic_text.py",
+      "community_name": "CircularSpinner",
       "norm_label": "._rotate()"
     },
     {
@@ -4026,7 +4026,7 @@
       "_origin": "ast",
       "id": "src_ui_circular_progress_circularspinner_start",
       "community": 35,
-      "community_name": "test_comic_text.py",
+      "community_name": "CircularSpinner",
       "norm_label": ".start()"
     },
     {
@@ -4037,7 +4037,7 @@
       "_origin": "ast",
       "id": "src_ui_circular_progress_circularspinner_stop",
       "community": 35,
-      "community_name": "test_comic_text.py",
+      "community_name": "CircularSpinner",
       "norm_label": ".stop()"
     },
     {
@@ -4048,7 +4048,7 @@
       "_origin": "ast",
       "id": "src_ui_circular_progress_circularspinner_paintevent",
       "community": 35,
-      "community_name": "test_comic_text.py",
+      "community_name": "CircularSpinner",
       "norm_label": ".paintevent()"
     },
     {
@@ -4059,7 +4059,7 @@
       "_origin": "ast",
       "id": "src_ui_circular_progress_rationale_7",
       "community": 35,
-      "community_name": "test_comic_text.py",
+      "community_name": "CircularSpinner",
       "norm_label": "lightweight, smooth indeterminate circular progress spinner.     renders directl"
     },
     {
@@ -4070,7 +4070,7 @@
       "_origin": "ast",
       "id": "src_ui_folder_list",
       "community": 33,
-      "community_name": "2. Current State \u2014 Evidence",
+      "community_name": "FolderItem",
       "norm_label": "folder_list.py"
     },
     {
@@ -4444,7 +4444,7 @@
       "_origin": "ast",
       "id": "src_ui_log_dialog",
       "community": 19,
-      "community_name": "compress_image_to_webp",
+      "community_name": "LogDialog",
       "norm_label": "log_dialog.py"
     },
     {
@@ -4455,7 +4455,7 @@
       "_origin": "ast",
       "id": "src_ui_log_dialog_logdialog",
       "community": 19,
-      "community_name": "compress_image_to_webp",
+      "community_name": "LogDialog",
       "norm_label": "logdialog"
     },
     {
@@ -4466,7 +4466,7 @@
       "_origin": "ast",
       "id": "src_ui_log_dialog_py_qdialog",
       "community": 19,
-      "community_name": "compress_image_to_webp",
+      "community_name": "LogDialog",
       "norm_label": "qdialog"
     },
     {
@@ -4477,7 +4477,7 @@
       "_origin": "ast",
       "id": "src_ui_log_dialog_logdialog_init",
       "community": 19,
-      "community_name": "compress_image_to_webp",
+      "community_name": "LogDialog",
       "norm_label": ".__init__()"
     },
     {
@@ -4488,7 +4488,7 @@
       "_origin": "ast",
       "id": "src_ui_log_dialog_py_path",
       "community": 19,
-      "community_name": "compress_image_to_webp",
+      "community_name": "LogDialog",
       "norm_label": "path"
     },
     {
@@ -4499,7 +4499,7 @@
       "_origin": "ast",
       "id": "src_ui_log_dialog_logdialog_init_ui",
       "community": 19,
-      "community_name": "compress_image_to_webp",
+      "community_name": "LogDialog",
       "norm_label": "._init_ui()"
     },
     {
@@ -4510,7 +4510,7 @@
       "_origin": "ast",
       "id": "src_ui_log_dialog_logdialog_refresh_log",
       "community": 19,
-      "community_name": "compress_image_to_webp",
+      "community_name": "LogDialog",
       "norm_label": ".refresh_log()"
     },
     {
@@ -4520,8 +4520,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_ui_main_window",
-      "community": 18,
-      "community_name": "Workflow: Independent Adversarial Quality Audit",
+      "community": 20,
+      "community_name": "LibraryViewModel",
       "norm_label": "main_window.py"
     },
     {
@@ -4531,8 +4531,8 @@
       "source_location": "L36",
       "_origin": "ast",
       "id": "src_ui_main_window_create_sidebar_icon",
-      "community": 18,
-      "community_name": "Workflow: Independent Adversarial Quality Audit",
+      "community": 20,
+      "community_name": "LibraryViewModel",
       "norm_label": "create_sidebar_icon()"
     },
     {
@@ -4542,8 +4542,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_ui_main_window_py_qicon",
-      "community": 18,
-      "community_name": "Workflow: Independent Adversarial Quality Audit",
+      "community": 20,
+      "community_name": "LibraryViewModel",
       "norm_label": "qicon"
     },
     {
@@ -4553,8 +4553,8 @@
       "source_location": "L57",
       "_origin": "ast",
       "id": "src_ui_main_window_create_white_action_icon",
-      "community": 18,
-      "community_name": "Workflow: Independent Adversarial Quality Audit",
+      "community": 20,
+      "community_name": "LibraryViewModel",
       "norm_label": "_create_white_action_icon()"
     },
     {
@@ -4564,8 +4564,8 @@
       "source_location": "L68",
       "_origin": "ast",
       "id": "src_ui_main_window_draw_box_tool_icon",
-      "community": 18,
-      "community_name": "Workflow: Independent Adversarial Quality Audit",
+      "community": 20,
+      "community_name": "LibraryViewModel",
       "norm_label": "_draw_box_tool_icon()"
     },
     {
@@ -4575,8 +4575,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_ui_main_window_py_qpainter",
-      "community": 18,
-      "community_name": "Workflow: Independent Adversarial Quality Audit",
+      "community": 20,
+      "community_name": "LibraryViewModel",
       "norm_label": "qpainter"
     },
     {
@@ -4586,8 +4586,8 @@
       "source_location": "L74",
       "_origin": "ast",
       "id": "src_ui_main_window_draw_overlay_tool_icon",
-      "community": 18,
-      "community_name": "Workflow: Independent Adversarial Quality Audit",
+      "community": 20,
+      "community_name": "LibraryViewModel",
       "norm_label": "_draw_overlay_tool_icon()"
     },
     {
@@ -4597,8 +4597,8 @@
       "source_location": "L81",
       "_origin": "ast",
       "id": "src_ui_main_window_draw_fullscreen_tool_icon",
-      "community": 18,
-      "community_name": "Workflow: Independent Adversarial Quality Audit",
+      "community": 20,
+      "community_name": "LibraryViewModel",
       "norm_label": "_draw_fullscreen_tool_icon()"
     },
     {
@@ -4608,8 +4608,8 @@
       "source_location": "L93",
       "_origin": "ast",
       "id": "src_ui_main_window_draw_zoom_tool_icon",
-      "community": 18,
-      "community_name": "Workflow: Independent Adversarial Quality Audit",
+      "community": 20,
+      "community_name": "LibraryViewModel",
       "norm_label": "_draw_zoom_tool_icon()"
     },
     {
@@ -4619,8 +4619,8 @@
       "source_location": "L99",
       "_origin": "ast",
       "id": "src_ui_main_window_draw_add_labeling_queue_icon",
-      "community": 18,
-      "community_name": "Workflow: Independent Adversarial Quality Audit",
+      "community": 20,
+      "community_name": "LibraryViewModel",
       "norm_label": "_draw_add_labeling_queue_icon()"
     },
     {
@@ -4630,8 +4630,8 @@
       "source_location": "L108",
       "_origin": "ast",
       "id": "src_ui_main_window_draw_rasterize_icon",
-      "community": 18,
-      "community_name": "Workflow: Independent Adversarial Quality Audit",
+      "community": 20,
+      "community_name": "LibraryViewModel",
       "norm_label": "_draw_rasterize_icon()"
     },
     {
@@ -4685,8 +4685,8 @@
       "source_location": "L147",
       "_origin": "ast",
       "id": "src_ui_main_window_mainwindow_init_ui",
-      "community": 18,
-      "community_name": "Workflow: Independent Adversarial Quality Audit",
+      "community": 20,
+      "community_name": "LibraryViewModel",
       "norm_label": "._init_ui()"
     },
     {
@@ -5082,7 +5082,7 @@
       "_origin": "ast",
       "id": "src_ui_main_window_mainwindow_on_rename_folder",
       "community": 16,
-      "community_name": "5. Phases",
+      "community_name": "RenameDialog",
       "norm_label": "._on_rename_folder()"
     },
     {
@@ -5092,8 +5092,8 @@
       "source_location": "L1210",
       "_origin": "ast",
       "id": "src_ui_main_window_mainwindow_on_batch_rename_folders",
-      "community": 42,
-      "community_name": ".rasterize_page",
+      "community": 20,
+      "community_name": "LibraryViewModel",
       "norm_label": "._on_batch_rename_folders()"
     },
     {
@@ -5214,7 +5214,7 @@
       "_origin": "ast",
       "id": "src_ui_preview_pane",
       "community": 33,
-      "community_name": "2. Current State \u2014 Evidence",
+      "community_name": "FolderItem",
       "norm_label": "preview_pane.py"
     },
     {
@@ -5467,7 +5467,7 @@
       "_origin": "ast",
       "id": "src_ui_queue_dialog",
       "community": 24,
-      "community_name": "Data Integrity, OCR & Translation Verification Standards",
+      "community_name": "queue_dialog.py",
       "norm_label": "queue_dialog.py"
     },
     {
@@ -5774,8 +5774,8 @@
       "source_location": "L676",
       "_origin": "ast",
       "id": "src_ui_queue_dialog_queuedialog_refresh_list",
-      "community": 7,
-      "community_name": "SettingsDialog",
+      "community": 48,
+      "community_name": "JobListItemWidget",
       "norm_label": "._refresh_list()"
     },
     {
@@ -5786,7 +5786,7 @@
       "_origin": "ast",
       "id": "src_ui_queue_dialog_queuedialog_on_clear_logs",
       "community": 34,
-      "community_name": "6. Test Strategy",
+      "community_name": "FileLogSink",
       "norm_label": "._on_clear_logs()"
     },
     {
@@ -6017,7 +6017,7 @@
       "_origin": "ast",
       "id": "src_ui_rename_dialog",
       "community": 16,
-      "community_name": "5. Phases",
+      "community_name": "RenameDialog",
       "norm_label": "rename_dialog.py"
     },
     {
@@ -6028,7 +6028,7 @@
       "_origin": "ast",
       "id": "src_ui_rename_dialog_renametextedit",
       "community": 16,
-      "community_name": "5. Phases",
+      "community_name": "RenameDialog",
       "norm_label": "renametextedit"
     },
     {
@@ -6039,7 +6039,7 @@
       "_origin": "ast",
       "id": "qplaintextedit",
       "community": 16,
-      "community_name": "5. Phases",
+      "community_name": "RenameDialog",
       "norm_label": "qplaintextedit"
     },
     {
@@ -6050,7 +6050,7 @@
       "_origin": "ast",
       "id": "src_ui_rename_dialog_renametextedit_keypressevent",
       "community": 16,
-      "community_name": "5. Phases",
+      "community_name": "RenameDialog",
       "norm_label": ".keypressevent()"
     },
     {
@@ -6061,7 +6061,7 @@
       "_origin": "ast",
       "id": "qkeyevent",
       "community": 33,
-      "community_name": "2. Current State \u2014 Evidence",
+      "community_name": "FolderItem",
       "norm_label": "qkeyevent"
     },
     {
@@ -6072,7 +6072,7 @@
       "_origin": "ast",
       "id": "src_ui_rename_dialog_renamedialog",
       "community": 16,
-      "community_name": "5. Phases",
+      "community_name": "RenameDialog",
       "norm_label": "renamedialog"
     },
     {
@@ -6083,7 +6083,7 @@
       "_origin": "ast",
       "id": "src_ui_rename_dialog_py_qdialog",
       "community": 16,
-      "community_name": "5. Phases",
+      "community_name": "RenameDialog",
       "norm_label": "qdialog"
     },
     {
@@ -6094,7 +6094,7 @@
       "_origin": "ast",
       "id": "src_ui_rename_dialog_renamedialog_init",
       "community": 16,
-      "community_name": "5. Phases",
+      "community_name": "RenameDialog",
       "norm_label": ".__init__()"
     },
     {
@@ -6105,7 +6105,7 @@
       "_origin": "ast",
       "id": "src_ui_rename_dialog_renamedialog_set_icon",
       "community": 16,
-      "community_name": "5. Phases",
+      "community_name": "RenameDialog",
       "norm_label": "._set_icon()"
     },
     {
@@ -6116,7 +6116,7 @@
       "_origin": "ast",
       "id": "src_ui_rename_dialog_renamedialog_init_ui",
       "community": 16,
-      "community_name": "5. Phases",
+      "community_name": "RenameDialog",
       "norm_label": "._init_ui()"
     },
     {
@@ -6127,7 +6127,7 @@
       "_origin": "ast",
       "id": "src_ui_rename_dialog_renamedialog_on_text_changed",
       "community": 16,
-      "community_name": "5. Phases",
+      "community_name": "RenameDialog",
       "norm_label": "._on_text_changed()"
     },
     {
@@ -6138,7 +6138,7 @@
       "_origin": "ast",
       "id": "src_ui_rename_dialog_renamedialog_get_new_name",
       "community": 16,
-      "community_name": "5. Phases",
+      "community_name": "RenameDialog",
       "norm_label": ".get_new_name()"
     },
     {
@@ -6160,7 +6160,7 @@
       "_origin": "ast",
       "id": "src_ui_settings_dialog_nowheeleventfilter",
       "community": 35,
-      "community_name": "test_comic_text.py",
+      "community_name": "CircularSpinner",
       "norm_label": "nowheeleventfilter"
     },
     {
@@ -6171,7 +6171,7 @@
       "_origin": "ast",
       "id": "src_ui_settings_dialog_py_qobject",
       "community": 35,
-      "community_name": "test_comic_text.py",
+      "community_name": "CircularSpinner",
       "norm_label": "qobject"
     },
     {
@@ -6182,7 +6182,7 @@
       "_origin": "ast",
       "id": "src_ui_settings_dialog_nowheeleventfilter_eventfilter",
       "community": 35,
-      "community_name": "test_comic_text.py",
+      "community_name": "CircularSpinner",
       "norm_label": ".eventfilter()"
     },
     {
@@ -6193,7 +6193,7 @@
       "_origin": "ast",
       "id": "src_ui_settings_dialog_provider_slug",
       "community": 17,
-      "community_name": "Plan: Queue Page Selection and Permanent Image Rasterization",
+      "community_name": "ApiTranslationSettingsWidget",
       "norm_label": "_provider_slug()"
     },
     {
@@ -6204,7 +6204,7 @@
       "_origin": "ast",
       "id": "src_ui_settings_dialog_apitranslationsettingswidget",
       "community": 17,
-      "community_name": "Plan: Queue Page Selection and Permanent Image Rasterization",
+      "community_name": "ApiTranslationSettingsWidget",
       "norm_label": "apitranslationsettingswidget"
     },
     {
@@ -6215,7 +6215,7 @@
       "_origin": "ast",
       "id": "src_ui_settings_dialog_py_qwidget",
       "community": 35,
-      "community_name": "test_comic_text.py",
+      "community_name": "CircularSpinner",
       "norm_label": "qwidget"
     },
     {
@@ -6226,7 +6226,7 @@
       "_origin": "ast",
       "id": "src_ui_settings_dialog_apitranslationsettingswidget_init",
       "community": 55,
-      "community_name": "QDialog",
+      "community_name": ".__init__",
       "norm_label": ".__init__()"
     },
     {
@@ -6237,7 +6237,7 @@
       "_origin": "ast",
       "id": "src_ui_settings_dialog_py_qsettings",
       "community": 55,
-      "community_name": "QDialog",
+      "community_name": ".__init__",
       "norm_label": "qsettings"
     },
     {
@@ -6248,7 +6248,7 @@
       "_origin": "ast",
       "id": "src_ui_settings_dialog_apitranslationsettingswidget_init_ui",
       "community": 35,
-      "community_name": "test_comic_text.py",
+      "community_name": "CircularSpinner",
       "norm_label": "._init_ui()"
     },
     {
@@ -6259,7 +6259,7 @@
       "_origin": "ast",
       "id": "src_ui_settings_dialog_apitranslationsettingswidget_on_provider_changed",
       "community": 17,
-      "community_name": "Plan: Queue Page Selection and Permanent Image Rasterization",
+      "community_name": "ApiTranslationSettingsWidget",
       "norm_label": "._on_provider_changed()"
     },
     {
@@ -6270,7 +6270,7 @@
       "_origin": "ast",
       "id": "src_ui_settings_dialog_apitranslationsettingswidget_on_model_combo_changed",
       "community": 17,
-      "community_name": "Plan: Queue Page Selection and Permanent Image Rasterization",
+      "community_name": "ApiTranslationSettingsWidget",
       "norm_label": "._on_model_combo_changed()"
     },
     {
@@ -6281,7 +6281,7 @@
       "_origin": "ast",
       "id": "src_ui_settings_dialog_apitranslationsettingswidget_on_engine_mode_changed",
       "community": 55,
-      "community_name": "QDialog",
+      "community_name": ".__init__",
       "norm_label": "._on_engine_mode_changed()"
     },
     {
@@ -6292,7 +6292,7 @@
       "_origin": "ast",
       "id": "src_ui_settings_dialog_apitranslationsettingswidget_load_settings",
       "community": 55,
-      "community_name": "QDialog",
+      "community_name": ".__init__",
       "norm_label": "._load_settings()"
     },
     {
@@ -6303,7 +6303,7 @@
       "_origin": "ast",
       "id": "src_ui_settings_dialog_apitranslationsettingswidget_on_browse_manga_ocr_model",
       "community": 17,
-      "community_name": "Plan: Queue Page Selection and Permanent Image Rasterization",
+      "community_name": "ApiTranslationSettingsWidget",
       "norm_label": "._on_browse_manga_ocr_model()"
     },
     {
@@ -6314,7 +6314,7 @@
       "_origin": "ast",
       "id": "src_ui_settings_dialog_apitranslationsettingswidget_on_ocr_model_text_changed",
       "community": 17,
-      "community_name": "Plan: Queue Page Selection and Permanent Image Rasterization",
+      "community_name": "ApiTranslationSettingsWidget",
       "norm_label": "._on_ocr_model_text_changed()"
     },
     {
@@ -6325,7 +6325,7 @@
       "_origin": "ast",
       "id": "src_ui_settings_dialog_apitranslationsettingswidget_check_ocr_model_cache",
       "community": 17,
-      "community_name": "Plan: Queue Page Selection and Permanent Image Rasterization",
+      "community_name": "ApiTranslationSettingsWidget",
       "norm_label": "._check_ocr_model_cache()"
     },
     {
@@ -6336,7 +6336,7 @@
       "_origin": "ast",
       "id": "src_ui_settings_dialog_apitranslationsettingswidget_on_ocr_cache_check_completed",
       "community": 17,
-      "community_name": "Plan: Queue Page Selection and Permanent Image Rasterization",
+      "community_name": "ApiTranslationSettingsWidget",
       "norm_label": "._on_ocr_cache_check_completed()"
     },
     {
@@ -6347,7 +6347,7 @@
       "_origin": "ast",
       "id": "src_ui_settings_dialog_apitranslationsettingswidget_on_download_ocr_model",
       "community": 17,
-      "community_name": "Plan: Queue Page Selection and Permanent Image Rasterization",
+      "community_name": "ApiTranslationSettingsWidget",
       "norm_label": "._on_download_ocr_model()"
     },
     {
@@ -6358,7 +6358,7 @@
       "_origin": "ast",
       "id": "src_ui_settings_dialog_apitranslationsettingswidget_on_download_progress",
       "community": 17,
-      "community_name": "Plan: Queue Page Selection and Permanent Image Rasterization",
+      "community_name": "ApiTranslationSettingsWidget",
       "norm_label": "._on_download_progress()"
     },
     {
@@ -6369,7 +6369,7 @@
       "_origin": "ast",
       "id": "src_ui_settings_dialog_apitranslationsettingswidget_on_download_status_changed",
       "community": 17,
-      "community_name": "Plan: Queue Page Selection and Permanent Image Rasterization",
+      "community_name": "ApiTranslationSettingsWidget",
       "norm_label": "._on_download_status_changed()"
     },
     {
@@ -6380,7 +6380,7 @@
       "_origin": "ast",
       "id": "src_ui_settings_dialog_apitranslationsettingswidget_on_toggle_pause_ocr_download",
       "community": 17,
-      "community_name": "Plan: Queue Page Selection and Permanent Image Rasterization",
+      "community_name": "ApiTranslationSettingsWidget",
       "norm_label": "._on_toggle_pause_ocr_download()"
     },
     {
@@ -6391,7 +6391,7 @@
       "_origin": "ast",
       "id": "src_ui_settings_dialog_apitranslationsettingswidget_on_cancel_ocr_download",
       "community": 17,
-      "community_name": "Plan: Queue Page Selection and Permanent Image Rasterization",
+      "community_name": "ApiTranslationSettingsWidget",
       "norm_label": "._on_cancel_ocr_download()"
     },
     {
@@ -6402,7 +6402,7 @@
       "_origin": "ast",
       "id": "src_ui_settings_dialog_apitranslationsettingswidget_on_download_finished",
       "community": 17,
-      "community_name": "Plan: Queue Page Selection and Permanent Image Rasterization",
+      "community_name": "ApiTranslationSettingsWidget",
       "norm_label": "._on_download_finished()"
     },
     {
@@ -6413,7 +6413,7 @@
       "_origin": "ast",
       "id": "src_ui_settings_dialog_apitranslationsettingswidget_set_ocr_download_ui_active",
       "community": 17,
-      "community_name": "Plan: Queue Page Selection and Permanent Image Rasterization",
+      "community_name": "ApiTranslationSettingsWidget",
       "norm_label": "._set_ocr_download_ui_active()"
     },
     {
@@ -6424,7 +6424,7 @@
       "_origin": "ast",
       "id": "src_ui_settings_dialog_apitranslationsettingswidget_set_queue_interlock",
       "community": 17,
-      "community_name": "Plan: Queue Page Selection and Permanent Image Rasterization",
+      "community_name": "ApiTranslationSettingsWidget",
       "norm_label": "._set_queue_interlock()"
     },
     {
@@ -6435,7 +6435,7 @@
       "_origin": "ast",
       "id": "src_ui_settings_dialog_apitranslationsettingswidget_cleanup",
       "community": 17,
-      "community_name": "Plan: Queue Page Selection and Permanent Image Rasterization",
+      "community_name": "ApiTranslationSettingsWidget",
       "norm_label": ".cleanup()"
     },
     {
@@ -6446,7 +6446,7 @@
       "_origin": "ast",
       "id": "src_ui_settings_dialog_apitranslationsettingswidget_set_queue_running",
       "community": 17,
-      "community_name": "Plan: Queue Page Selection and Permanent Image Rasterization",
+      "community_name": "ApiTranslationSettingsWidget",
       "norm_label": ".set_queue_running()"
     },
     {
@@ -6457,7 +6457,7 @@
       "_origin": "ast",
       "id": "src_ui_settings_dialog_apitranslationsettingswidget_on_save",
       "community": 17,
-      "community_name": "Plan: Queue Page Selection and Permanent Image Rasterization",
+      "community_name": "ApiTranslationSettingsWidget",
       "norm_label": "._on_save()"
     },
     {
@@ -6490,7 +6490,7 @@
       "_origin": "ast",
       "id": "src_ui_settings_dialog_settingsdialog_init",
       "community": 55,
-      "community_name": "QDialog",
+      "community_name": ".__init__",
       "norm_label": ".__init__()"
     },
     {
@@ -6512,7 +6512,7 @@
       "_origin": "ast",
       "id": "src_ui_settings_dialog_settingsdialog_set_icon",
       "community": 55,
-      "community_name": "QDialog",
+      "community_name": ".__init__",
       "norm_label": "._set_icon()"
     },
     {
@@ -6523,7 +6523,7 @@
       "_origin": "ast",
       "id": "src_ui_settings_dialog_settingsdialog_init_ui",
       "community": 55,
-      "community_name": "QDialog",
+      "community_name": ".__init__",
       "norm_label": "._init_ui()"
     },
     {
@@ -6545,7 +6545,7 @@
       "_origin": "ast",
       "id": "src_ui_settings_dialog_settingsdialog_set_queue_running",
       "community": 55,
-      "community_name": "QDialog",
+      "community_name": ".__init__",
       "norm_label": ".set_queue_running()"
     },
     {
@@ -6589,7 +6589,7 @@
       "_origin": "ast",
       "id": "src_ui_settings_dialog_rationale_76",
       "community": 35,
-      "community_name": "test_comic_text.py",
+      "community_name": "CircularSpinner",
       "norm_label": "ignores mouse wheel events on widgets so scrollable pages scroll smoothly withou"
     },
     {
@@ -6600,7 +6600,7 @@
       "_origin": "ast",
       "id": "src_ui_settings_dialog_rationale_91",
       "community": 17,
-      "community_name": "Plan: Queue Page Selection and Permanent Image Rasterization",
+      "community_name": "ApiTranslationSettingsWidget",
       "norm_label": "reusable widget for configuring api credentials and translation engine parameter"
     },
     {
@@ -7117,7 +7117,7 @@
       "_origin": "ast",
       "id": "src_version",
       "community": 30,
-      "community_name": "UI & PyQt6 Desktop Application Standards",
+      "community_name": "TranslationViewModel",
       "norm_label": "version.py"
     },
     {
@@ -7128,7 +7128,7 @@
       "_origin": "ast",
       "id": "src_viewmodels_init",
       "community": 30,
-      "community_name": "UI & PyQt6 Desktop Application Standards",
+      "community_name": "TranslationViewModel",
       "norm_label": "viewmodels/__init__.py"
     },
     {
@@ -7138,8 +7138,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_viewmodels_library_viewmodel",
-      "community": 51,
-      "community_name": "Protocol",
+      "community": 20,
+      "community_name": "LibraryViewModel",
       "norm_label": "library_viewmodel.py"
     },
     {
@@ -7150,7 +7150,7 @@
       "_origin": "ast",
       "id": "src_viewmodels_library_viewmodel_libraryviewmodel",
       "community": 20,
-      "community_name": "7. Enforcement \u2014 Keeping ViewModels Thin and Preventing LLM Drift",
+      "community_name": "LibraryViewModel",
       "norm_label": "libraryviewmodel"
     },
     {
@@ -7161,7 +7161,7 @@
       "_origin": "ast",
       "id": "src_viewmodels_library_viewmodel_py_qobject",
       "community": 20,
-      "community_name": "7. Enforcement \u2014 Keeping ViewModels Thin and Preventing LLM Drift",
+      "community_name": "LibraryViewModel",
       "norm_label": "qobject"
     },
     {
@@ -7172,7 +7172,7 @@
       "_origin": "ast",
       "id": "src_viewmodels_library_viewmodel_libraryviewmodel_init",
       "community": 20,
-      "community_name": "7. Enforcement \u2014 Keeping ViewModels Thin and Preventing LLM Drift",
+      "community_name": "LibraryViewModel",
       "norm_label": ".__init__()"
     },
     {
@@ -7183,7 +7183,7 @@
       "_origin": "ast",
       "id": "src_viewmodels_library_viewmodel_libraryviewmodel_root_path",
       "community": 20,
-      "community_name": "7. Enforcement \u2014 Keeping ViewModels Thin and Preventing LLM Drift",
+      "community_name": "LibraryViewModel",
       "norm_label": ".root_path()"
     },
     {
@@ -7194,7 +7194,7 @@
       "_origin": "ast",
       "id": "src_viewmodels_library_viewmodel_py_path",
       "community": 20,
-      "community_name": "7. Enforcement \u2014 Keeping ViewModels Thin and Preventing LLM Drift",
+      "community_name": "LibraryViewModel",
       "norm_label": "path"
     },
     {
@@ -7205,7 +7205,7 @@
       "_origin": "ast",
       "id": "src_viewmodels_library_viewmodel_libraryviewmodel_folders",
       "community": 20,
-      "community_name": "7. Enforcement \u2014 Keeping ViewModels Thin and Preventing LLM Drift",
+      "community_name": "LibraryViewModel",
       "norm_label": ".folders()"
     },
     {
@@ -7216,7 +7216,7 @@
       "_origin": "ast",
       "id": "src_viewmodels_library_viewmodel_libraryviewmodel_current_folder",
       "community": 20,
-      "community_name": "7. Enforcement \u2014 Keeping ViewModels Thin and Preventing LLM Drift",
+      "community_name": "LibraryViewModel",
       "norm_label": ".current_folder()"
     },
     {
@@ -7227,7 +7227,7 @@
       "_origin": "ast",
       "id": "src_viewmodels_library_viewmodel_libraryviewmodel_current_image_index",
       "community": 20,
-      "community_name": "7. Enforcement \u2014 Keeping ViewModels Thin and Preventing LLM Drift",
+      "community_name": "LibraryViewModel",
       "norm_label": ".current_image_index()"
     },
     {
@@ -7238,7 +7238,7 @@
       "_origin": "ast",
       "id": "src_viewmodels_library_viewmodel_libraryviewmodel_load_directory",
       "community": 20,
-      "community_name": "7. Enforcement \u2014 Keeping ViewModels Thin and Preventing LLM Drift",
+      "community_name": "LibraryViewModel",
       "norm_label": ".load_directory()"
     },
     {
@@ -7249,7 +7249,7 @@
       "_origin": "ast",
       "id": "src_viewmodels_library_viewmodel_libraryviewmodel_set_current_folder",
       "community": 20,
-      "community_name": "7. Enforcement \u2014 Keeping ViewModels Thin and Preventing LLM Drift",
+      "community_name": "LibraryViewModel",
       "norm_label": ".set_current_folder()"
     },
     {
@@ -7260,7 +7260,7 @@
       "_origin": "ast",
       "id": "src_viewmodels_library_viewmodel_libraryviewmodel_set_current_image_index",
       "community": 20,
-      "community_name": "7. Enforcement \u2014 Keeping ViewModels Thin and Preventing LLM Drift",
+      "community_name": "LibraryViewModel",
       "norm_label": ".set_current_image_index()"
     },
     {
@@ -7271,7 +7271,7 @@
       "_origin": "ast",
       "id": "src_viewmodels_library_viewmodel_libraryviewmodel_navigate_next",
       "community": 20,
-      "community_name": "7. Enforcement \u2014 Keeping ViewModels Thin and Preventing LLM Drift",
+      "community_name": "LibraryViewModel",
       "norm_label": ".navigate_next()"
     },
     {
@@ -7282,7 +7282,7 @@
       "_origin": "ast",
       "id": "src_viewmodels_library_viewmodel_libraryviewmodel_navigate_previous",
       "community": 20,
-      "community_name": "7. Enforcement \u2014 Keeping ViewModels Thin and Preventing LLM Drift",
+      "community_name": "LibraryViewModel",
       "norm_label": ".navigate_previous()"
     },
     {
@@ -7293,7 +7293,7 @@
       "_origin": "ast",
       "id": "src_viewmodels_library_viewmodel_libraryviewmodel_rename",
       "community": 20,
-      "community_name": "7. Enforcement \u2014 Keeping ViewModels Thin and Preventing LLM Drift",
+      "community_name": "LibraryViewModel",
       "norm_label": ".rename()"
     },
     {
@@ -7303,8 +7303,8 @@
       "source_location": "L80",
       "_origin": "ast",
       "id": "src_viewmodels_library_viewmodel_libraryviewmodel_delete_folders",
-      "community": 51,
-      "community_name": "Protocol",
+      "community": 20,
+      "community_name": "LibraryViewModel",
       "norm_label": ".delete_folders()"
     },
     {
@@ -7315,7 +7315,7 @@
       "_origin": "ast",
       "id": "src_viewmodels_library_viewmodel_rationale_12",
       "community": 20,
-      "community_name": "7. Enforcement \u2014 Keeping ViewModels Thin and Preventing LLM Drift",
+      "community_name": "LibraryViewModel",
       "norm_label": "viewmodel for library folder scanning, selection, renaming, and navigation."
     },
     {
@@ -7326,7 +7326,7 @@
       "_origin": "ast",
       "id": "src_viewmodels_library_viewmodel_rationale_43",
       "community": 20,
-      "community_name": "7. Enforcement \u2014 Keeping ViewModels Thin and Preventing LLM Drift",
+      "community_name": "LibraryViewModel",
       "norm_label": "scan directory for image folders and update internal state."
     },
     {
@@ -7337,7 +7337,7 @@
       "_origin": "ast",
       "id": "src_viewmodels_library_viewmodel_rationale_58",
       "community": 20,
-      "community_name": "7. Enforcement \u2014 Keeping ViewModels Thin and Preventing LLM Drift",
+      "community_name": "LibraryViewModel",
       "norm_label": "advance to next image index, wrapping around."
     },
     {
@@ -7348,7 +7348,7 @@
       "_origin": "ast",
       "id": "src_viewmodels_library_viewmodel_rationale_66",
       "community": 20,
-      "community_name": "7. Enforcement \u2014 Keeping ViewModels Thin and Preventing LLM Drift",
+      "community_name": "LibraryViewModel",
       "norm_label": "go to previous image index, wrapping around."
     },
     {
@@ -7359,7 +7359,7 @@
       "_origin": "ast",
       "id": "src_viewmodels_library_viewmodel_rationale_74",
       "community": 20,
-      "community_name": "7. Enforcement \u2014 Keeping ViewModels Thin and Preventing LLM Drift",
+      "community_name": "LibraryViewModel",
       "norm_label": "rename single folder."
     },
     {
@@ -7369,8 +7369,8 @@
       "source_location": "L81",
       "_origin": "ast",
       "id": "src_viewmodels_library_viewmodel_rationale_81",
-      "community": 51,
-      "community_name": "Protocol",
+      "community": 20,
+      "community_name": "LibraryViewModel",
       "norm_label": "send selected folders to recycle bin / trash."
     },
     {
@@ -7381,7 +7381,7 @@
       "_origin": "ast",
       "id": "src_viewmodels_settings_viewmodel",
       "community": 30,
-      "community_name": "UI & PyQt6 Desktop Application Standards",
+      "community_name": "TranslationViewModel",
       "norm_label": "settings_viewmodel.py"
     },
     {
@@ -7392,7 +7392,7 @@
       "_origin": "ast",
       "id": "src_viewmodels_settings_viewmodel_settingsviewmodel",
       "community": 30,
-      "community_name": "UI & PyQt6 Desktop Application Standards",
+      "community_name": "TranslationViewModel",
       "norm_label": "settingsviewmodel"
     },
     {
@@ -7403,7 +7403,7 @@
       "_origin": "ast",
       "id": "src_viewmodels_settings_viewmodel_py_qobject",
       "community": 30,
-      "community_name": "UI & PyQt6 Desktop Application Standards",
+      "community_name": "TranslationViewModel",
       "norm_label": "qobject"
     },
     {
@@ -7414,7 +7414,7 @@
       "_origin": "ast",
       "id": "src_viewmodels_settings_viewmodel_settingsviewmodel_init",
       "community": 30,
-      "community_name": "UI & PyQt6 Desktop Application Standards",
+      "community_name": "TranslationViewModel",
       "norm_label": ".__init__()"
     },
     {
@@ -7425,7 +7425,7 @@
       "_origin": "ast",
       "id": "src_viewmodels_settings_viewmodel_py_qsettings",
       "community": 30,
-      "community_name": "UI & PyQt6 Desktop Application Standards",
+      "community_name": "TranslationViewModel",
       "norm_label": "qsettings"
     },
     {
@@ -7436,7 +7436,7 @@
       "_origin": "ast",
       "id": "src_viewmodels_settings_viewmodel_settingsviewmodel_raw_settings",
       "community": 30,
-      "community_name": "UI & PyQt6 Desktop Application Standards",
+      "community_name": "TranslationViewModel",
       "norm_label": ".raw_settings()"
     },
     {
@@ -7447,7 +7447,7 @@
       "_origin": "ast",
       "id": "src_viewmodels_settings_viewmodel_settingsviewmodel_get_last_root_folder",
       "community": 30,
-      "community_name": "UI & PyQt6 Desktop Application Standards",
+      "community_name": "TranslationViewModel",
       "norm_label": ".get_last_root_folder()"
     },
     {
@@ -7458,7 +7458,7 @@
       "_origin": "ast",
       "id": "src_viewmodels_settings_viewmodel_settingsviewmodel_set_last_root_folder",
       "community": 30,
-      "community_name": "UI & PyQt6 Desktop Application Standards",
+      "community_name": "TranslationViewModel",
       "norm_label": ".set_last_root_folder()"
     },
     {
@@ -7469,7 +7469,7 @@
       "_origin": "ast",
       "id": "src_viewmodels_settings_viewmodel_settingsviewmodel_get_api_credentials",
       "community": 30,
-      "community_name": "UI & PyQt6 Desktop Application Standards",
+      "community_name": "TranslationViewModel",
       "norm_label": ".get_api_credentials()"
     },
     {
@@ -7480,7 +7480,7 @@
       "_origin": "ast",
       "id": "src_viewmodels_settings_viewmodel_settingsviewmodel_get_manga_ocr_model",
       "community": 30,
-      "community_name": "UI & PyQt6 Desktop Application Standards",
+      "community_name": "TranslationViewModel",
       "norm_label": ".get_manga_ocr_model()"
     },
     {
@@ -7491,7 +7491,7 @@
       "_origin": "ast",
       "id": "src_viewmodels_settings_viewmodel_settingsviewmodel_set_manga_ocr_model",
       "community": 30,
-      "community_name": "UI & PyQt6 Desktop Application Standards",
+      "community_name": "TranslationViewModel",
       "norm_label": ".set_manga_ocr_model()"
     },
     {
@@ -7502,7 +7502,7 @@
       "_origin": "ast",
       "id": "src_viewmodels_settings_viewmodel_settingsviewmodel_get_onnx_force_cpu",
       "community": 30,
-      "community_name": "UI & PyQt6 Desktop Application Standards",
+      "community_name": "TranslationViewModel",
       "norm_label": ".get_onnx_force_cpu()"
     },
     {
@@ -7513,7 +7513,7 @@
       "_origin": "ast",
       "id": "src_viewmodels_settings_viewmodel_settingsviewmodel_set_onnx_force_cpu",
       "community": 30,
-      "community_name": "UI & PyQt6 Desktop Application Standards",
+      "community_name": "TranslationViewModel",
       "norm_label": ".set_onnx_force_cpu()"
     },
     {
@@ -7523,8 +7523,8 @@
       "source_location": "L74",
       "_origin": "ast",
       "id": "src_viewmodels_settings_viewmodel_settingsviewmodel_get_detected_providers",
-      "community": 5,
-      "community_name": "TranslationOverlayWidget",
+      "community": 30,
+      "community_name": "TranslationViewModel",
       "norm_label": ".get_detected_providers()"
     },
     {
@@ -7535,7 +7535,7 @@
       "_origin": "ast",
       "id": "src_viewmodels_settings_viewmodel_settingsviewmodel_set_api_key",
       "community": 30,
-      "community_name": "UI & PyQt6 Desktop Application Standards",
+      "community_name": "TranslationViewModel",
       "norm_label": ".set_api_key()"
     },
     {
@@ -7546,7 +7546,7 @@
       "_origin": "ast",
       "id": "src_viewmodels_settings_viewmodel_settingsviewmodel_check_for_updates",
       "community": 30,
-      "community_name": "UI & PyQt6 Desktop Application Standards",
+      "community_name": "TranslationViewModel",
       "norm_label": ".check_for_updates()"
     },
     {
@@ -7557,7 +7557,7 @@
       "_origin": "ast",
       "id": "src_viewmodels_settings_viewmodel_rationale_6",
       "community": 30,
-      "community_name": "UI & PyQt6 Desktop Application Standards",
+      "community_name": "TranslationViewModel",
       "norm_label": "viewmodel for application configuration and qsettings management."
     },
     {
@@ -7568,7 +7568,7 @@
       "_origin": "ast",
       "id": "src_viewmodels_settings_viewmodel_rationale_16",
       "community": 30,
-      "community_name": "UI & PyQt6 Desktop Application Standards",
+      "community_name": "TranslationViewModel",
       "norm_label": "access underlying qsettings instance for qt dialog integration."
     },
     {
@@ -7579,7 +7579,7 @@
       "_origin": "ast",
       "id": "src_viewmodels_settings_viewmodel_rationale_28",
       "community": 30,
-      "community_name": "UI & PyQt6 Desktop Application Standards",
+      "community_name": "TranslationViewModel",
       "norm_label": "returns (api_key, base_url, model, timeout, batch_size, engine_mode, scale_pct,"
     },
     {
@@ -7590,7 +7590,7 @@
       "_origin": "ast",
       "id": "src_viewmodels_translation_viewmodel",
       "community": 24,
-      "community_name": "Data Integrity, OCR & Translation Verification Standards",
+      "community_name": "queue_dialog.py",
       "norm_label": "translation_viewmodel.py"
     },
     {
@@ -7601,7 +7601,7 @@
       "_origin": "ast",
       "id": "src_viewmodels_translation_viewmodel_translationviewmodel",
       "community": 21,
-      "community_name": "Appendix D \u2014 Extraction of every change made by an LLM",
+      "community_name": "TranslationViewModel",
       "norm_label": "translationviewmodel"
     },
     {
@@ -7612,7 +7612,7 @@
       "_origin": "ast",
       "id": "src_viewmodels_translation_viewmodel_py_qobject",
       "community": 21,
-      "community_name": "Appendix D \u2014 Extraction of every change made by an LLM",
+      "community_name": "TranslationViewModel",
       "norm_label": "qobject"
     },
     {
@@ -7623,7 +7623,7 @@
       "_origin": "ast",
       "id": "src_viewmodels_translation_viewmodel_translationviewmodel_init",
       "community": 21,
-      "community_name": "Appendix D \u2014 Extraction of every change made by an LLM",
+      "community_name": "TranslationViewModel",
       "norm_label": ".__init__()"
     },
     {
@@ -7634,7 +7634,7 @@
       "_origin": "ast",
       "id": "src_viewmodels_translation_viewmodel_translationviewmodel_is_overlay_enabled",
       "community": 21,
-      "community_name": "Appendix D \u2014 Extraction of every change made by an LLM",
+      "community_name": "TranslationViewModel",
       "norm_label": ".is_overlay_enabled()"
     },
     {
@@ -7645,7 +7645,7 @@
       "_origin": "ast",
       "id": "src_viewmodels_translation_viewmodel_translationviewmodel_is_box_tool_active",
       "community": 21,
-      "community_name": "Appendix D \u2014 Extraction of every change made by an LLM",
+      "community_name": "TranslationViewModel",
       "norm_label": ".is_box_tool_active()"
     },
     {
@@ -7656,7 +7656,7 @@
       "_origin": "ast",
       "id": "src_viewmodels_translation_viewmodel_translationviewmodel_toggle_overlay",
       "community": 21,
-      "community_name": "Appendix D \u2014 Extraction of every change made by an LLM",
+      "community_name": "TranslationViewModel",
       "norm_label": ".toggle_overlay()"
     },
     {
@@ -7667,7 +7667,7 @@
       "_origin": "ast",
       "id": "src_viewmodels_translation_viewmodel_translationviewmodel_set_overlay_enabled",
       "community": 21,
-      "community_name": "Appendix D \u2014 Extraction of every change made by an LLM",
+      "community_name": "TranslationViewModel",
       "norm_label": ".set_overlay_enabled()"
     },
     {
@@ -7678,7 +7678,7 @@
       "_origin": "ast",
       "id": "src_viewmodels_translation_viewmodel_translationviewmodel_set_box_tool_active",
       "community": 21,
-      "community_name": "Appendix D \u2014 Extraction of every change made by an LLM",
+      "community_name": "TranslationViewModel",
       "norm_label": ".set_box_tool_active()"
     },
     {
@@ -7689,7 +7689,7 @@
       "_origin": "ast",
       "id": "src_viewmodels_translation_viewmodel_translationviewmodel_toggle_box_tool",
       "community": 21,
-      "community_name": "Appendix D \u2014 Extraction of every change made by an LLM",
+      "community_name": "TranslationViewModel",
       "norm_label": ".toggle_box_tool()"
     },
     {
@@ -7699,8 +7699,8 @@
       "source_location": "L61",
       "_origin": "ast",
       "id": "src_viewmodels_translation_viewmodel_translationviewmodel_add_manual_bubble",
-      "community": 21,
-      "community_name": "Appendix D \u2014 Extraction of every change made by an LLM",
+      "community": 38,
+      "community_name": "PageRepository",
       "norm_label": ".add_manual_bubble()"
     },
     {
@@ -7710,8 +7710,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "src_viewmodels_translation_viewmodel_py_path",
-      "community": 21,
-      "community_name": "Appendix D \u2014 Extraction of every change made by an LLM",
+      "community": 38,
+      "community_name": "PageRepository",
       "norm_label": "path"
     },
     {
@@ -7722,7 +7722,7 @@
       "_origin": "ast",
       "id": "src_viewmodels_translation_viewmodel_rationale_15",
       "community": 21,
-      "community_name": "Appendix D \u2014 Extraction of every change made by an LLM",
+      "community_name": "TranslationViewModel",
       "norm_label": "viewmodel for translation overlay toggles, manual speech bubble labeling, and qu"
     },
     {
@@ -7733,7 +7733,7 @@
       "_origin": "ast",
       "id": "src_viewmodels_translation_viewmodel_rationale_40",
       "community": 21,
-      "community_name": "Appendix D \u2014 Extraction of every change made by an LLM",
+      "community_name": "TranslationViewModel",
       "norm_label": "toggle overlay display state."
     },
     {
@@ -7744,7 +7744,7 @@
       "_origin": "ast",
       "id": "src_viewmodels_translation_viewmodel_rationale_51",
       "community": 21,
-      "community_name": "Appendix D \u2014 Extraction of every change made by an LLM",
+      "community_name": "TranslationViewModel",
       "norm_label": "set box selection tool state."
     },
     {
@@ -7755,7 +7755,7 @@
       "_origin": "ast",
       "id": "src_viewmodels_translation_viewmodel_rationale_58",
       "community": 21,
-      "community_name": "Appendix D \u2014 Extraction of every change made by an LLM",
+      "community_name": "TranslationViewModel",
       "norm_label": "toggle box selection tool state."
     },
     {
@@ -7765,8 +7765,8 @@
       "source_location": "L71",
       "_origin": "ast",
       "id": "src_viewmodels_translation_viewmodel_rationale_71",
-      "community": 21,
-      "community_name": "Appendix D \u2014 Extraction of every change made by an LLM",
+      "community": 38,
+      "community_name": "PageRepository",
       "norm_label": "create a new manual bubble block, persist it into the page repository,         a"
     },
     {
@@ -7777,7 +7777,7 @@
       "_origin": "ast",
       "id": "tests_conftest",
       "community": 22,
-      "community_name": "Appendix F \u2014 Amendments to \u00a75 and \u00a79",
+      "community_name": "conftest.py",
       "norm_label": "conftest.py"
     },
     {
@@ -7788,7 +7788,7 @@
       "_origin": "ast",
       "id": "tests_conftest_drain_threadpool",
       "community": 22,
-      "community_name": "Appendix F \u2014 Amendments to \u00a75 and \u00a79",
+      "community_name": "conftest.py",
       "norm_label": "drain_threadpool()"
     },
     {
@@ -7799,7 +7799,7 @@
       "_origin": "ast",
       "id": "tests_conftest_isolated_qsettings",
       "community": 22,
-      "community_name": "Appendix F \u2014 Amendments to \u00a75 and \u00a79",
+      "community_name": "conftest.py",
       "norm_label": "isolated_qsettings()"
     },
     {
@@ -7810,7 +7810,7 @@
       "_origin": "ast",
       "id": "tests_conftest_py_path",
       "community": 22,
-      "community_name": "Appendix F \u2014 Amendments to \u00a75 and \u00a79",
+      "community_name": "conftest.py",
       "norm_label": "path"
     },
     {
@@ -7821,7 +7821,7 @@
       "_origin": "ast",
       "id": "tests_conftest_tmp_library",
       "community": 22,
-      "community_name": "Appendix F \u2014 Amendments to \u00a75 and \u00a79",
+      "community_name": "conftest.py",
       "norm_label": "tmp_library()"
     },
     {
@@ -7832,7 +7832,7 @@
       "_origin": "ast",
       "id": "tests_conftest_rationale_10",
       "community": 22,
-      "community_name": "Appendix F \u2014 Amendments to \u00a75 and \u00a79",
+      "community_name": "conftest.py",
       "norm_label": "cancel pending workers and drain qthreadpool to prevent async segfaults."
     },
     {
@@ -7843,7 +7843,7 @@
       "_origin": "ast",
       "id": "tests_conftest_rationale_19",
       "community": 22,
-      "community_name": "Appendix F \u2014 Amendments to \u00a75 and \u00a79",
+      "community_name": "conftest.py",
       "norm_label": "isolate qsettings into a temporary ini file so tests never touch host settings."
     },
     {
@@ -7854,7 +7854,7 @@
       "_origin": "ast",
       "id": "tests_conftest_rationale_43",
       "community": 22,
-      "community_name": "Appendix F \u2014 Amendments to \u00a75 and \u00a79",
+      "community_name": "conftest.py",
       "norm_label": "create a sample 2-chapter x 2-page image directory for tests."
     },
     {
@@ -7942,7 +7942,7 @@
       "_origin": "ast",
       "id": "tests_test_architecture",
       "community": 25,
-      "community_name": "Windows Folder Image Previewer",
+      "community_name": "test_architecture.py",
       "norm_label": "test_architecture.py"
     },
     {
@@ -7953,7 +7953,7 @@
       "_origin": "ast",
       "id": "tests_test_architecture_test_import_linter_architecture_contracts",
       "community": 25,
-      "community_name": "Windows Folder Image Previewer",
+      "community_name": "test_architecture.py",
       "norm_label": "test_import_linter_architecture_contracts()"
     },
     {
@@ -7964,7 +7964,7 @@
       "_origin": "ast",
       "id": "tests_test_architecture_test_loc_ratchet_enforcement",
       "community": 25,
-      "community_name": "Windows Folder Image Previewer",
+      "community_name": "test_architecture.py",
       "norm_label": "test_loc_ratchet_enforcement()"
     },
     {
@@ -7975,7 +7975,7 @@
       "_origin": "ast",
       "id": "tests_test_architecture_test_no_qt_widgets_in_services",
       "community": 25,
-      "community_name": "Windows Folder Image Previewer",
+      "community_name": "test_architecture.py",
       "norm_label": "test_no_qt_widgets_in_services()"
     },
     {
@@ -7986,7 +7986,7 @@
       "_origin": "ast",
       "id": "tests_test_architecture_test_no_private_cross_module_access",
       "community": 25,
-      "community_name": "Windows Folder Image Previewer",
+      "community_name": "test_architecture.py",
       "norm_label": "test_no_private_cross_module_access()"
     },
     {
@@ -7997,7 +7997,7 @@
       "_origin": "ast",
       "id": "tests_test_architecture_test_viewmodels_are_widget_free",
       "community": 25,
-      "community_name": "Windows Folder Image Previewer",
+      "community_name": "test_architecture.py",
       "norm_label": "test_viewmodels_are_widget_free()"
     },
     {
@@ -8008,7 +8008,7 @@
       "_origin": "ast",
       "id": "tests_test_architecture_rationale_20",
       "community": 25,
-      "community_name": "Windows Folder Image Previewer",
+      "community_name": "test_architecture.py",
       "norm_label": "verify hexagonal architecture contracts using import-linter."
     },
     {
@@ -8019,7 +8019,7 @@
       "_origin": "ast",
       "id": "tests_test_architecture_rationale_31",
       "community": 25,
-      "community_name": "Windows Folder Image Previewer",
+      "community_name": "test_architecture.py",
       "norm_label": "assert loc of monolithic files do not exceed ratchet ceilings."
     },
     {
@@ -8030,7 +8030,7 @@
       "_origin": "ast",
       "id": "tests_test_architecture_rationale_43",
       "community": 25,
-      "community_name": "Windows Folder Image Previewer",
+      "community_name": "test_architecture.py",
       "norm_label": "verify services never import pyqt6.qtwidgets (phase 5 eliminated the image_raste"
     },
     {
@@ -8041,7 +8041,7 @@
       "_origin": "ast",
       "id": "tests_test_architecture_rationale_54",
       "community": 25,
-      "community_name": "Windows Folder Image Previewer",
+      "community_name": "test_architecture.py",
       "norm_label": "verify no collaborator private member access across boundaries (leak b eliminate"
     },
     {
@@ -8052,7 +8052,7 @@
       "_origin": "ast",
       "id": "tests_test_architecture_rationale_67",
       "community": 25,
-      "community_name": "Windows Folder Image Previewer",
+      "community_name": "test_architecture.py",
       "norm_label": "verify viewmodels are thin, headless qobjects with zero pyqt6.qtwidgets imports."
     },
     {
@@ -8063,7 +8063,7 @@
       "_origin": "ast",
       "id": "tests_test_architecture_graph",
       "community": 26,
-      "community_name": "Appendix E \u2014 Graphify",
+      "community_name": "test_architecture_graph.py",
       "norm_label": "test_architecture_graph.py"
     },
     {
@@ -8074,7 +8074,7 @@
       "_origin": "ast",
       "id": "tests_test_architecture_graph_test_graph_baseline_exists_and_is_valid",
       "community": 26,
-      "community_name": "Appendix E \u2014 Graphify",
+      "community_name": "test_architecture_graph.py",
       "norm_label": "test_graph_baseline_exists_and_is_valid()"
     },
     {
@@ -8085,7 +8085,7 @@
       "_origin": "ast",
       "id": "tests_test_architecture_graph_test_every_src_node_belongs_to_allowed_architectural_tier",
       "community": 26,
-      "community_name": "Appendix E \u2014 Graphify",
+      "community_name": "test_architecture_graph.py",
       "norm_label": "test_every_src_node_belongs_to_allowed_architectural_tier()"
     },
     {
@@ -8096,7 +8096,7 @@
       "_origin": "ast",
       "id": "tests_test_architecture_graph_rationale_21",
       "community": 26,
-      "community_name": "Appendix E \u2014 Graphify",
+      "community_name": "test_architecture_graph.py",
       "norm_label": "verify the committed graphify graph baseline exists and parses."
     },
     {
@@ -8107,7 +8107,7 @@
       "_origin": "ast",
       "id": "tests_test_architecture_graph_rationale_29",
       "community": 26,
-      "community_name": "Appendix E \u2014 Graphify",
+      "community_name": "test_architecture_graph.py",
       "norm_label": "verify all source nodes belong strictly to one of the 6 canonical tiers."
     },
     {
@@ -8183,8 +8183,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "tests_test_folder_service",
-      "community": 42,
-      "community_name": ".rasterize_page",
+      "community": 20,
+      "community_name": "LibraryViewModel",
       "norm_label": "test_folder_service.py"
     },
     {
@@ -8194,8 +8194,8 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "tests_test_folder_service_test_rename_folder_success",
-      "community": 42,
-      "community_name": ".rasterize_page",
+      "community": 20,
+      "community_name": "LibraryViewModel",
       "norm_label": "test_rename_folder_success()"
     },
     {
@@ -8205,8 +8205,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "tests_test_folder_service_py_path",
-      "community": 42,
-      "community_name": ".rasterize_page",
+      "community": 20,
+      "community_name": "LibraryViewModel",
       "norm_label": "path"
     },
     {
@@ -8216,8 +8216,8 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "tests_test_folder_service_test_rename_folder_same_name",
-      "community": 42,
-      "community_name": ".rasterize_page",
+      "community": 20,
+      "community_name": "LibraryViewModel",
       "norm_label": "test_rename_folder_same_name()"
     },
     {
@@ -8227,8 +8227,8 @@
       "source_location": "L26",
       "_origin": "ast",
       "id": "tests_test_folder_service_test_rename_folder_already_exists",
-      "community": 42,
-      "community_name": ".rasterize_page",
+      "community": 20,
+      "community_name": "LibraryViewModel",
       "norm_label": "test_rename_folder_already_exists()"
     },
     {
@@ -8238,8 +8238,8 @@
       "source_location": "L36",
       "_origin": "ast",
       "id": "tests_test_folder_service_test_rename_folder_invalid_name",
-      "community": 42,
-      "community_name": ".rasterize_page",
+      "community": 20,
+      "community_name": "LibraryViewModel",
       "norm_label": "test_rename_folder_invalid_name()"
     },
     {
@@ -8249,8 +8249,8 @@
       "source_location": "L44",
       "_origin": "ast",
       "id": "tests_test_folder_service_test_rename_non_existent",
-      "community": 42,
-      "community_name": ".rasterize_page",
+      "community": 20,
+      "community_name": "LibraryViewModel",
       "norm_label": "test_rename_non_existent()"
     },
     {
@@ -8261,7 +8261,7 @@
       "_origin": "ast",
       "id": "tests_test_governance_rules",
       "community": 29,
-      "community_name": "Governance, Safety & Release Standards",
+      "community_name": "test_build_script_rejects_unauthorized_execution",
       "norm_label": "test_governance_rules.py"
     },
     {
@@ -8272,7 +8272,7 @@
       "_origin": "ast",
       "id": "tests_test_governance_rules_test_build_script_rejects_unauthorized_execution",
       "community": 29,
-      "community_name": "Governance, Safety & Release Standards",
+      "community_name": "test_build_script_rejects_unauthorized_execution",
       "norm_label": "test_build_script_rejects_unauthorized_execution()"
     },
     {
@@ -8283,7 +8283,7 @@
       "_origin": "ast",
       "id": "tests_test_governance_rules_rationale_6",
       "community": 29,
-      "community_name": "Governance, Safety & Release Standards",
+      "community_name": "test_build_script_rejects_unauthorized_execution",
       "norm_label": "verify build.py cannot be executed without --explicit-user-request."
     },
     {
@@ -8382,7 +8382,7 @@
       "_origin": "ast",
       "id": "tests_test_installer_and_updates",
       "community": 30,
-      "community_name": "UI & PyQt6 Desktop Application Standards",
+      "community_name": "TranslationViewModel",
       "norm_label": "test_installer_and_updates.py"
     },
     {
@@ -8393,7 +8393,7 @@
       "_origin": "ast",
       "id": "tests_test_installer_and_updates_test_semver_parsing_and_comparison",
       "community": 30,
-      "community_name": "UI & PyQt6 Desktop Application Standards",
+      "community_name": "TranslationViewModel",
       "norm_label": "test_semver_parsing_and_comparison()"
     },
     {
@@ -8404,7 +8404,7 @@
       "_origin": "ast",
       "id": "tests_test_installer_and_updates_test_update_checker_service_handles_newer_release",
       "community": 30,
-      "community_name": "UI & PyQt6 Desktop Application Standards",
+      "community_name": "TranslationViewModel",
       "norm_label": "test_update_checker_service_handles_newer_release()"
     },
     {
@@ -8415,7 +8415,7 @@
       "_origin": "ast",
       "id": "tests_test_installer_and_updates_test_update_checker_service_returns_none_when_up_to_date",
       "community": 30,
-      "community_name": "UI & PyQt6 Desktop Application Standards",
+      "community_name": "TranslationViewModel",
       "norm_label": "test_update_checker_service_returns_none_when_up_to_date()"
     },
     {
@@ -8426,7 +8426,7 @@
       "_origin": "ast",
       "id": "tests_test_installer_and_updates_test_ai_assets_manager_resolution",
       "community": 30,
-      "community_name": "UI & PyQt6 Desktop Application Standards",
+      "community_name": "TranslationViewModel",
       "norm_label": "test_ai_assets_manager_resolution()"
     },
     {
@@ -8437,7 +8437,7 @@
       "_origin": "ast",
       "id": "tests_test_installer_and_updates_py_path",
       "community": 30,
-      "community_name": "UI & PyQt6 Desktop Application Standards",
+      "community_name": "TranslationViewModel",
       "norm_label": "path"
     },
     {
@@ -8448,7 +8448,7 @@
       "_origin": "ast",
       "id": "tests_test_log_dialog",
       "community": 19,
-      "community_name": "compress_image_to_webp",
+      "community_name": "LogDialog",
       "norm_label": "test_log_dialog.py"
     },
     {
@@ -8459,7 +8459,7 @@
       "_origin": "ast",
       "id": "tests_test_log_dialog_test_log_dialog_display",
       "community": 19,
-      "community_name": "compress_image_to_webp",
+      "community_name": "LogDialog",
       "norm_label": "test_log_dialog_display()"
     },
     {
@@ -8470,7 +8470,7 @@
       "_origin": "ast",
       "id": "tests_test_log_dialog_py_path",
       "community": 19,
-      "community_name": "compress_image_to_webp",
+      "community_name": "LogDialog",
       "norm_label": "path"
     },
     {
@@ -8481,7 +8481,7 @@
       "_origin": "ast",
       "id": "tests_test_log_dialog_test_log_dialog_missing_file",
       "community": 19,
-      "community_name": "compress_image_to_webp",
+      "community_name": "LogDialog",
       "norm_label": "test_log_dialog_missing_file()"
     },
     {
@@ -8492,7 +8492,7 @@
       "_origin": "ast",
       "id": "tests_test_log_sink",
       "community": 34,
-      "community_name": "6. Test Strategy",
+      "community_name": "FileLogSink",
       "norm_label": "test_log_sink.py"
     },
     {
@@ -8503,7 +8503,7 @@
       "_origin": "ast",
       "id": "tests_test_log_sink_test_file_log_sink_lifecycle",
       "community": 34,
-      "community_name": "6. Test Strategy",
+      "community_name": "FileLogSink",
       "norm_label": "test_file_log_sink_lifecycle()"
     },
     {
@@ -8514,7 +8514,7 @@
       "_origin": "ast",
       "id": "tests_test_log_sink_py_path",
       "community": 34,
-      "community_name": "6. Test Strategy",
+      "community_name": "FileLogSink",
       "norm_label": "path"
     },
     {
@@ -8525,7 +8525,7 @@
       "_origin": "ast",
       "id": "tests_test_manga_ocr_detector",
       "community": 32,
-      "community_name": "1. Goal & Scope",
+      "community_name": "MangaOcrDetector",
       "norm_label": "test_manga_ocr_detector.py"
     },
     {
@@ -8536,7 +8536,7 @@
       "_origin": "ast",
       "id": "tests_test_manga_ocr_detector_test_manga_ocr_detection_local",
       "community": 32,
-      "community_name": "1. Goal & Scope",
+      "community_name": "MangaOcrDetector",
       "norm_label": "test_manga_ocr_detection_local()"
     },
     {
@@ -8547,7 +8547,7 @@
       "_origin": "ast",
       "id": "tests_test_manga_ocr_detector_py_path",
       "community": 32,
-      "community_name": "1. Goal & Scope",
+      "community_name": "MangaOcrDetector",
       "norm_label": "path"
     },
     {
@@ -8558,7 +8558,7 @@
       "_origin": "ast",
       "id": "tests_test_manga_ocr_detector_test_manga_ocr_detection_skips_blank_crop",
       "community": 32,
-      "community_name": "1. Goal & Scope",
+      "community_name": "MangaOcrDetector",
       "norm_label": "test_manga_ocr_detection_skips_blank_crop()"
     },
     {
@@ -8569,7 +8569,7 @@
       "_origin": "ast",
       "id": "tests_test_manga_ocr_detector_test_manga_ocr_detection_no_bubbles",
       "community": 32,
-      "community_name": "1. Goal & Scope",
+      "community_name": "MangaOcrDetector",
       "norm_label": "test_manga_ocr_detection_no_bubbles()"
     },
     {
@@ -8580,7 +8580,7 @@
       "_origin": "ast",
       "id": "tests_test_manga_ocr_detector_test_manga_ocr_detection_prescaling",
       "community": 32,
-      "community_name": "1. Goal & Scope",
+      "community_name": "MangaOcrDetector",
       "norm_label": "test_manga_ocr_detection_prescaling()"
     },
     {
@@ -8591,7 +8591,7 @@
       "_origin": "ast",
       "id": "tests_test_manga_ocr_detector_test_manga_ocr_segment_bubble_obstacle_masking",
       "community": 32,
-      "community_name": "1. Goal & Scope",
+      "community_name": "MangaOcrDetector",
       "norm_label": "test_manga_ocr_segment_bubble_obstacle_masking()"
     },
     {
@@ -8602,7 +8602,7 @@
       "_origin": "ast",
       "id": "tests_test_manga_ocr_detector_test_manga_ocr_overlap_resolution",
       "community": 32,
-      "community_name": "1. Goal & Scope",
+      "community_name": "MangaOcrDetector",
       "norm_label": "test_manga_ocr_overlap_resolution()"
     },
     {
@@ -8613,7 +8613,7 @@
       "_origin": "ast",
       "id": "tests_test_manga_ocr_detector_test_manga_ocr_detector_custom_model_and_acceleration",
       "community": 32,
-      "community_name": "1. Goal & Scope",
+      "community_name": "MangaOcrDetector",
       "norm_label": "test_manga_ocr_detector_custom_model_and_acceleration()"
     },
     {
@@ -8701,7 +8701,7 @@
       "_origin": "ast",
       "id": "tests_test_models_test_folder_item_properties",
       "community": 33,
-      "community_name": "2. Current State \u2014 Evidence",
+      "community_name": "FolderItem",
       "norm_label": "test_folder_item_properties()"
     },
     {
@@ -8712,7 +8712,7 @@
       "_origin": "ast",
       "id": "tests_test_models_test_folder_item_empty_images",
       "community": 33,
-      "community_name": "2. Current State \u2014 Evidence",
+      "community_name": "FolderItem",
       "norm_label": "test_folder_item_empty_images()"
     },
     {
@@ -8755,8 +8755,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "tests_test_onnx_bubble_detector",
-      "community": 5,
-      "community_name": "TranslationOverlayWidget",
+      "community": 30,
+      "community_name": "TranslationViewModel",
       "norm_label": "test_onnx_bubble_detector.py"
     },
     {
@@ -8766,8 +8766,8 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "tests_test_onnx_bubble_detector_test_onnx_detector_availability",
-      "community": 5,
-      "community_name": "TranslationOverlayWidget",
+      "community": 30,
+      "community_name": "TranslationViewModel",
       "norm_label": "test_onnx_detector_availability()"
     },
     {
@@ -8777,8 +8777,8 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "tests_test_onnx_bubble_detector_test_onnx_detector_resolve_path",
-      "community": 5,
-      "community_name": "TranslationOverlayWidget",
+      "community": 30,
+      "community_name": "TranslationViewModel",
       "norm_label": "test_onnx_detector_resolve_path()"
     },
     {
@@ -8788,8 +8788,8 @@
       "source_location": "L19",
       "_origin": "ast",
       "id": "tests_test_onnx_bubble_detector_test_onnx_detector_mocked_inference",
-      "community": 5,
-      "community_name": "TranslationOverlayWidget",
+      "community": 30,
+      "community_name": "TranslationViewModel",
       "norm_label": "test_onnx_detector_mocked_inference()"
     },
     {
@@ -8799,8 +8799,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "tests_test_onnx_bubble_detector_py_path",
-      "community": 5,
-      "community_name": "TranslationOverlayWidget",
+      "community": 30,
+      "community_name": "TranslationViewModel",
       "norm_label": "path"
     },
     {
@@ -8810,8 +8810,8 @@
       "source_location": "L47",
       "_origin": "ast",
       "id": "tests_test_onnx_bubble_detector_test_onnx_detector_memory_inputs",
-      "community": 5,
-      "community_name": "TranslationOverlayWidget",
+      "community": 30,
+      "community_name": "TranslationViewModel",
       "norm_label": "test_onnx_detector_memory_inputs()"
     },
     {
@@ -8821,8 +8821,8 @@
       "source_location": "L71",
       "_origin": "ast",
       "id": "tests_test_onnx_bubble_detector_test_onnx_detector_containment_suppression",
-      "community": 5,
-      "community_name": "TranslationOverlayWidget",
+      "community": 30,
+      "community_name": "TranslationViewModel",
       "norm_label": "test_onnx_detector_containment_suppression()"
     },
     {
@@ -8832,8 +8832,8 @@
       "source_location": "L93",
       "_origin": "ast",
       "id": "tests_test_onnx_bubble_detector_test_onnx_detector_provider_selection",
-      "community": 5,
-      "community_name": "TranslationOverlayWidget",
+      "community": 30,
+      "community_name": "TranslationViewModel",
       "norm_label": "test_onnx_detector_provider_selection()"
     },
     {
@@ -8843,8 +8843,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "tests_test_scanner",
-      "community": 54,
-      "community_name": "QIcon",
+      "community": 20,
+      "community_name": "LibraryViewModel",
       "norm_label": "test_scanner.py"
     },
     {
@@ -8854,8 +8854,8 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "tests_test_scanner_test_scan_directory_discovers_image_folders",
-      "community": 54,
-      "community_name": "QIcon",
+      "community": 20,
+      "community_name": "LibraryViewModel",
       "norm_label": "test_scan_directory_discovers_image_folders()"
     },
     {
@@ -8865,8 +8865,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "tests_test_scanner_py_path",
-      "community": 54,
-      "community_name": "QIcon",
+      "community": 20,
+      "community_name": "LibraryViewModel",
       "norm_label": "path"
     },
     {
@@ -8876,8 +8876,8 @@
       "source_location": "L29",
       "_origin": "ast",
       "id": "tests_test_scanner_test_natural_sorting_order",
-      "community": 54,
-      "community_name": "QIcon",
+      "community": 20,
+      "community_name": "LibraryViewModel",
       "norm_label": "test_natural_sorting_order()"
     },
     {
@@ -9757,7 +9757,7 @@
       "_origin": "ast",
       "id": "tests_test_translation_workspace",
       "community": 37,
-      "community_name": "JsonTempWorkspace",
+      "community_name": "test_translation_workspace.py",
       "norm_label": "test_translation_workspace.py"
     },
     {
@@ -9768,7 +9768,7 @@
       "_origin": "ast",
       "id": "tests_test_translation_workspace_test_translation_workspace_lifecycle",
       "community": 37,
-      "community_name": "JsonTempWorkspace",
+      "community_name": "test_translation_workspace.py",
       "norm_label": "test_translation_workspace_lifecycle()"
     },
     {
@@ -9779,7 +9779,7 @@
       "_origin": "ast",
       "id": "tests_test_translation_workspace_py_path",
       "community": 37,
-      "community_name": "JsonTempWorkspace",
+      "community_name": "test_translation_workspace.py",
       "norm_label": "path"
     },
     {
@@ -9790,7 +9790,7 @@
       "_origin": "ast",
       "id": "tests_test_translation_workspace_test_workspace_incremental_ocr",
       "community": 37,
-      "community_name": "JsonTempWorkspace",
+      "community_name": "test_translation_workspace.py",
       "norm_label": "test_workspace_incremental_ocr()"
     },
     {
@@ -9801,7 +9801,7 @@
       "_origin": "ast",
       "id": "tests_test_translation_workspace_test_workspace_logging",
       "community": 37,
-      "community_name": "JsonTempWorkspace",
+      "community_name": "test_translation_workspace.py",
       "norm_label": "test_workspace_logging()"
     },
     {
@@ -9812,7 +9812,7 @@
       "_origin": "ast",
       "id": "tests_test_translation_workspace_test_workspace_manual_labeled_pages",
       "community": 37,
-      "community_name": "JsonTempWorkspace",
+      "community_name": "test_translation_workspace.py",
       "norm_label": "test_workspace_manual_labeled_pages()"
     },
     {
@@ -9823,7 +9823,7 @@
       "_origin": "ast",
       "id": "tests_test_translation_workspace_test_workspace_status_contract",
       "community": 37,
-      "community_name": "JsonTempWorkspace",
+      "community_name": "test_translation_workspace.py",
       "norm_label": "test_workspace_status_contract()"
     },
     {
@@ -9834,7 +9834,7 @@
       "_origin": "ast",
       "id": "tests_test_translation_workspace_test_workspace_corrupt_json_recovery",
       "community": 37,
-      "community_name": "JsonTempWorkspace",
+      "community_name": "test_translation_workspace.py",
       "norm_label": "test_workspace_corrupt_json_recovery()"
     },
     {
@@ -9845,7 +9845,7 @@
       "_origin": "ast",
       "id": "tests_test_translation_workspace_test_workspace_language_file_resolution",
       "community": 37,
-      "community_name": "JsonTempWorkspace",
+      "community_name": "test_translation_workspace.py",
       "norm_label": "test_workspace_language_file_resolution()"
     },
     {
@@ -9856,7 +9856,7 @@
       "_origin": "ast",
       "id": "tests_test_translation_workspace_test_workspace_clear_cache_scoped_to_temp",
       "community": 37,
-      "community_name": "JsonTempWorkspace",
+      "community_name": "test_translation_workspace.py",
       "norm_label": "test_workspace_clear_cache_scoped_to_temp()"
     },
     {
@@ -9866,8 +9866,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "tests_test_trash_service",
-      "community": 51,
-      "community_name": "Protocol",
+      "community": 20,
+      "community_name": "LibraryViewModel",
       "norm_label": "test_trash_service.py"
     },
     {
@@ -9877,8 +9877,8 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "tests_test_trash_service_test_send_folder_to_trash_success",
-      "community": 51,
-      "community_name": "Protocol",
+      "community": 20,
+      "community_name": "LibraryViewModel",
       "norm_label": "test_send_folder_to_trash_success()"
     },
     {
@@ -9888,8 +9888,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "tests_test_trash_service_py_path",
-      "community": 51,
-      "community_name": "Protocol",
+      "community": 20,
+      "community_name": "LibraryViewModel",
       "norm_label": "path"
     },
     {
@@ -9899,8 +9899,8 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "tests_test_trash_service_test_send_folder_to_trash_non_existent",
-      "community": 51,
-      "community_name": "Protocol",
+      "community": 20,
+      "community_name": "LibraryViewModel",
       "norm_label": "test_send_folder_to_trash_non_existent()"
     },
     {
@@ -9911,7 +9911,7 @@
       "_origin": "ast",
       "id": "tests_test_ui",
       "community": 33,
-      "community_name": "2. Current State \u2014 Evidence",
+      "community_name": "FolderItem",
       "norm_label": "test_ui.py"
     },
     {
@@ -9922,7 +9922,7 @@
       "_origin": "ast",
       "id": "tests_test_ui_test_folder_list_widget",
       "community": 33,
-      "community_name": "2. Current State \u2014 Evidence",
+      "community_name": "FolderItem",
       "norm_label": "test_folder_list_widget()"
     },
     {
@@ -9933,7 +9933,7 @@
       "_origin": "ast",
       "id": "tests_test_ui_py_path",
       "community": 33,
-      "community_name": "2. Current State \u2014 Evidence",
+      "community_name": "FolderItem",
       "norm_label": "path"
     },
     {
@@ -9944,7 +9944,7 @@
       "_origin": "ast",
       "id": "tests_test_ui_test_folder_list_auto_selection_on_delete",
       "community": 33,
-      "community_name": "2. Current State \u2014 Evidence",
+      "community_name": "FolderItem",
       "norm_label": "test_folder_list_auto_selection_on_delete()"
     },
     {
@@ -9955,7 +9955,7 @@
       "_origin": "ast",
       "id": "tests_test_ui_test_folder_list_batch_rename",
       "community": 33,
-      "community_name": "2. Current State \u2014 Evidence",
+      "community_name": "FolderItem",
       "norm_label": "test_folder_list_batch_rename()"
     },
     {
@@ -9966,7 +9966,7 @@
       "_origin": "ast",
       "id": "tests_test_ui_test_folder_list_batch_selection_and_deletion",
       "community": 33,
-      "community_name": "2. Current State \u2014 Evidence",
+      "community_name": "FolderItem",
       "norm_label": "test_folder_list_batch_selection_and_deletion()"
     },
     {
@@ -9977,7 +9977,7 @@
       "_origin": "ast",
       "id": "tests_test_ui_test_preview_pane_widget",
       "community": 33,
-      "community_name": "2. Current State \u2014 Evidence",
+      "community_name": "FolderItem",
       "norm_label": "test_preview_pane_widget()"
     },
     {
@@ -9988,7 +9988,7 @@
       "_origin": "ast",
       "id": "tests_test_ui_test_thumbnail_strip_horizontal_scroll",
       "community": 33,
-      "community_name": "2. Current State \u2014 Evidence",
+      "community_name": "FolderItem",
       "norm_label": "test_thumbnail_strip_horizontal_scroll()"
     },
     {
@@ -9999,7 +9999,7 @@
       "_origin": "ast",
       "id": "tests_test_ui_test_continuous_cross_folder_navigation",
       "community": 33,
-      "community_name": "2. Current State \u2014 Evidence",
+      "community_name": "FolderItem",
       "norm_label": "test_continuous_cross_folder_navigation()"
     },
     {
@@ -10010,7 +10010,7 @@
       "_origin": "ast",
       "id": "tests_test_ui_test_main_window_rename",
       "community": 33,
-      "community_name": "2. Current State \u2014 Evidence",
+      "community_name": "FolderItem",
       "norm_label": "test_main_window_rename()"
     },
     {
@@ -10021,7 +10021,7 @@
       "_origin": "ast",
       "id": "tests_test_ui_test_rename_dialog_widget",
       "community": 16,
-      "community_name": "5. Phases",
+      "community_name": "RenameDialog",
       "norm_label": "test_rename_dialog_widget()"
     },
     {
@@ -10032,7 +10032,7 @@
       "_origin": "ast",
       "id": "tests_test_ui_test_batch_rename_dialog_widget",
       "community": 33,
-      "community_name": "2. Current State \u2014 Evidence",
+      "community_name": "FolderItem",
       "norm_label": "test_batch_rename_dialog_widget()"
     },
     {
@@ -10043,7 +10043,7 @@
       "_origin": "ast",
       "id": "tests_test_ui_test_main_window_batch_rename",
       "community": 33,
-      "community_name": "2. Current State \u2014 Evidence",
+      "community_name": "FolderItem",
       "norm_label": "test_main_window_batch_rename()"
     },
     {
@@ -10054,7 +10054,7 @@
       "_origin": "ast",
       "id": "tests_test_ui_test_double_click_rename_trigger",
       "community": 33,
-      "community_name": "2. Current State \u2014 Evidence",
+      "community_name": "FolderItem",
       "norm_label": "test_double_click_rename_trigger()"
     },
     {
@@ -10065,7 +10065,7 @@
       "_origin": "ast",
       "id": "tests_test_ui_test_persistent_folder_restore",
       "community": 33,
-      "community_name": "2. Current State \u2014 Evidence",
+      "community_name": "FolderItem",
       "norm_label": "test_persistent_folder_restore()"
     },
     {
@@ -10076,7 +10076,7 @@
       "_origin": "ast",
       "id": "tests_test_ui_test_event_filter_arrow_navigation_in_fullscreen",
       "community": 33,
-      "community_name": "2. Current State \u2014 Evidence",
+      "community_name": "FolderItem",
       "norm_label": "test_event_filter_arrow_navigation_in_fullscreen()"
     },
     {
@@ -10087,7 +10087,7 @@
       "_origin": "ast",
       "id": "tests_test_ui_test_scroll_position_resets_on_new_image",
       "community": 33,
-      "community_name": "2. Current State \u2014 Evidence",
+      "community_name": "FolderItem",
       "norm_label": "test_scroll_position_resets_on_new_image()"
     },
     {
@@ -10098,7 +10098,7 @@
       "_origin": "ast",
       "id": "tests_test_ui_test_page_up_page_down_shortcuts",
       "community": 33,
-      "community_name": "2. Current State \u2014 Evidence",
+      "community_name": "FolderItem",
       "norm_label": "test_page_up_page_down_shortcuts()"
     },
     {
@@ -10109,7 +10109,7 @@
       "_origin": "ast",
       "id": "tests_test_ui_test_fullscreen_exit_preserves_folder_scroll_and_selection",
       "community": 33,
-      "community_name": "2. Current State \u2014 Evidence",
+      "community_name": "FolderItem",
       "norm_label": "test_fullscreen_exit_preserves_folder_scroll_and_selection()"
     },
     {
@@ -10142,7 +10142,7 @@
       "_origin": "ast",
       "id": "tests_test_ui_test_sidebar_scroll_and_status_indicators",
       "community": 33,
-      "community_name": "2. Current State \u2014 Evidence",
+      "community_name": "FolderItem",
       "norm_label": "test_sidebar_scroll_and_status_indicators()"
     },
     {
@@ -10153,7 +10153,7 @@
       "_origin": "ast",
       "id": "tests_test_ui_test_main_window_manual_box_and_queue_button",
       "community": 33,
-      "community_name": "2. Current State \u2014 Evidence",
+      "community_name": "FolderItem",
       "norm_label": "test_main_window_manual_box_and_queue_button()"
     },
     {
@@ -10164,7 +10164,7 @@
       "_origin": "ast",
       "id": "tests_test_ui_test_manual_box_creation_prevents_cache_collision",
       "community": 33,
-      "community_name": "2. Current State \u2014 Evidence",
+      "community_name": "FolderItem",
       "norm_label": "test_manual_box_creation_prevents_cache_collision()"
     },
     {
@@ -10186,7 +10186,7 @@
       "_origin": "ast",
       "id": "tests_test_ui_translation_workflow",
       "community": 23,
-      "community_name": "Codebase Hygiene, Tooling & Runtime Standards",
+      "community_name": "test_ui_translation_workflow.py",
       "norm_label": "test_ui_translation_workflow.py"
     },
     {
@@ -10197,7 +10197,7 @@
       "_origin": "ast",
       "id": "tests_test_ui_translation_workflow_create_test_folder",
       "community": 23,
-      "community_name": "Codebase Hygiene, Tooling & Runtime Standards",
+      "community_name": "test_ui_translation_workflow.py",
       "norm_label": "_create_test_folder()"
     },
     {
@@ -10208,7 +10208,7 @@
       "_origin": "ast",
       "id": "tests_test_ui_translation_workflow_py_path",
       "community": 23,
-      "community_name": "Codebase Hygiene, Tooling & Runtime Standards",
+      "community_name": "test_ui_translation_workflow.py",
       "norm_label": "path"
     },
     {
@@ -10219,7 +10219,7 @@
       "_origin": "ast",
       "id": "tests_test_ui_translation_workflow_test_main_window_has_translate_controls",
       "community": 23,
-      "community_name": "Codebase Hygiene, Tooling & Runtime Standards",
+      "community_name": "test_ui_translation_workflow.py",
       "norm_label": "test_main_window_has_translate_controls()"
     },
     {
@@ -10230,7 +10230,7 @@
       "_origin": "ast",
       "id": "tests_test_ui_translation_workflow_test_auto_load_translation_on_image_selected",
       "community": 23,
-      "community_name": "Codebase Hygiene, Tooling & Runtime Standards",
+      "community_name": "test_ui_translation_workflow.py",
       "norm_label": "test_auto_load_translation_on_image_selected()"
     },
     {
@@ -10241,7 +10241,7 @@
       "_origin": "ast",
       "id": "tests_test_ui_translation_workflow_test_toggle_overlay_shortcut",
       "community": 23,
-      "community_name": "Codebase Hygiene, Tooling & Runtime Standards",
+      "community_name": "test_ui_translation_workflow.py",
       "norm_label": "test_toggle_overlay_shortcut()"
     },
     {
@@ -10252,7 +10252,7 @@
       "_origin": "ast",
       "id": "tests_test_ui_translation_workflow_test_batch_queue_multiple_folders",
       "community": 23,
-      "community_name": "Codebase Hygiene, Tooling & Runtime Standards",
+      "community_name": "test_ui_translation_workflow.py",
       "norm_label": "test_batch_queue_multiple_folders()"
     },
     {
@@ -10263,7 +10263,7 @@
       "_origin": "ast",
       "id": "tests_test_ui_translation_workflow_test_folder_context_menu_actions",
       "community": 23,
-      "community_name": "Codebase Hygiene, Tooling & Runtime Standards",
+      "community_name": "test_ui_translation_workflow.py",
       "norm_label": "test_folder_context_menu_actions()"
     },
     {
@@ -10273,8 +10273,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "tests_test_viewmodels",
-      "community": 30,
-      "community_name": "UI & PyQt6 Desktop Application Standards",
+      "community": 21,
+      "community_name": "TranslationViewModel",
       "norm_label": "test_viewmodels.py"
     },
     {
@@ -10284,8 +10284,8 @@
       "source_location": "L12",
       "_origin": "ast",
       "id": "tests_test_viewmodels_test_settings_viewmodel",
-      "community": 30,
-      "community_name": "UI & PyQt6 Desktop Application Standards",
+      "community": 21,
+      "community_name": "TranslationViewModel",
       "norm_label": "test_settings_viewmodel()"
     },
     {
@@ -10295,8 +10295,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "tests_test_viewmodels_py_path",
-      "community": 30,
-      "community_name": "UI & PyQt6 Desktop Application Standards",
+      "community": 21,
+      "community_name": "TranslationViewModel",
       "norm_label": "path"
     },
     {
@@ -10306,8 +10306,8 @@
       "source_location": "L40",
       "_origin": "ast",
       "id": "tests_test_viewmodels_test_library_viewmodel",
-      "community": 30,
-      "community_name": "UI & PyQt6 Desktop Application Standards",
+      "community": 21,
+      "community_name": "TranslationViewModel",
       "norm_label": "test_library_viewmodel()"
     },
     {
@@ -10317,8 +10317,8 @@
       "source_location": "L60",
       "_origin": "ast",
       "id": "tests_test_viewmodels_test_translation_viewmodel",
-      "community": 30,
-      "community_name": "UI & PyQt6 Desktop Application Standards",
+      "community": 21,
+      "community_name": "TranslationViewModel",
       "norm_label": "test_translation_viewmodel()"
     },
     {
@@ -10329,7 +10329,7 @@
       "_origin": "ast",
       "id": "agents_plans_agent_compliance_and_rule_enforcement",
       "community": 36,
-      "community_name": "Workflow: Two-Phase Pre-Commit & Release Lifecycle",
+      "community_name": "Plan: Agent Compliance, Rule Pre-Reading & Anti-Disobedience Protocol",
       "norm_label": "agent_compliance_and_rule_enforcement.md"
     },
     {
@@ -10340,7 +10340,7 @@
       "_origin": "ast",
       "id": "agents_plans_agent_compliance_and_rule_enforcement_plan_agent_compliance_rule_pre_reading_anti_disobedience_protocol",
       "community": 36,
-      "community_name": "Workflow: Two-Phase Pre-Commit & Release Lifecycle",
+      "community_name": "Plan: Agent Compliance, Rule Pre-Reading & Anti-Disobedience Protocol",
       "norm_label": "plan: agent compliance, rule pre-reading & anti-disobedience protocol"
     },
     {
@@ -10351,7 +10351,7 @@
       "_origin": "ast",
       "id": "agents_plans_agent_compliance_and_rule_enforcement_1_executive_summary_root_cause_diagnosis",
       "community": 36,
-      "community_name": "Workflow: Two-Phase Pre-Commit & Release Lifecycle",
+      "community_name": "Plan: Agent Compliance, Rule Pre-Reading & Anti-Disobedience Protocol",
       "norm_label": "1. executive summary & root cause diagnosis"
     },
     {
@@ -10362,7 +10362,7 @@
       "_origin": "ast",
       "id": "agents_plans_agent_compliance_and_rule_enforcement_root_cause_analysis_why_the_failure_happens",
       "community": 36,
-      "community_name": "Workflow: Two-Phase Pre-Commit & Release Lifecycle",
+      "community_name": "Plan: Agent Compliance, Rule Pre-Reading & Anti-Disobedience Protocol",
       "norm_label": "root cause analysis (why the failure happens)"
     },
     {
@@ -10373,7 +10373,7 @@
       "_origin": "ast",
       "id": "agents_plans_agent_compliance_and_rule_enforcement_2_the_multi_layer_enforcement_architecture",
       "community": 36,
-      "community_name": "Workflow: Two-Phase Pre-Commit & Release Lifecycle",
+      "community_name": "Plan: Agent Compliance, Rule Pre-Reading & Anti-Disobedience Protocol",
       "norm_label": "2. the multi-layer enforcement architecture"
     },
     {
@@ -10384,7 +10384,7 @@
       "_origin": "ast",
       "id": "agents_plans_agent_compliance_and_rule_enforcement_3_layer_1_the_cognitive_turn_start_gate",
       "community": 36,
-      "community_name": "Workflow: Two-Phase Pre-Commit & Release Lifecycle",
+      "community_name": "Plan: Agent Compliance, Rule Pre-Reading & Anti-Disobedience Protocol",
       "norm_label": "3. layer 1 \u2014 the cognitive turn-start gate"
     },
     {
@@ -10395,7 +10395,7 @@
       "_origin": "ast",
       "id": "agents_plans_agent_compliance_and_rule_enforcement_3_1_pre_flight_check_protocol",
       "community": 36,
-      "community_name": "Workflow: Two-Phase Pre-Commit & Release Lifecycle",
+      "community_name": "Plan: Agent Compliance, Rule Pre-Reading & Anti-Disobedience Protocol",
       "norm_label": "3.1 pre-flight check protocol"
     },
     {
@@ -10406,7 +10406,7 @@
       "_origin": "ast",
       "id": "agents_plans_agent_compliance_and_rule_enforcement_4_layer_2_single_turn_permission_expiry_compaction_hygiene",
       "community": 36,
-      "community_name": "Workflow: Two-Phase Pre-Commit & Release Lifecycle",
+      "community_name": "Plan: Agent Compliance, Rule Pre-Reading & Anti-Disobedience Protocol",
       "norm_label": "4. layer 2 \u2014 single-turn permission expiry & compaction hygiene"
     },
     {
@@ -10417,7 +10417,7 @@
       "_origin": "ast",
       "id": "agents_plans_agent_compliance_and_rule_enforcement_4_1_single_turn_invariant",
       "community": 36,
-      "community_name": "Workflow: Two-Phase Pre-Commit & Release Lifecycle",
+      "community_name": "Plan: Agent Compliance, Rule Pre-Reading & Anti-Disobedience Protocol",
       "norm_label": "4.1 single-turn invariant"
     },
     {
@@ -10428,7 +10428,7 @@
       "_origin": "ast",
       "id": "agents_plans_agent_compliance_and_rule_enforcement_4_2_compaction_summary_invariant",
       "community": 36,
-      "community_name": "Workflow: Two-Phase Pre-Commit & Release Lifecycle",
+      "community_name": "Plan: Agent Compliance, Rule Pre-Reading & Anti-Disobedience Protocol",
       "norm_label": "4.2 compaction summary invariant"
     },
     {
@@ -10439,7 +10439,7 @@
       "_origin": "ast",
       "id": "agents_plans_agent_compliance_and_rule_enforcement_5_layer_3_mechanical_software_guards",
       "community": 36,
-      "community_name": "Workflow: Two-Phase Pre-Commit & Release Lifecycle",
+      "community_name": "Plan: Agent Compliance, Rule Pre-Reading & Anti-Disobedience Protocol",
       "norm_label": "5. layer 3 \u2014 mechanical software guards"
     },
     {
@@ -10450,7 +10450,7 @@
       "_origin": "ast",
       "id": "agents_plans_agent_compliance_and_rule_enforcement_5_1_guard_in_build_py",
       "community": 36,
-      "community_name": "Workflow: Two-Phase Pre-Commit & Release Lifecycle",
+      "community_name": "Plan: Agent Compliance, Rule Pre-Reading & Anti-Disobedience Protocol",
       "norm_label": "5.1 guard in `build.py`"
     },
     {
@@ -10461,7 +10461,7 @@
       "_origin": "ast",
       "id": "agents_plans_agent_compliance_and_rule_enforcement_5_2_pre_action_rule_reader_script",
       "community": 36,
-      "community_name": "Workflow: Two-Phase Pre-Commit & Release Lifecycle",
+      "community_name": "Plan: Agent Compliance, Rule Pre-Reading & Anti-Disobedience Protocol",
       "norm_label": "5.2 pre-action rule reader script"
     },
     {
@@ -10472,7 +10472,7 @@
       "_origin": "ast",
       "id": "agents_plans_agent_compliance_and_rule_enforcement_6_layer_4_restricted_action_registry",
       "community": 36,
-      "community_name": "Workflow: Two-Phase Pre-Commit & Release Lifecycle",
+      "community_name": "Plan: Agent Compliance, Rule Pre-Reading & Anti-Disobedience Protocol",
       "norm_label": "6. layer 4 \u2014 restricted action registry"
     },
     {
@@ -10483,7 +10483,7 @@
       "_origin": "ast",
       "id": "agents_plans_agent_compliance_and_rule_enforcement_7_phased_implementation_roadmap",
       "community": 36,
-      "community_name": "Workflow: Two-Phase Pre-Commit & Release Lifecycle",
+      "community_name": "Plan: Agent Compliance, Rule Pre-Reading & Anti-Disobedience Protocol",
       "norm_label": "7. phased implementation roadmap"
     },
     {
@@ -10494,7 +10494,7 @@
       "_origin": "ast",
       "id": "agents_plans_agent_compliance_and_rule_enforcement_phase_1_mechanical_guard_implementation_immediate",
       "community": 36,
-      "community_name": "Workflow: Two-Phase Pre-Commit & Release Lifecycle",
+      "community_name": "Plan: Agent Compliance, Rule Pre-Reading & Anti-Disobedience Protocol",
       "norm_label": "phase 1: mechanical guard implementation (immediate)"
     },
     {
@@ -10505,7 +10505,7 @@
       "_origin": "ast",
       "id": "agents_plans_agent_compliance_and_rule_enforcement_phase_2_rule_document_hardening",
       "community": 36,
-      "community_name": "Workflow: Two-Phase Pre-Commit & Release Lifecycle",
+      "community_name": "Plan: Agent Compliance, Rule Pre-Reading & Anti-Disobedience Protocol",
       "norm_label": "phase 2: rule document hardening"
     },
     {
@@ -10516,7 +10516,7 @@
       "_origin": "ast",
       "id": "agents_plans_agent_compliance_and_rule_enforcement_phase_3_rule_ingestion_verification",
       "community": 36,
-      "community_name": "Workflow: Two-Phase Pre-Commit & Release Lifecycle",
+      "community_name": "Plan: Agent Compliance, Rule Pre-Reading & Anti-Disobedience Protocol",
       "norm_label": "phase 3: rule ingestion & verification"
     },
     {
@@ -10527,7 +10527,7 @@
       "_origin": "ast",
       "id": "agents_plans_agent_compliance_and_rule_enforcement_8_rollback_fail_safe_invariants",
       "community": 36,
-      "community_name": "Workflow: Two-Phase Pre-Commit & Release Lifecycle",
+      "community_name": "Plan: Agent Compliance, Rule Pre-Reading & Anti-Disobedience Protocol",
       "norm_label": "8. rollback & fail-safe invariants"
     },
     {
@@ -10538,7 +10538,7 @@
       "_origin": "ast",
       "id": "agents_plans_agent_compliance_and_rule_enforcement_9_verification_acceptance_criteria",
       "community": 36,
-      "community_name": "Workflow: Two-Phase Pre-Commit & Release Lifecycle",
+      "community_name": "Plan: Agent Compliance, Rule Pre-Reading & Anti-Disobedience Protocol",
       "norm_label": "9. verification & acceptance criteria"
     },
     {
@@ -10549,7 +10549,7 @@
       "_origin": "ast",
       "id": "agents_plans_installer_architecture_and_update_pipeline",
       "community": 49,
-      "community_name": ".render",
+      "community_name": "Implementation Plan: KomaShift Modular Installer & Update Pipeline",
       "norm_label": "installer_architecture_and_update_pipeline.md"
     },
     {
@@ -10560,7 +10560,7 @@
       "_origin": "ast",
       "id": "agents_plans_installer_architecture_and_update_pipeline_implementation_plan_komashift_modular_installer_update_pipeline",
       "community": 49,
-      "community_name": ".render",
+      "community_name": "Implementation Plan: KomaShift Modular Installer & Update Pipeline",
       "norm_label": "implementation plan: komashift modular installer & update pipeline"
     },
     {
@@ -10571,7 +10571,7 @@
       "_origin": "ast",
       "id": "agents_plans_installer_architecture_and_update_pipeline_1_architecture_overview",
       "community": 49,
-      "community_name": ".render",
+      "community_name": "Implementation Plan: KomaShift Modular Installer & Update Pipeline",
       "norm_label": "1. architecture overview"
     },
     {
@@ -10582,7 +10582,7 @@
       "_origin": "ast",
       "id": "agents_plans_installer_architecture_and_update_pipeline_current_state_vs_target_state",
       "community": 49,
-      "community_name": ".render",
+      "community_name": "Implementation Plan: KomaShift Modular Installer & Update Pipeline",
       "norm_label": "current state vs. target state"
     },
     {
@@ -10593,7 +10593,7 @@
       "_origin": "ast",
       "id": "agents_plans_installer_architecture_and_update_pipeline_2_technical_design",
       "community": 49,
-      "community_name": ".render",
+      "community_name": "Implementation Plan: KomaShift Modular Installer & Update Pipeline",
       "norm_label": "2. technical design"
     },
     {
@@ -10604,7 +10604,7 @@
       "_origin": "ast",
       "id": "agents_plans_installer_architecture_and_update_pipeline_a_packaging_build_pipeline_onedir_deadweight_pruning",
       "community": 49,
-      "community_name": ".render",
+      "community_name": "Implementation Plan: KomaShift Modular Installer & Update Pipeline",
       "norm_label": "a. packaging & build pipeline (`--onedir` + deadweight pruning)"
     },
     {
@@ -10615,7 +10615,7 @@
       "_origin": "ast",
       "id": "agents_plans_installer_architecture_and_update_pipeline_b_windows_installer_inno_setup",
       "community": 49,
-      "community_name": ".render",
+      "community_name": "Implementation Plan: KomaShift Modular Installer & Update Pipeline",
       "norm_label": "b. windows installer (inno setup)"
     },
     {
@@ -10626,7 +10626,7 @@
       "_origin": "ast",
       "id": "agents_plans_installer_architecture_and_update_pipeline_c_clean_in_app_update_architecture_github_releases",
       "community": 49,
-      "community_name": ".render",
+      "community_name": "Implementation Plan: KomaShift Modular Installer & Update Pipeline",
       "norm_label": "c. clean in-app update architecture (github releases)"
     },
     {
@@ -10637,7 +10637,7 @@
       "_origin": "ast",
       "id": "agents_plans_installer_architecture_and_update_pipeline_3_step_by_step_task_breakdown",
       "community": 49,
-      "community_name": ".render",
+      "community_name": "Implementation Plan: KomaShift Modular Installer & Update Pipeline",
       "norm_label": "3. step-by-step task breakdown"
     },
     {
@@ -10648,7 +10648,7 @@
       "_origin": "ast",
       "id": "agents_plans_installer_architecture_and_update_pipeline_4_verification_protocol",
       "community": 49,
-      "community_name": ".render",
+      "community_name": "Implementation Plan: KomaShift Modular Installer & Update Pipeline",
       "norm_label": "4. verification protocol"
     },
     {
@@ -10659,7 +10659,7 @@
       "_origin": "ast",
       "id": "agents_plans_manga_ocr_model_download_and_queue_interlock",
       "community": 52,
-      "community_name": "Path",
+      "community_name": "Implementation Plan: Manga OCR Model Download Manager & Queue Interlock",
       "norm_label": "manga_ocr_model_download_and_queue_interlock.md"
     },
     {
@@ -10670,7 +10670,7 @@
       "_origin": "ast",
       "id": "agents_plans_manga_ocr_model_download_and_queue_interlock_implementation_plan_manga_ocr_model_download_manager_queue_interlock",
       "community": 52,
-      "community_name": "Path",
+      "community_name": "Implementation Plan: Manga OCR Model Download Manager & Queue Interlock",
       "norm_label": "implementation plan: manga ocr model download manager & queue interlock"
     },
     {
@@ -10681,7 +10681,7 @@
       "_origin": "ast",
       "id": "agents_plans_manga_ocr_model_download_and_queue_interlock_1_architecture_scope",
       "community": 52,
-      "community_name": "Path",
+      "community_name": "Implementation Plan: Manga OCR Model Download Manager & Queue Interlock",
       "norm_label": "1. architecture & scope"
     },
     {
@@ -10692,7 +10692,7 @@
       "_origin": "ast",
       "id": "agents_plans_manga_ocr_model_download_and_queue_interlock_current_state_vs_target_state",
       "community": 52,
-      "community_name": "Path",
+      "community_name": "Implementation Plan: Manga OCR Model Download Manager & Queue Interlock",
       "norm_label": "current state vs. target state"
     },
     {
@@ -10703,7 +10703,7 @@
       "_origin": "ast",
       "id": "agents_plans_manga_ocr_model_download_and_queue_interlock_2_technical_design",
       "community": 52,
-      "community_name": "Path",
+      "community_name": "Implementation Plan: Manga OCR Model Download Manager & Queue Interlock",
       "norm_label": "2. technical design"
     },
     {
@@ -10714,7 +10714,7 @@
       "_origin": "ast",
       "id": "agents_plans_manga_ocr_model_download_and_queue_interlock_a_ports_services_infra_layering_hexagonal_architecture",
       "community": 52,
-      "community_name": "Path",
+      "community_name": "Implementation Plan: Manga OCR Model Download Manager & Queue Interlock",
       "norm_label": "a. ports, services & infra layering (hexagonal architecture)"
     },
     {
@@ -10725,7 +10725,7 @@
       "_origin": "ast",
       "id": "agents_plans_manga_ocr_model_download_and_queue_interlock_3_step_by_step_task_breakdown",
       "community": 52,
-      "community_name": "Path",
+      "community_name": "Implementation Plan: Manga OCR Model Download Manager & Queue Interlock",
       "norm_label": "3. step-by-step task breakdown"
     },
     {
@@ -10736,7 +10736,7 @@
       "_origin": "ast",
       "id": "agents_plans_manga_ocr_model_download_and_queue_interlock_4_verification_protocol",
       "community": 52,
-      "community_name": "Path",
+      "community_name": "Implementation Plan: Manga OCR Model Download Manager & Queue Interlock",
       "norm_label": "4. verification protocol"
     },
     {
@@ -10747,7 +10747,7 @@
       "_origin": "ast",
       "id": "agents_plans_ports_and_adapters_migration",
       "community": 39,
-      "community_name": "test_translation_overlay.py",
+      "community_name": "Plan: Ports & Adapters Migration + Test Hardening",
       "norm_label": "ports-and-adapters-migration.md"
     },
     {
@@ -10758,7 +10758,7 @@
       "_origin": "ast",
       "id": "agents_plans_ports_and_adapters_migration_plan_ports_adapters_migration_test_hardening",
       "community": 39,
-      "community_name": "test_translation_overlay.py",
+      "community_name": "Plan: Ports & Adapters Migration + Test Hardening",
       "norm_label": "plan: ports & adapters migration + test hardening"
     },
     {
@@ -10879,7 +10879,7 @@
       "_origin": "ast",
       "id": "agents_plans_ports_and_adapters_migration_3_review_correction_the_ports_ledger",
       "community": 39,
-      "community_name": "test_translation_overlay.py",
+      "community_name": "Plan: Ports & Adapters Migration + Test Hardening",
       "norm_label": "3. review correction \u2014 the ports ledger"
     },
     {
@@ -10890,7 +10890,7 @@
       "_origin": "ast",
       "id": "agents_plans_ports_and_adapters_migration_consequence_of_dropping_the_two",
       "community": 39,
-      "community_name": "test_translation_overlay.py",
+      "community_name": "Plan: Ports & Adapters Migration + Test Hardening",
       "norm_label": "consequence of dropping the two"
     },
     {
@@ -10901,7 +10901,7 @@
       "_origin": "ast",
       "id": "agents_plans_ports_and_adapters_migration_three_seams_deliberately_not_created",
       "community": 39,
-      "community_name": "test_translation_overlay.py",
+      "community_name": "Plan: Ports & Adapters Migration + Test Hardening",
       "norm_label": "three seams deliberately not created"
     },
     {
@@ -10945,7 +10945,7 @@
       "_origin": "ast",
       "id": "agents_plans_ports_and_adapters_migration_5_phases",
       "community": 50,
-      "community_name": "._show_folder_context_menu",
+      "community_name": "5. Phases",
       "norm_label": "5. phases"
     },
     {
@@ -10956,7 +10956,7 @@
       "_origin": "ast",
       "id": "agents_plans_ports_and_adapters_migration_phase_0_test_foundations_and_latent_crash",
       "community": 50,
-      "community_name": "._show_folder_context_menu",
+      "community_name": "5. Phases",
       "norm_label": "phase 0 \u2014 test foundations and latent crash"
     },
     {
@@ -10967,7 +10967,7 @@
       "_origin": "ast",
       "id": "agents_plans_ports_and_adapters_migration_phase_1_skeleton_enforcement_turn_the_gate_on_before_refactoring",
       "community": 50,
-      "community_name": "._show_folder_context_menu",
+      "community_name": "5. Phases",
       "norm_label": "phase 1 \u2014 skeleton + enforcement (turn the gate on before refactoring)"
     },
     {
@@ -10978,7 +10978,7 @@
       "_origin": "ast",
       "id": "agents_plans_ports_and_adapters_migration_phase_2_pagerepository_highest_leverage",
       "community": 50,
-      "community_name": "._show_folder_context_menu",
+      "community_name": "5. Phases",
       "norm_label": "phase 2 \u2014 `pagerepository` (highest leverage)"
     },
     {
@@ -10989,7 +10989,7 @@
       "_origin": "ast",
       "id": "agents_plans_ports_and_adapters_migration_phase_3_logsink",
       "community": 50,
-      "community_name": "._show_folder_context_menu",
+      "community_name": "5. Phases",
       "norm_label": "phase 3 \u2014 `logsink`"
     },
     {
@@ -11000,7 +11000,7 @@
       "_origin": "ast",
       "id": "agents_plans_ports_and_adapters_migration_phase_4_translationprovider_split",
       "community": 50,
-      "community_name": "._show_folder_context_menu",
+      "community_name": "5. Phases",
       "norm_label": "phase 4 \u2014 `translationprovider` split"
     },
     {
@@ -11011,7 +11011,7 @@
       "_origin": "ast",
       "id": "agents_plans_ports_and_adapters_migration_phase_5_comictextrenderer_kills_leak_a",
       "community": 50,
-      "community_name": "._show_folder_context_menu",
+      "community_name": "5. Phases",
       "norm_label": "phase 5 \u2014 `comictextrenderer` (kills leak a)"
     },
     {
@@ -11022,7 +11022,7 @@
       "_origin": "ast",
       "id": "agents_plans_ports_and_adapters_migration_phase_6_worker_dependency_injection_kills_leak_b_s_first_four",
       "community": 50,
-      "community_name": "._show_folder_context_menu",
+      "community_name": "5. Phases",
       "norm_label": "phase 6 \u2014 worker dependency injection (kills leak b\u2019s first four)"
     },
     {
@@ -11033,7 +11033,7 @@
       "_origin": "ast",
       "id": "agents_plans_ports_and_adapters_migration_phase_7_viewmodels_mainwindow_drain",
       "community": 50,
-      "community_name": "._show_folder_context_menu",
+      "community_name": "5. Phases",
       "norm_label": "phase 7 \u2014 viewmodels + `mainwindow` drain"
     },
     {
@@ -11044,7 +11044,7 @@
       "_origin": "ast",
       "id": "agents_plans_ports_and_adapters_migration_phase_8_preview_domain_documentation",
       "community": 50,
-      "community_name": "._show_folder_context_menu",
+      "community_name": "5. Phases",
       "norm_label": "phase 8 \u2014 preview domain + documentation"
     },
     {
@@ -11231,7 +11231,7 @@
       "_origin": "ast",
       "id": "agents_plans_ports_and_adapters_migration_9_dependencies_blockers",
       "community": 39,
-      "community_name": "test_translation_overlay.py",
+      "community_name": "Plan: Ports & Adapters Migration + Test Hardening",
       "norm_label": "9. dependencies & blockers"
     },
     {
@@ -11242,7 +11242,7 @@
       "_origin": "ast",
       "id": "agents_plans_ports_and_adapters_migration_10_verification_protocol",
       "community": 39,
-      "community_name": "test_translation_overlay.py",
+      "community_name": "Plan: Ports & Adapters Migration + Test Hardening",
       "norm_label": "10. verification protocol"
     },
     {
@@ -11253,7 +11253,7 @@
       "_origin": "ast",
       "id": "agents_plans_ports_and_adapters_migration_11_rollback",
       "community": 39,
-      "community_name": "test_translation_overlay.py",
+      "community_name": "Plan: Ports & Adapters Migration + Test Hardening",
       "norm_label": "11. rollback"
     },
     {
@@ -11264,7 +11264,7 @@
       "_origin": "ast",
       "id": "agents_plans_ports_and_adapters_migration_12_open_questions_for_round_3",
       "community": 39,
-      "community_name": "test_translation_overlay.py",
+      "community_name": "Plan: Ports & Adapters Migration + Test Hardening",
       "norm_label": "12. open questions for round 3"
     },
     {
@@ -11275,7 +11275,7 @@
       "_origin": "ast",
       "id": "agents_plans_ports_and_adapters_migration_appendix_a_skill_review_trail",
       "community": 39,
-      "community_name": "test_translation_overlay.py",
+      "community_name": "Plan: Ports & Adapters Migration + Test Hardening",
       "norm_label": "appendix a \u2014 skill-review trail"
     },
     {
@@ -11286,7 +11286,7 @@
       "_origin": "ast",
       "id": "agents_plans_ports_and_adapters_migration_appendix_b_vocabulary_used_in_this_plan",
       "community": 39,
-      "community_name": "test_translation_overlay.py",
+      "community_name": "Plan: Ports & Adapters Migration + Test Hardening",
       "norm_label": "appendix b \u2014 vocabulary used in this plan"
     },
     {
@@ -11297,7 +11297,7 @@
       "_origin": "ast",
       "id": "agents_plans_ports_and_adapters_migration_appendix_c_layering_nuance_to_resolve_in_phase_1",
       "community": 39,
-      "community_name": "test_translation_overlay.py",
+      "community_name": "Plan: Ports & Adapters Migration + Test Hardening",
       "norm_label": "appendix c \u2014 layering nuance to resolve in phase 1"
     },
     {
@@ -11539,7 +11539,7 @@
       "_origin": "ast",
       "id": "agents_plans_ports_and_adapters_migration_appendix_g_plan_status_after_this_revision",
       "community": 39,
-      "community_name": "test_translation_overlay.py",
+      "community_name": "Plan: Ports & Adapters Migration + Test Hardening",
       "norm_label": "appendix g \u2014 plan status after this revision"
     },
     {
@@ -12067,7 +12067,7 @@
       "_origin": "ast",
       "id": "agents_workflows_independent_audit",
       "community": 53,
-      "community_name": "QObject",
+      "community_name": "Workflow: Independent Adversarial Quality Audit",
       "norm_label": "independent_audit.md"
     },
     {
@@ -12078,7 +12078,7 @@
       "_origin": "ast",
       "id": "agents_workflows_independent_audit_workflow_independent_adversarial_quality_audit",
       "community": 53,
-      "community_name": "QObject",
+      "community_name": "Workflow: Independent Adversarial Quality Audit",
       "norm_label": "workflow: independent adversarial quality audit"
     },
     {
@@ -12089,7 +12089,7 @@
       "_origin": "ast",
       "id": "agents_workflows_independent_audit_step_1_subagent_dispatch",
       "community": 53,
-      "community_name": "QObject",
+      "community_name": "Workflow: Independent Adversarial Quality Audit",
       "norm_label": "step 1: subagent dispatch"
     },
     {
@@ -12100,7 +12100,7 @@
       "_origin": "ast",
       "id": "agents_workflows_independent_audit_step_2_pyqt6_thread_safety_ui_responsiveness_audit",
       "community": 53,
-      "community_name": "QObject",
+      "community_name": "Workflow: Independent Adversarial Quality Audit",
       "norm_label": "step 2: pyqt6 thread safety & ui responsiveness audit"
     },
     {
@@ -12111,7 +12111,7 @@
       "_origin": "ast",
       "id": "agents_workflows_independent_audit_step_3_ocr_translation_workspace_integrity_audit",
       "community": 53,
-      "community_name": "QObject",
+      "community_name": "Workflow: Independent Adversarial Quality Audit",
       "norm_label": "step 3: ocr & translation workspace integrity audit"
     },
     {
@@ -12122,7 +12122,7 @@
       "_origin": "ast",
       "id": "agents_workflows_independent_audit_step_4_git_repository_binary_hygiene_audit",
       "community": 53,
-      "community_name": "QObject",
+      "community_name": "Workflow: Independent Adversarial Quality Audit",
       "norm_label": "step 4: git repository & binary hygiene audit"
     },
     {
@@ -12133,7 +12133,7 @@
       "_origin": "ast",
       "id": "agents_workflows_independent_audit_step_5_test_suite_verification",
       "community": 53,
-      "community_name": "QObject",
+      "community_name": "Workflow: Independent Adversarial Quality Audit",
       "norm_label": "step 5: test suite verification"
     },
     {
@@ -12144,7 +12144,7 @@
       "_origin": "ast",
       "id": "agents_workflows_independent_audit_step_6_report_disposition",
       "community": 53,
-      "community_name": "QObject",
+      "community_name": "Workflow: Independent Adversarial Quality Audit",
       "norm_label": "step 6: report disposition"
     },
     {
@@ -12155,7 +12155,7 @@
       "_origin": "ast",
       "id": "agents_workflows_manga_translation_pipeline",
       "community": 40,
-      "community_name": "ports/__init__.py",
+      "community_name": "2. Step-by-Step Implementation & Verification",
       "norm_label": "manga_translation_pipeline.md"
     },
     {
@@ -12166,7 +12166,7 @@
       "_origin": "ast",
       "id": "agents_workflows_manga_translation_pipeline_workflow_manga_ocr_translation_pipeline",
       "community": 40,
-      "community_name": "ports/__init__.py",
+      "community_name": "2. Step-by-Step Implementation & Verification",
       "norm_label": "workflow: manga ocr & translation pipeline"
     },
     {
@@ -12177,7 +12177,7 @@
       "_origin": "ast",
       "id": "agents_workflows_manga_translation_pipeline_1_pipeline_architecture_overview",
       "community": 40,
-      "community_name": "ports/__init__.py",
+      "community_name": "2. Step-by-Step Implementation & Verification",
       "norm_label": "1. pipeline architecture overview"
     },
     {
@@ -12188,7 +12188,7 @@
       "_origin": "ast",
       "id": "agents_workflows_manga_translation_pipeline_2_step_by_step_implementation_verification",
       "community": 40,
-      "community_name": "ports/__init__.py",
+      "community_name": "2. Step-by-Step Implementation & Verification",
       "norm_label": "2. step-by-step implementation & verification"
     },
     {
@@ -12199,7 +12199,7 @@
       "_origin": "ast",
       "id": "agents_workflows_manga_translation_pipeline_step_1_bubble_detection_verification",
       "community": 40,
-      "community_name": "ports/__init__.py",
+      "community_name": "2. Step-by-Step Implementation & Verification",
       "norm_label": "step 1: bubble detection verification"
     },
     {
@@ -12210,7 +12210,7 @@
       "_origin": "ast",
       "id": "agents_workflows_manga_translation_pipeline_step_2_japanese_neural_ocr_verification",
       "community": 40,
-      "community_name": "ports/__init__.py",
+      "community_name": "2. Step-by-Step Implementation & Verification",
       "norm_label": "step 2: japanese neural ocr verification"
     },
     {
@@ -12221,7 +12221,7 @@
       "_origin": "ast",
       "id": "agents_workflows_manga_translation_pipeline_step_3_batch_translation_verification",
       "community": 40,
-      "community_name": "ports/__init__.py",
+      "community_name": "2. Step-by-Step Implementation & Verification",
       "norm_label": "step 3: batch translation verification"
     },
     {
@@ -12232,7 +12232,7 @@
       "_origin": "ast",
       "id": "agents_workflows_manga_translation_pipeline_step_4_typography_fit_centroid_invariant",
       "community": 40,
-      "community_name": "ports/__init__.py",
+      "community_name": "2. Step-by-Step Implementation & Verification",
       "norm_label": "step 4: typography fit & centroid invariant"
     },
     {
@@ -12243,7 +12243,7 @@
       "_origin": "ast",
       "id": "agents_workflows_manga_translation_pipeline_step_5_atomic_workspace_storage_verification",
       "community": 40,
-      "community_name": "ports/__init__.py",
+      "community_name": "2. Step-by-Step Implementation & Verification",
       "norm_label": "step 5: atomic workspace storage verification"
     },
     {
@@ -12254,7 +12254,7 @@
       "_origin": "ast",
       "id": "agents_workflows_manga_translation_pipeline_step_6_interactive_overlay_testing",
       "community": 40,
-      "community_name": "ports/__init__.py",
+      "community_name": "2. Step-by-Step Implementation & Verification",
       "norm_label": "step 6: interactive overlay testing"
     },
     {
@@ -12265,7 +12265,7 @@
       "_origin": "ast",
       "id": "agents_workflows_manga_translation_pipeline_step_7_mandatory_proof_of_translation_changes",
       "community": 40,
-      "community_name": "ports/__init__.py",
+      "community_name": "2. Step-by-Step Implementation & Verification",
       "norm_label": "step 7: mandatory proof of translation changes"
     },
     {
@@ -12386,117 +12386,117 @@
       "_origin": "ast",
       "id": "readme",
       "community": 43,
-      "community_name": "Windows Folder Image Previewer",
+      "community_name": "KomaShift",
       "norm_label": "readme.md"
     },
     {
       "label": "KomaShift",
       "file_type": "document",
       "source_file": "README.md",
-      "source_location": "L1",
+      "source_location": "L5",
       "_origin": "ast",
       "id": "readme_komashift",
       "community": 43,
-      "community_name": "Windows Folder Image Previewer",
+      "community_name": "KomaShift",
       "norm_label": "komashift"
     },
     {
       "label": "Read Raw Manga with Clean, Non-Destructive Overlays",
       "file_type": "document",
       "source_file": "README.md",
-      "source_location": "L5",
+      "source_location": "L11",
       "_origin": "ast",
       "id": "readme_read_raw_manga_with_clean_non_destructive_overlays",
       "community": 43,
-      "community_name": "Windows Folder Image Previewer",
+      "community_name": "KomaShift",
       "norm_label": "read raw manga with clean, non-destructive overlays"
+    },
+    {
+      "label": "Export and Rasterize for Sharing",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L37",
+      "_origin": "ast",
+      "id": "readme_export_and_rasterize_for_sharing",
+      "community": 43,
+      "community_name": "KomaShift",
+      "norm_label": "export and rasterize for sharing"
     },
     {
       "label": "Features",
       "file_type": "document",
       "source_file": "README.md",
-      "source_location": "L31",
+      "source_location": "L43",
       "_origin": "ast",
       "id": "readme_features",
       "community": 43,
-      "community_name": "Windows Folder Image Previewer",
+      "community_name": "KomaShift",
       "norm_label": "features"
     },
     {
       "label": "Hardware Acceleration (GPU) & Custom Models",
       "file_type": "document",
       "source_file": "README.md",
-      "source_location": "L39",
+      "source_location": "L53",
       "_origin": "ast",
       "id": "readme_hardware_acceleration_gpu_custom_models",
       "community": 43,
-      "community_name": "Windows Folder Image Previewer",
+      "community_name": "KomaShift",
       "norm_label": "hardware acceleration (gpu) & custom models"
     },
     {
       "label": "Custom Manga OCR Models",
       "file_type": "document",
       "source_file": "README.md",
-      "source_location": "L63",
+      "source_location": "L77",
       "_origin": "ast",
       "id": "readme_custom_manga_ocr_models",
       "community": 43,
-      "community_name": "Windows Folder Image Previewer",
+      "community_name": "KomaShift",
       "norm_label": "custom manga ocr models"
-    },
-    {
-      "label": "Architecture",
-      "file_type": "document",
-      "source_file": "README.md",
-      "source_location": "L71",
-      "_origin": "ast",
-      "id": "readme_architecture",
-      "community": 43,
-      "community_name": "Windows Folder Image Previewer",
-      "norm_label": "architecture"
     },
     {
       "label": "Installation & Local Run",
       "file_type": "document",
       "source_file": "README.md",
-      "source_location": "L88",
+      "source_location": "L85",
       "_origin": "ast",
       "id": "readme_installation_local_run",
       "community": 43,
-      "community_name": "Windows Folder Image Previewer",
+      "community_name": "KomaShift",
       "norm_label": "installation & local run"
     },
     {
       "label": "Running Tests",
       "file_type": "document",
       "source_file": "README.md",
-      "source_location": "L97",
+      "source_location": "L94",
       "_origin": "ast",
       "id": "readme_running_tests",
       "community": 43,
-      "community_name": "Windows Folder Image Previewer",
+      "community_name": "KomaShift",
       "norm_label": "running tests"
     },
     {
       "label": "Disclaimer",
       "file_type": "document",
       "source_file": "README.md",
-      "source_location": "L103",
+      "source_location": "L100",
       "_origin": "ast",
       "id": "readme_disclaimer",
       "community": 43,
-      "community_name": "Windows Folder Image Previewer",
+      "community_name": "KomaShift",
       "norm_label": "disclaimer"
     },
     {
       "label": "License",
       "file_type": "document",
       "source_file": "README.md",
-      "source_location": "L108",
+      "source_location": "L105",
       "_origin": "ast",
       "id": "readme_license",
       "community": 43,
-      "community_name": "Windows Folder Image Previewer",
+      "community_name": "KomaShift",
       "norm_label": "license"
     }
   ],
@@ -20712,7 +20712,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/services/ai_assets_manager.py",
-      "source_location": "L21",
+      "source_location": "L20",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_ai_assets_manager",
@@ -20759,7 +20759,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "src/services/ai_assets_manager.py",
-      "source_location": "L50",
+      "source_location": "L49",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_ai_assets_manager_aiassetsmanager",
@@ -20770,7 +20770,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "src/services/ai_assets_manager.py",
-      "source_location": "L127",
+      "source_location": "L126",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_ai_assets_manager_aiassetsmanager",
@@ -20781,7 +20781,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "src/services/ai_assets_manager.py",
-      "source_location": "L27",
+      "source_location": "L26",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_ai_assets_manager_aiassetsmanager",
@@ -20792,7 +20792,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "src/services/ai_assets_manager.py",
-      "source_location": "L24",
+      "source_location": "L23",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_ai_assets_manager_aiassetsmanager",
@@ -20803,7 +20803,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "src/services/ai_assets_manager.py",
-      "source_location": "L47",
+      "source_location": "L46",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_ai_assets_manager_aiassetsmanager",
@@ -20814,7 +20814,7 @@
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "src/services/ai_assets_manager.py",
-      "source_location": "L98",
+      "source_location": "L97",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_ai_assets_manager_aiassetsmanager",
@@ -20825,10 +20825,10 @@
       "relation": "rationale_for",
       "confidence": "EXTRACTED",
       "source_file": "src/services/ai_assets_manager.py",
-      "source_location": "L22",
+      "source_location": "L21",
       "weight": 1.0,
       "_origin": "ast",
-      "source": "src_services_ai_assets_manager_rationale_22",
+      "source": "src_services_ai_assets_manager_rationale_21",
       "target": "src_services_ai_assets_manager_aiassetsmanager",
       "confidence_score": 1.0
     },
@@ -20908,7 +20908,7 @@
       "context": "generic_arg",
       "confidence": "EXTRACTED",
       "source_file": "src/services/ai_assets_manager.py",
-      "source_location": "L24",
+      "source_location": "L23",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_ai_assets_manager_aiassetsmanager_init",
@@ -20920,7 +20920,7 @@
       "context": "return_type",
       "confidence": "EXTRACTED",
       "source_file": "src/services/ai_assets_manager.py",
-      "source_location": "L50",
+      "source_location": "L49",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_ai_assets_manager_aiassetsmanager_download_comic_model",
@@ -20932,7 +20932,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/services/ai_assets_manager.py",
-      "source_location": "L143",
+      "source_location": "L142",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_ai_assets_manager_aiassetsmanager_download_ocr_model",
@@ -20944,7 +20944,7 @@
       "context": "generic_arg",
       "confidence": "EXTRACTED",
       "source_file": "src/services/ai_assets_manager.py",
-      "source_location": "L27",
+      "source_location": "L26",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_ai_assets_manager_aiassetsmanager_get_comic_model_path",
@@ -20956,7 +20956,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/services/ai_assets_manager.py",
-      "source_location": "L110",
+      "source_location": "L109",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_ai_assets_manager_aiassetsmanager_is_ocr_model_cached",
@@ -20968,7 +20968,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "src/services/ai_assets_manager.py",
-      "source_location": "L48",
+      "source_location": "L47",
       "weight": 1.0,
       "_origin": "ast",
       "source": "src_services_ai_assets_manager_aiassetsmanager_is_comic_model_available",
@@ -20979,10 +20979,10 @@
       "relation": "rationale_for",
       "confidence": "EXTRACTED",
       "source_file": "src/services/ai_assets_manager.py",
-      "source_location": "L28",
+      "source_location": "L27",
       "weight": 1.0,
       "_origin": "ast",
-      "source": "src_services_ai_assets_manager_rationale_28",
+      "source": "src_services_ai_assets_manager_rationale_27",
       "target": "src_services_ai_assets_manager_aiassetsmanager_get_comic_model_path",
       "confidence_score": 1.0
     },
@@ -20990,10 +20990,10 @@
       "relation": "rationale_for",
       "confidence": "EXTRACTED",
       "source_file": "src/services/ai_assets_manager.py",
-      "source_location": "L56",
+      "source_location": "L55",
       "weight": 1.0,
       "_origin": "ast",
-      "source": "src_services_ai_assets_manager_rationale_56",
+      "source": "src_services_ai_assets_manager_rationale_55",
       "target": "src_services_ai_assets_manager_aiassetsmanager_download_comic_model",
       "confidence_score": 1.0
     },
@@ -21001,10 +21001,10 @@
       "relation": "rationale_for",
       "confidence": "EXTRACTED",
       "source_file": "src/services/ai_assets_manager.py",
-      "source_location": "L99",
+      "source_location": "L98",
       "weight": 1.0,
       "_origin": "ast",
-      "source": "src_services_ai_assets_manager_rationale_99",
+      "source": "src_services_ai_assets_manager_rationale_98",
       "target": "src_services_ai_assets_manager_aiassetsmanager_is_ocr_model_cached",
       "confidence_score": 1.0
     },
@@ -21060,10 +21060,10 @@
       "relation": "rationale_for",
       "confidence": "EXTRACTED",
       "source_file": "src/services/ai_assets_manager.py",
-      "source_location": "L134",
+      "source_location": "L133",
       "weight": 1.0,
       "_origin": "ast",
-      "source": "src_services_ai_assets_manager_rationale_134",
+      "source": "src_services_ai_assets_manager_rationale_133",
       "target": "src_services_ai_assets_manager_aiassetsmanager_download_ocr_model",
       "confidence_score": 1.0
     },
@@ -39732,7 +39732,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "README.md",
-      "source_location": "L1",
+      "source_location": "L5",
       "weight": 1.0,
       "_origin": "ast",
       "source": "readme",
@@ -39743,18 +39743,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "README.md",
-      "source_location": "L71",
-      "weight": 1.0,
-      "_origin": "ast",
-      "source": "readme_komashift",
-      "target": "readme_architecture",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "README.md",
-      "source_location": "L103",
+      "source_location": "L100",
       "weight": 1.0,
       "_origin": "ast",
       "source": "readme_komashift",
@@ -39765,7 +39754,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "README.md",
-      "source_location": "L31",
+      "source_location": "L43",
       "weight": 1.0,
       "_origin": "ast",
       "source": "readme_komashift",
@@ -39776,7 +39765,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "README.md",
-      "source_location": "L39",
+      "source_location": "L53",
       "weight": 1.0,
       "_origin": "ast",
       "source": "readme_komashift",
@@ -39787,7 +39776,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "README.md",
-      "source_location": "L88",
+      "source_location": "L85",
       "weight": 1.0,
       "_origin": "ast",
       "source": "readme_komashift",
@@ -39798,7 +39787,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "README.md",
-      "source_location": "L108",
+      "source_location": "L105",
       "weight": 1.0,
       "_origin": "ast",
       "source": "readme_komashift",
@@ -39809,7 +39798,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "README.md",
-      "source_location": "L5",
+      "source_location": "L11",
       "weight": 1.0,
       "_origin": "ast",
       "source": "readme_komashift",
@@ -39820,7 +39809,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "README.md",
-      "source_location": "L97",
+      "source_location": "L94",
       "weight": 1.0,
       "_origin": "ast",
       "source": "readme_komashift",
@@ -39831,7 +39820,18 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "README.md",
-      "source_location": "L63",
+      "source_location": "L37",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "readme_read_raw_manga_with_clean_non_destructive_overlays",
+      "target": "readme_export_and_rasterize_for_sharing",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L77",
       "weight": 1.0,
       "_origin": "ast",
       "source": "readme_hardware_acceleration_gpu_custom_models",
@@ -39840,5 +39840,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "46278e05ee6c5748e80910d8544a412e8da1b235"
+  "built_at_commit": "4ee0b62335cad6425261954ea59b832012e02da8"
 }

@@ -1,6 +1,12 @@
+<p align="center">
+  <img src="assets/icon.png" alt="KomaShift Icon" width="100">
+</p>
+
 # KomaShift
 
 KomaShift is a desktop application designed for fast manga reading, effortless library organization, and intelligent on-screen translation. Whether you are navigating massive multi-chapter folders or organizing messy image archives, it delivers a smooth, distraction-free reading experience with powerful folder management tools built right in.
+
+![KomaShift Application View](assets/application_view.png)
 
 ## Read Raw Manga with Clean, Non-Destructive Overlays
 
@@ -28,12 +34,20 @@ To fit your budget and hardware, the app offers two flexible translation modes:
    
    On a single page, visual hybrid translation uses approximately 48 percent more total tokens and 4.4 times more completion tokens than the hybrid text mode. Each page requires its own image payload, trading higher token usage for maximum visual and contextual translation accuracy.
 
+### Export and Rasterize for Sharing
+
+When you want to share your translations or upload them to web readers, you can permanently bake the vector overlays into flat image files. Click the **Rasterize** button on the top toolbar or press `Ctrl+B` (**Bake Translated Pages to Sibling Folder**). The app processes the pages through the queue and outputs clean, standalone images into a `<folder_name>_translated` sibling directory, completely ready for distribution without needing external viewer tools.
+
+![KomaShift Queue Manager](assets/queue_manager.png)
+
 ## Features
 
 - **Local Manga Reader / Image Viewer**: Enjoy a smooth, distraction-free reading experience with fullscreen support, continuous cross-folder rollover, persistent zoom presets, and asynchronous image loading for peak performance.
 - **Sub-folder Discovery**: Automatically scan and index complex root directories to find every image-containing sub-folder, remembering your last opened library location across sessions.
 - **Batch Rename**: Speed up your library cleanup with quick, in-place folder renaming and convenient batch disk operations directly within the workspace.
 - **Translation**: An adaptable localization pipeline featuring both a token-saving hybrid mode (using ONNX Runtime, OpenCV, Manga OCR, and OpenAI text APIs) and a context-aware visual hybrid mode (combining ONNX bubble geometry with Vision LLM reading). Measured single-page benchmarks show 2,502 total tokens for hybrid text translation versus 3,702 total tokens for visual hybrid translation, giving users direct control over API expenditure versus contextual visual precision.
+- **Permanent Rasterization (Export)**: Flatten speech bubble inpainting and translated typography directly into permanent image files (`<folder_name>_translated`) via `Ctrl+B` or the top toolbar, ready for web upload and sharing.
+- **Queue Manager**: Track background translation jobs and rasterization batches in real time with progress indicators and error logging.
 - **Hardware Acceleration & Custom Models**: Automatically detects and leverages GPU acceleration (DirectML, CUDA, CoreML, OpenVINO, ROCm) for both speech bubble segmentation and Japanese OCR, or lets you enforce CPU-only mode. Also allows specifying custom Manga OCR models by HuggingFace repository ID or local directories containing encoder and decoder ONNX models.
 
 ## Hardware Acceleration (GPU) & Custom Models
@@ -68,23 +82,6 @@ You can configure a different ONNX model in Settings (**API & Translation** tab)
 
 Leave the field empty to use the default `mayocream/manga-ocr-onnx` model.
 
-## Architecture
-
-The codebase follows a Ports & Adapters (hexagonal-lite) architecture mechanically validated on every test run by `import-linter`:
-
-```
-ui  →  viewmodels  →  services  →  ports  ←  infra
-                                        ↑
-                                     models
-```
-
-- **`src/models/`**: Pure domain data models with zero external or Qt dependencies (`FolderItem`, `PageTranslation`, `BubbleBlock`, `TranslationJob`).
-- **`src/ports/`**: Pure `typing.Protocol` contracts defining seams (`PageRepository`, `TranslationProvider`, `LogSink`, `ComicTextRenderer`).
-- **`src/services/`**: Headless business logic, directory scanners, and typography layout math (`comic_text.py`, `folder_service.py`, `trash_service.py`, `manga_ocr_detector.py`). Strictly headless with zero `PyQt6.QtWidgets` imports.
-- **`src/infra/`**: Outside-world adapters implementing ports (`json_workspace.py`, `file_log_sink.py`, `qt_comic_renderer.py`, `image_rasterizer.py`).
-- **`src/viewmodels/`**: Headless presentation logic (`SettingsViewModel`, `LibraryViewModel`, `TranslationViewModel`) binding UI to services without widget dependencies.
-- **`src/ui/`**: PyQt6 presentation layer and custom widgets. Contains zero direct disk I/O or network requests.
-
 ## Installation & Local Run
 
 ```bash
@@ -103,7 +100,7 @@ QT_QPA_PLATFORM=offscreen pytest
 ## Disclaimer
 
 > [!WARNING]
-> This application is merely a tool provided for personal folder management, reading, and machine translation workflows. Whatever you do with this tool, including the content you process, translate, or distribute, is entirely your own responsibility and at your own risk ("whatever you do is your own fault"). The authors and contributors assume no responsibility or liability for any misuse or legal consequences arising from the use of this software.
+> This application is merely a tool provided for personal folder management, reading, and machine translation workflows. Whatever you do with this tool, including the content you process, translate, or distribute, is entirely your own responsibility and at your own risk. The authors and contributors assume no responsibility or liability for any misuse or legal consequences arising from the use of this software.
 
 ## License
 
