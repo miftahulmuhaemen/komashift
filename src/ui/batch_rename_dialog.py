@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import List, Tuple
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel,
-    QPushButton, QLineEdit, QGroupBox,
+    QPushButton, QLineEdit, QGroupBox, QFrame,
     QTableWidget, QTableWidgetItem, QHeaderView, QAbstractItemView
 )
 from PyQt6.QtCore import Qt
@@ -160,7 +160,7 @@ class BatchRenameDialog(QDialog):
         header_layout.addWidget(header_label)
         header_layout.addStretch()
 
-        self.reset_btn = QPushButton("↺ Reset All to Original")
+        self.reset_btn = QPushButton("Reset All to Original")
         self.reset_btn.setToolTip("Revert all names back to original")
         self.reset_btn.clicked.connect(self.reset_original)
         header_layout.addWidget(self.reset_btn)
@@ -177,13 +177,13 @@ class BatchRenameDialog(QDialog):
         head_label.setFixedWidth(42)
         head_row.addWidget(head_label)
 
-        self.btn_head_up = QPushButton("▲")
+        self.btn_head_up = QPushButton("+")
         self.btn_head_up.setObjectName("btnArrow")
         self.btn_head_up.setToolTip("Trim 1 character from the start")
         self.btn_head_up.clicked.connect(self.trim_head_one)
         head_row.addWidget(self.btn_head_up)
 
-        self.btn_head_down = QPushButton("▼")
+        self.btn_head_down = QPushButton("-")
         self.btn_head_down.setObjectName("btnArrow")
         self.btn_head_down.setToolTip("Restore 1 character to the start")
         self.btn_head_down.clicked.connect(self.untrim_head_one)
@@ -194,15 +194,9 @@ class BatchRenameDialog(QDialog):
         self.head_input.returnPressed.connect(self.add_head)
         head_row.addWidget(self.head_input, 1)
 
-        self.add_head_btn = QPushButton("+ Add Head")
+        self.add_head_btn = QPushButton("Add Head")
         self.add_head_btn.clicked.connect(self.add_head)
         head_row.addWidget(self.add_head_btn)
-
-        self.strip_id_btn = QPushButton("⚡ Strip Leading ID")
-        self.strip_id_btn.setObjectName("btnQuickTool")
-        self.strip_id_btn.setToolTip("Automatically remove leading tags/IDs (e.g. 'nhentai-672171 - ' or '01. ')")
-        self.strip_id_btn.clicked.connect(self.strip_leading_id)
-        head_row.addWidget(self.strip_id_btn)
 
         tools_layout.addLayout(head_row)
 
@@ -212,13 +206,13 @@ class BatchRenameDialog(QDialog):
         tail_label.setFixedWidth(42)
         tail_row.addWidget(tail_label)
 
-        self.btn_tail_up = QPushButton("▲")
+        self.btn_tail_up = QPushButton("+")
         self.btn_tail_up.setObjectName("btnArrow")
         self.btn_tail_up.setToolTip("Trim 1 character from the end")
         self.btn_tail_up.clicked.connect(self.trim_tail_one)
         tail_row.addWidget(self.btn_tail_up)
 
-        self.btn_tail_down = QPushButton("▼")
+        self.btn_tail_down = QPushButton("-")
         self.btn_tail_down.setObjectName("btnArrow")
         self.btn_tail_down.setToolTip("Restore 1 character to the end")
         self.btn_tail_down.clicked.connect(self.untrim_tail_one)
@@ -229,18 +223,38 @@ class BatchRenameDialog(QDialog):
         self.tail_input.returnPressed.connect(self.add_tail)
         tail_row.addWidget(self.tail_input, 1)
 
-        self.add_tail_btn = QPushButton("+ Add Tail")
+        self.add_tail_btn = QPushButton("Add Tail")
         self.add_tail_btn.clicked.connect(self.add_tail)
         tail_row.addWidget(self.add_tail_btn)
 
-        self.strip_tail_btn = QPushButton("⚡ Strip Trailing Numbers")
-        self.strip_tail_btn.setObjectName("btnQuickTool")
-        self.strip_tail_btn.setToolTip("Automatically remove trailing numbers/brackets (e.g. ' (01)' or ' - 02')")
-        self.strip_tail_btn.clicked.connect(self.strip_trailing_numbers)
-        tail_row.addWidget(self.strip_tail_btn)
-
         tools_layout.addLayout(tail_row)
         layout.addWidget(tools_group)
+
+        # Full-width Preview for Top Row (Wrapped, No Ellipsis)
+        self.top_row_preview_card = QFrame()
+        self.top_row_preview_card.setStyleSheet("""
+            QFrame {
+                background-color: #1a1d24;
+                border: 1px solid #38bdf8;
+                border-radius: 6px;
+                padding: 6px 10px;
+            }
+        """)
+        top_preview_layout = QVBoxLayout(self.top_row_preview_card)
+        top_preview_layout.setContentsMargins(4, 4, 4, 4)
+        top_preview_layout.setSpacing(2)
+
+        top_preview_title = QLabel("<b>Preview from top row:</b>")
+        top_preview_title.setStyleSheet("color: #94a3b8; font-size: 11px;")
+        top_preview_layout.addWidget(top_preview_title)
+
+        self.top_row_preview_label = QLabel("")
+        self.top_row_preview_label.setWordWrap(True)
+        self.top_row_preview_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        self.top_row_preview_label.setStyleSheet("color: #38bdf8; font-size: 13px; font-weight: bold; background: transparent;")
+        top_preview_layout.addWidget(self.top_row_preview_label)
+
+        layout.addWidget(self.top_row_preview_card)
 
         # Live Preview Table
         self.table = QTableWidget(len(self.folders), 2)
@@ -316,6 +330,12 @@ class BatchRenameDialog(QDialog):
 
             self.table.setItem(row, 1, new_item)
         self.table.blockSignals(False)
+
+        # Update top-row full-width preview
+        if hasattr(self, "top_row_preview_label"):
+            top_name = self._new_names[0] if self._new_names else ""
+            self.top_row_preview_label.setText(top_name)
+
         self._validate_names()
 
     def _on_table_item_changed(self, item: QTableWidgetItem):

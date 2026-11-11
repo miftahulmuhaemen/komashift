@@ -1,40 +1,89 @@
-# Windows Folder Image Previewer
+# KomaShift
 
-Desktop application for scanning and previewing images across nested directory structures with fullscreen reading support, persistent zoom levels, and folder management actions (renaming, batch deletion to Recycle Bin).
+KomaShift is a desktop application designed for fast manga reading, effortless library organization, and intelligent on-screen translation. Whether you are navigating massive multi-chapter folders or organizing messy image archives, it delivers a smooth, distraction-free reading experience with powerful folder management tools built right in.
+
+## Read Raw Manga with Clean, Non-Destructive Overlays
+
+Unlike traditional translation tools that blur or redraw your pages, this app leaves your original manga artwork completely untouched. The AI simply analyzes the page and returns dialogue text with position coordinates in JSON format. The app then paints sharp, vector-quality text right over the speech bubbles on your screen. You can tap the T key at any time to instantly switch between the translated dialogue and the original Japanese artwork.
+
+To fit your budget and hardware, the app offers two flexible translation modes:
+
+1. **Token-Efficient Mode (Local Detection + Text LLM)**
+   Best for reading large volume batches on a budget. Speech bubble detection (ONNX Runtime) and Japanese text reading (Manga OCR) run entirely on your local machine. Because only extracted dialogue text is sent to your configured OpenAI-compatible API, token consumption is kept minimal.
+   
+   Measured benchmark on a sample manga page using `deepseek-v4.1-flash`:
+   - Prompt Tokens: 2,347
+   - Completion Tokens: 155
+   - Total Tokens: 2,502
+   
+   Because text dialogue from multiple pages can be bundled into a single batch request, token efficiency compounds significantly across entire chapters compared to sending individual image payloads. This mode runs comfortably on standard consumer laptops without needing high-end graphics cards.
+
+2. **Highest Quality Mode (Local ONNX Segmentation + Vision LLM)**
+   Best for story-rich chapters where emotional nuance and visual context matter. Speech bubble geometry and whitewash masks are precisely extracted locally using ONNX Runtime and OpenCV to prevent coordinate drift. The compressed WebP page and bubble bounds are then sent to vision-capable models (such as Gemini, GPT-4o, or local vision runners). The AI reads dialogue directly in scene context, effortlessly understands character expressions and reading order, and eliminates OCR transcription typos.
+   
+   Measured benchmark on the same sample page using `deepseek-v4.1-flash`:
+   - Prompt Tokens: 3,013 (+666 tokens for the WebP image and vision instructions)
+   - Completion Tokens: 689 (returning dialogue mapped to detected bubbles)
+   - Total Tokens: 3,702
+   
+   On a single page, visual hybrid translation uses approximately 48 percent more total tokens and 4.4 times more completion tokens than the hybrid text mode. Each page requires its own image payload, trading higher token usage for maximum visual and contextual translation accuracy.
 
 ## Features
 
-- **Folder Discovery**: Scans a chosen root directory and lists subfolders containing image files.
-- **State Persistence**: Saves the last opened root directory across application restarts using `QSettings`.
-- **Fullscreen Reading Mode (`F12`)**: Hides all window controls and panels to show only the image on screen.
-- **Continuous Reading Navigation**: Automatically advances to the next folder upon reaching the last image, or returns to the previous folder's final image when navigating backwards from the first image.
-- **Zoom Presets**: Supports Fit, 50%, 75%, 100%, and 120% zoom modes. The active zoom factor is preserved when changing folders.
-- **Horizontal Thumbnail Strip**: Single-row thumbnail container with horizontal scrolling and automatic active item tracking.
-- **Asynchronous Image Loading**: Background worker threads decode and scale thumbnails to maintain UI responsiveness.
-- **Batch Selection & Deletion**: Supports multi-selection (`Ctrl`, `Shift`, `Ctrl+A`) and moves selected folders to the Windows Recycle Bin (`Delete`). Automatically selects the next remaining folder.
-- **Folder Renaming**: Double-click any folder entry in the list or press `F2` to rename it directly on disk.
+- **Local Manga Reader / Image Viewer**: Enjoy a smooth, distraction-free reading experience with fullscreen support, continuous cross-folder rollover, persistent zoom presets, and asynchronous image loading for peak performance.
+- **Sub-folder Discovery**: Automatically scan and index complex root directories to find every image-containing sub-folder, remembering your last opened library location across sessions.
+- **Batch Rename**: Speed up your library cleanup with quick, in-place folder renaming and convenient batch disk operations directly within the workspace.
+- **Translation**: An adaptable localization pipeline featuring both a token-saving hybrid mode (using ONNX Runtime, OpenCV, Manga OCR, and OpenAI text APIs) and a context-aware visual hybrid mode (combining ONNX bubble geometry with Vision LLM reading). Measured single-page benchmarks show 2,502 total tokens for hybrid text translation versus 3,702 total tokens for visual hybrid translation, giving users direct control over API expenditure versus contextual visual precision.
+- **Hardware Acceleration & Custom Models**: Automatically detects and leverages GPU acceleration (DirectML, CUDA, CoreML, OpenVINO, ROCm) for both speech bubble segmentation and Japanese OCR, or lets you enforce CPU-only mode. Also allows specifying custom Manga OCR models by HuggingFace repository ID or local directories containing encoder and decoder ONNX models.
 
-## Keyboard Shortcuts
+## Hardware Acceleration (GPU) & Custom Models
 
-| Shortcut | Action |
-|---|---|
-| `Left` / `Right` | Previous / Next image (continuous cross-folder rollover) |
-| `Up` / `Down` | Previous / Next folder |
-| `F12` / `Escape` | Toggle Fullscreen Reader Mode |
-| `Ctrl` + `+` / `Ctrl` + `=` | Zoom In (Preset cycle: 50% -> 75% -> 100% -> 120%) |
-| `Ctrl` + `-` | Zoom Out |
-| `Double-Click` or `F2` | Rename selected folder |
-| `Delete` | Move selected folder(s) to Recycle Bin |
-| `Ctrl` + `A` | Select all folders |
-| `Ctrl` + `Click` / `Shift` + `Click` | Multi-select folders |
+By default, the application uses your CPU for local ONNX inference (speech bubble detection and Manga OCR). It automatically detects and leverages hardware acceleration when the corresponding ONNX Runtime execution provider is installed:
 
-## Requirements
+- **Windows (DirectML - AMD, Intel, NVIDIA)**:
+  ```bash
+  pip install onnxruntime-directml
+  ```
+- **NVIDIA GPUs (CUDA)**:
+  ```bash
+  pip install onnxruntime-gpu
+  ```
+- **macOS (Apple Silicon / CoreML)**:
+  ```bash
+  pip install onnxruntime-silicon
+  ```
+- **Intel CPUs/GPUs (OpenVINO)**:
+  ```bash
+  pip install onnxruntime-openvino
+  ```
 
-- Python 3.10+
-- `PyQt6`
-- `Pillow`
-- `Send2Trash`
-- `pytest` / `pytest-qt` (for testing)
+> [!NOTE]
+> You may need to uninstall standard `onnxruntime` first to avoid package conflicts (`pip uninstall onnxruntime && pip install onnxruntime-directml`). You can toggle between **Auto-detect (GPU)** and **CPU Only** in Settings.
+
+### Custom Manga OCR Models
+
+You can configure a different ONNX model in Settings (**API & Translation** tab) by providing:
+1. **HuggingFace Repository ID**: e.g. `user/repo-id`
+2. **Local Model Directory**: Click **Browse...** to select a directory containing `encoder_model.onnx` and `decoder_model.onnx`
+
+Leave the field empty to use the default `mayocream/manga-ocr-onnx` model.
+
+## Architecture
+
+The codebase follows a Ports & Adapters (hexagonal-lite) architecture mechanically validated on every test run by `import-linter`:
+
+```
+ui  →  viewmodels  →  services  →  ports  ←  infra
+                                        ↑
+                                     models
+```
+
+- **`src/models/`**: Pure domain data models with zero external or Qt dependencies (`FolderItem`, `PageTranslation`, `BubbleBlock`, `TranslationJob`).
+- **`src/ports/`**: Pure `typing.Protocol` contracts defining seams (`PageRepository`, `TranslationProvider`, `LogSink`, `ComicTextRenderer`).
+- **`src/services/`**: Headless business logic, directory scanners, and typography layout math (`comic_text.py`, `folder_service.py`, `trash_service.py`, `manga_ocr_detector.py`). Strictly headless with zero `PyQt6.QtWidgets` imports.
+- **`src/infra/`**: Outside-world adapters implementing ports (`json_workspace.py`, `file_log_sink.py`, `qt_comic_renderer.py`, `image_rasterizer.py`).
+- **`src/viewmodels/`**: Headless presentation logic (`SettingsViewModel`, `LibraryViewModel`, `TranslationViewModel`) binding UI to services without widget dependencies.
+- **`src/ui/`**: PyQt6 presentation layer and custom widgets. Contains zero direct disk I/O or network requests.
 
 ## Installation & Local Run
 
@@ -45,23 +94,16 @@ pip install -r requirements.txt
 python src/main.py
 ```
 
-## Building Executable
-
-To build a standalone Windows binary (`.exe`) using PyInstaller:
-
-```powershell
-python build.py
-```
-
-`build.py` automatically increments the patch/build version and writes the output files to `dist/`:
-- `dist/FolderImagePreviewer_v<version>.exe`
-- `dist/FolderImagePreviewer.exe`
-
 ## Running Tests
 
 ```bash
 QT_QPA_PLATFORM=offscreen pytest
 ```
+
+## Disclaimer
+
+> [!WARNING]
+> This application is merely a tool provided for personal folder management, reading, and machine translation workflows. Whatever you do with this tool, including the content you process, translate, or distribute, is entirely your own responsibility and at your own risk ("whatever you do is your own fault"). The authors and contributors assume no responsibility or liability for any misuse or legal consequences arising from the use of this software.
 
 ## License
 

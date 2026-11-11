@@ -2,7 +2,8 @@ import pytest
 from pathlib import Path
 from PIL import Image
 from PyQt6.QtGui import QPixmap, QImage
-from src.services.thumbnail_cache import create_thumbnail_pixmap, create_thumbnail_image, ThumbnailCache
+from src.services.thumbnail_cache import create_thumbnail_pixmap, create_thumbnail_image
+from src.infra.qt_threads import ThumbnailCache
 
 def test_create_thumbnail_image(tmp_path: Path):
     img_path = tmp_path / "test_img.png"
@@ -47,4 +48,48 @@ def test_thumbnail_cache_load_async(tmp_path: Path, qtbot):
     hit_results = []
     cache.load_async(img_path, (64, 64), lambda p, px: hit_results.append(px))
     assert len(hit_results) == 1
+    cache.thread_pool.waitForDone(2000)
+
+
+def test_thumbnail_strip_widget_and_delegate(tmp_path: Path, qtbot):
+    from src.ui.thumbnail_strip import ThumbnailStripWidget, ThumbnailDelegate
+    from PyQt6.QtWidgets import QListWidget, QListWidgetItem, QStyleOptionViewItem
+    from PyQt6.QtCore import QSize, QRect
+    from PyQt6.QtGui import QPainter, QImage
+
+    img1 = tmp_path / "01.png"
+    img2 = tmp_path / "02.png"
+    Image.new("RGB", (50, 50), color="red").save(img1)
+    Image.new("RGB", (50, 50), color="blue").save(img2)
+
+    cache = ThumbnailCache()
+    strip = ThumbnailStripWidget(cache)
+    qtbot.addWidget(strip)
+
+    strip.set_images([img1, img2])
+    assert strip.list_widget.count() == 2
+    assert strip.get_current_index() == 0
+    assert strip.get_current_image() == img1
+
+    # Check tooltip format with page position
+    assert "01.png (1/2)" in strip.list_widget.item(0).toolTip()
+    assert "02.png (2/2)" in strip.list_widget.item(1).toolTip()
+
+    # Test delegate sizeHint and painting
+    delegate = strip.list_widget.itemDelegate()
+    assert isinstance(delegate, ThumbnailDelegate)
+    opt = QStyleOptionViewItem()
+    idx = strip.list_widget.model().index(0, 0)
+    assert delegate.sizeHint(opt, idx) == QSize(108, 118)
+
+    # Render widget offscreen to verify delegate paint execution
+    test_img = QImage(300, 120, QImage.Format.Format_ARGB32)
+    p = QPainter(test_img)
+    strip.render(p)
+    p.end()
+
+    # Move selection
+    strip.select_next()
+    assert strip.get_current_index() == 1
+    assert strip.get_current_image() == img2
 

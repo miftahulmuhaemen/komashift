@@ -4,9 +4,6 @@ on:
   push:
     branches:
       - main
-  pull_request:
-    branches:
-      - main
   workflow_dispatch:
 
 permissions:
@@ -48,17 +45,75 @@ jobs:
         shell: bash
         run: |
           python -m PyInstaller \
-            --name="FolderImagePreviewer_v${APP_VERSION}" \
+            --name="KomaShift_v${APP_VERSION}" \
             --windowed \
-            --onefile \
+            --onedir \
             --icon="assets/icon.ico" \
-            --add-data="assets;assets" \
+            --add-data="assets/icon.ico;assets" \
+            --add-data="assets/icon.png;assets" \
+            --add-data="assets/fonts;assets/fonts" \
+            --add-data="assets/checkbox_checked.png;assets" \
+            --add-data="assets/checkbox_checked_disabled.png;assets" \
+            --collect-all=onnxruntime \
+            --collect-all=manga_ocr \
+            --collect-all=unidic_lite \
+            --collect-all=pyphen \
+            --copy-metadata=transformers \
+            --copy-metadata=tokenizers \
+            --copy-metadata=huggingface_hub \
+            --exclude-module=botocore \
+            --exclude-module=boto3 \
+            --exclude-module=Pythonwin \
+            --exclude-module=win32ui \
+            --exclude-module=PyQt6.QtPdf \
+            --exclude-module=PyQt6.QtQml \
+            --exclude-module=PyQt6.QtQuick \
+            --exclude-module=PyQt6.QtSql \
+            --exclude-module=PyQt6.QtTest \
             src/main.py
+
+      - name: Prune Deadweight Assets
+        shell: bash
+        run: |
+          python -c '
+          from pathlib import Path
+          import os, shutil
+          app_ver = os.environ.get("APP_VERSION", "")
+          internal = Path("dist") / f"KomaShift_v{app_ver}" / "_internal"
+          if internal.exists():
+              patterns = [
+                  "cv2/opencv_videoio_ffmpeg*.dll",
+                  "PyQt6/Qt6/bin/opengl32sw.dll",
+                  "PyQt6/Qt6/bin/Qt6Pdf.dll",
+                  "PyQt6/Qt6/translations",
+                  "Pythonwin",
+              ]
+              pruned_total = 0
+              for pat in patterns:
+                  for m in internal.glob(pat):
+                      if m.is_file():
+                          size = m.stat().st_size
+                          m.unlink()
+                          pruned_total += size
+                          print(f"Pruned file: {m.name} ({size / (1024*1024):.1f} MB)")
+                      elif m.is_dir():
+                          size = sum(f.stat().st_size for f in m.rglob("*") if f.is_file())
+                          shutil.rmtree(m)
+                          pruned_total += size
+                          print(f"Pruned dir: {m.name} ({size / (1024*1024):.1f} MB)")
+              print(f"Total deadweight pruned: {pruned_total / (1024*1024):.1f} MB")
+          '
+
+      - name: Compile Inno Setup Installer
+        uses: Minionguyjpro/Inno-Setup-Action@v1
+        with:
+          path: installer/komashift_setup.iss
+          options: /DMyAppVersion=${{ env.APP_VERSION }}
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: FolderImagePreviewer-Windows
+          name: KomaShift-Windows
           path: dist/*.exe
 
       - name: Create GitHub Release

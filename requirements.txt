@@ -4,3 +4,5 @@ send2trash>=1.8.0
 pytest>=8.0.0
 pytest-qt>=4.4.0
 pyinstaller>=6.0.0
+pyphen>=0.14.0
+opencv-python>=4.8.0

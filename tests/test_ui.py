@@ -5,7 +5,8 @@ from PIL import Image
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QMessageBox
 from src.models.folder_item import FolderItem
-from src.services.thumbnail_cache import ThumbnailCache
+from src.infra.qt_threads import ThumbnailCache
+from src.infra.json_workspace import JsonTempWorkspace as TranslationWorkspace
 from src.ui.folder_list import FolderListWidget
 from src.ui.thumbnail_strip import ThumbnailStripWidget
 from src.ui.preview_pane import PreviewPaneWidget
@@ -349,7 +350,7 @@ def test_persistent_folder_restore(qtbot, tmp_path: Path):
 
     # Set setting
     from PyQt6.QtCore import QSettings
-    settings = QSettings("FolderImagePreviewer", "FolderImagePreviewer")
+    settings = QSettings("KomaShift", "KomaShift")
     settings.setValue("last_root_folder", str(root))
 
     window = MainWindow()
@@ -451,6 +452,314 @@ def test_page_up_page_down_shortcuts(qtbot, tmp_path: Path):
     assert window.preview_pane.scroll_area.verticalScrollBar().value() == 0
 
     window.thumbnail_cache.thread_pool.waitForDone(2000)
+
+def test_fullscreen_exit_preserves_folder_scroll_and_selection(qtbot, tmp_path: Path):
+    window = MainWindow()
+    qtbot.addWidget(window)
+    window.resize(1000, 600)
+    window.show()
+
+    folders = [
+        FolderItem(path=tmp_path / f"folder_{i:03d}", name=f"Title {i:03d}", image_paths=[])
+        for i in range(100)
+    ]
+    window.folder_list.set_folders(folders)
+
+    # Select title 50
+    window.folder_list.list_widget.setCurrentRow(50)
+    window.folder_list.scroll_to_current()
+
+    # Enter fullscreen
+    window._toggle_fullscreen()
+    assert window.isFullScreen() is True
+
+    # Navigate to next folder in fullscreen
+    window.folder_list.select_next_folder()
+    assert window.folder_list.get_current_folder().name == "Title 051"
+
+    # Exit fullscreen
+    window._toggle_fullscreen()
+    assert window.isFullScreen() is False
+
+    # Check that current folder is still Title 051 and visible in viewport
+    assert window.folder_list.get_current_folder().name == "Title 051"
+    current_item = window.folder_list.list_widget.currentItem()
+    assert current_item.isSelected() is True
+    item_rect = window.folder_list.list_widget.visualItemRect(current_item)
+    assert window.folder_list.list_widget.viewport().rect().contains(item_rect)
+
+    window.thumbnail_cache.thread_pool.waitForDone(2000)
+
+def test_fullscreen_exit_restores_maximized_state(qtbot):
+    window = MainWindow()
+    qtbot.addWidget(window)
+    window.showMaximized()
+    qtbot.waitUntil(lambda: window.isMaximized())
+
+    # Enter fullscreen
+    window._toggle_fullscreen()
+    qtbot.waitUntil(lambda: window.isFullScreen())
+
+    # Exit fullscreen
+    window._toggle_fullscreen()
+    qtbot.waitUntil(lambda: not window.isFullScreen())
+    qtbot.waitUntil(lambda: window.isMaximized())
+
+    window.thumbnail_cache.thread_pool.waitForDone(2000)
+
+def test_main_window_menubar_and_clean_toolbar(qtbot):
+    window = MainWindow()
+    qtbot.addWidget(window)
+
+    menubar = window.menuBar()
+    actions = menubar.actions()
+    titles = [a.text() for a in actions]
+    assert "&File" in titles
+    assert "&Edit" not in titles
+    assert "&View" not in titles
+    assert "&Help" in titles
+    assert "&Window" not in titles
+
+    # Top bar has sidebar toggle button with vector icon (no text label)
+    assert hasattr(window, "sidebar_toggle_btn")
+    assert window.sidebar_toggle_btn.text() == ""
+    assert not window.sidebar_toggle_btn.icon().isNull()
+    assert hasattr(window, "overlay_toggle_btn")
+    assert "Overlay" in window.overlay_toggle_btn.text()
+    assert hasattr(window, "zoom_combo")
+    assert hasattr(window, "fullscreen_btn")
+    assert "Fullscreen" in window.fullscreen_btn.text()
+    assert hasattr(window, "translate_btn")
+    assert "Translate" in window.translate_btn.text()
+    assert not window.translate_btn.isVisible()
+
+    # Dynamic visibility of translate_btn based on folder selection count (> 1)
+    window.show()
+    window._on_folder_selection_count_changed(1)
+    assert window.translate_btn.isHidden()
+    window._on_folder_selection_count_changed(2)
+    assert not window.translate_btn.isHidden()
+    window._on_folder_selection_count_changed(0)
+    assert window.translate_btn.isHidden()
+
+    # Sidebar toggle functionality and state retention
+    assert not window.folder_list.isHidden()
+    window._toggle_sidebar()
+    assert window.folder_list.isHidden()
+    assert "Show Sidebar" in window.sidebar_toggle_btn.toolTip()
+    window._toggle_sidebar()
+    assert not window.folder_list.isHidden()
+    assert "Hide Sidebar" in window.sidebar_toggle_btn.toolTip()
+
+    # Menu and action checks
+    assert "Open" in window.open_btn.text()
+    assert "Batch Rename" in window.batch_rename_btn.text()
+    assert "Overlay" in window.overlay_toggle_btn.text()
+
+    window.thumbnail_cache.thread_pool.waitForDone(2000)
+
+
+def test_sidebar_scroll_and_status_indicators(qtbot):
+    from src.ui.folder_list import FolderListWidget
+    widget = FolderListWidget()
+    qtbot.addWidget(widget)
+
+    items = [
+        FolderItem(path=Path(f"/tmp/ch_{i}"), name=f"Chapter {i:02d}", image_paths=[])
+        for i in range(1, 50)
+    ]
+    widget.set_folders(items)
+
+    p1 = Path("/tmp/ch_1")
+    # 1. Test status indicators
+    assert widget.get_folder_status(p1) == ""
+    widget.set_folder_status(p1, "queued")
+    assert "[Queued]" in widget.list_widget.item(0).text()
+
+    widget.set_folder_status(p1, "running")
+    assert "[Translating...]" in widget.list_widget.item(0).text()
+
+    widget.set_folder_status(p1, "done")
+    assert "[Done]" in widget.list_widget.item(0).text()
+
+    # 2. Test scroll retention
+    widget.list_widget.verticalScrollBar().setValue(10)
+    val = widget.list_widget.verticalScrollBar().value()
+    widget.save_scroll_state()
+    assert widget._saved_scroll == val
+    widget.list_widget.verticalScrollBar().setValue(0)
+    widget.restore_scroll_state()
+    assert widget.list_widget.verticalScrollBar().value() == val
+
+
+def test_main_window_manual_box_and_queue_button(qtbot, tmp_path: Path):
+    from unittest.mock import MagicMock
+    from src.infra.json_workspace import JsonTempWorkspace as TranslationWorkspace
+
+    window = MainWindow()
+    qtbot.addWidget(window)
+    window.show()
+
+    # 1. Top bar button checks
+    assert hasattr(window, "box_tool_btn")
+    assert window.box_tool_btn.text() == "Box Select"
+    assert not window.box_tool_btn.icon().isNull()
+
+    assert hasattr(window, "add_labeling_queue_btn")
+    assert window.add_labeling_queue_btn.text() == "Add labeling to Queue"
+    assert not window.add_labeling_queue_btn.icon().isNull()
+
+    assert hasattr(window, "rasterize_btn")
+    assert window.rasterize_btn.text() == "Rasterize"
+    assert not window.rasterize_btn.icon().isNull()
+
+    # Menu items on add_labeling_queue_btn
+    menu_actions = [a.text() for a in window.add_labeling_menu.actions()]
+    assert "Translate to EN" in menu_actions
+    assert "Translate to ID" in menu_actions
+
+    # 2. Setup mock chapter folder and image
+    ch_dir = tmp_path / "chapter_01"
+    ch_dir.mkdir()
+    img1 = ch_dir / "01.png"
+    Image.new("RGB", (400, 600), color="white").save(img1)
+
+    f1 = FolderItem(path=ch_dir, name="chapter_01", image_paths=[img1])
+    window.folder_list.set_folders([f1])
+    window.folder_list.list_widget.setCurrentRow(0)
+    window.thumbnail_strip.set_images([img1], select_index=0)
+    window._on_image_selected(img1)
+
+    # Mock OCR detector
+    mock_detector = MagicMock()
+    mock_detector._engine = MagicMock(return_value="當天不行!")
+    mock_detector._segment_bubble = MagicMock(return_value=((50, 50, 100, 100), (100, 100), "oval"))
+    window.queue_manager.detector = mock_detector
+
+    # Trigger manual box creation with EN
+    window._on_manual_box_created((50, 50, 100, 100), target_lang="en")
+
+    # Verify bubble was saved to workspace as untranslated manual label without running OCR in UI
+    ws = TranslationWorkspace(ch_dir)
+    manual_pages = ws.get_manual_labeled_page_filenames("en")
+    assert "01.png" in manual_pages
+
+    ocr_results = ws.load_ocr_results()
+    assert "01.png" in ocr_results
+    assert len(ocr_results["01.png"].bubbles) == 1
+    bubble = ocr_results["01.png"].bubbles[0]
+    assert bubble.id.startswith("p1_m_")
+    assert bubble.id not in ws.load_translations("en")
+    assert bubble.is_manual is True
+    assert bubble.text_ja == ""  # Zero OCR in UI; deferred to Queue Manager
+    assert bubble.text_en == ""
+    assert bubble.bbox == (50, 50, 100, 100)
+
+    # Manual box creates a pending job in Queue Manager
+    assert len(window.queue_manager.jobs) == 1
+    job = window.queue_manager.jobs[0]
+    assert job.folder_path == ch_dir
+    assert img1 in job.selected_image_paths
+    window._on_add_labeling_to_queue("en")
+
+    # Verify job exists in Queue Manager with manual page selected
+    assert len(window.queue_manager.jobs) == 1
+    job = window.queue_manager.jobs[0]
+    assert job.folder_path == ch_dir
+    assert job.target_lang == "en"
+    assert img1 in job.selected_image_paths
+
+    window.thumbnail_cache.thread_pool.waitForDone(2000)
+
+
+def test_manual_box_creation_prevents_cache_collision(qtbot, tmp_path: Path):
+    ch_dir = tmp_path / "chapter_cached"
+    ch_dir.mkdir()
+    img1 = ch_dir / "01.png"
+    Image.new("RGB", (400, 600), color="white").save(img1)
+
+    # Existing workspace with old cached translation residue from previous automatic run
+    ws = TranslationWorkspace(ch_dir)
+    ws.save_translations({
+        "p1_b1": "keep buying. keep buying...",
+        "p1_b2": "keep buying. keep buying..."
+    }, target_lang="en")
+
+    window = MainWindow()
+    qtbot.addWidget(window)
+    f1 = FolderItem(path=ch_dir, name="chapter_cached", image_paths=[img1])
+    window.folder_list.set_folders([f1])
+    window.folder_list.list_widget.setCurrentRow(0)
+    window.thumbnail_strip.set_images([img1], select_index=0)
+    window._on_image_selected(img1)
+
+    # Draw manual box over page
+    window._on_manual_box_created((20, 20, 80, 80), target_lang="en")
+
+    ocr_results = ws.load_ocr_results()
+    assert "01.png" in ocr_results
+    bubbles = ocr_results["01.png"].bubbles
+    assert len(bubbles) == 1
+    new_b = bubbles[0]
+
+    # Verify ID is unique, prefixed with p1_m_, and does not collide with p1_b1 or p1_b2
+    assert new_b.id.startswith("p1_m_")
+    assert new_b.id not in ("p1_b1", "p1_b2")
+
+    # Verify translation cache has no residue for this new manual bubble
+    current_trans = ws.load_translations("en")
+    assert new_b.id not in current_trans
+
+    # Verify page is marked as having an untranslated manual label
+    assert "01.png" in ws.get_manual_labeled_page_filenames("en")
+
+    # Verify overlay has no translated text for the manual bubble (forcing [Manual Label] display)
+    overlay = window.preview_pane.overlay
+    assert overlay._translations.get(new_b.id) is None
+
+    window.thumbnail_cache.thread_pool.waitForDone(2000)
+
+
+def test_footer_path_label_and_fullscreen_immersion(qtbot):
+    window = MainWindow()
+    qtbot.addWidget(window)
+    window.show()
+
+    # 1. Path label is in status_bar, not top_bar_widget
+    assert hasattr(window, "path_label")
+    assert window.path_label.parent() == window.status_bar
+    assert len(window.path_label.text()) > 0
+
+    # 2. Queue Manager button shows counter directly
+    assert hasattr(window, "queue_mgr_btn")
+    assert window.queue_mgr_btn.text() == "Queue Manager (0)"
+    assert not hasattr(window, "status_queue_pill")
+
+    # 3. Enter Fullscreen -> true immersive fullscreen (no menubar, no topbar, no sidebar panel, no footer)
+    window._toggle_fullscreen()
+    assert window.isFullScreen() is True
+    assert window.menuBar().isHidden() is True
+    assert window.top_bar_widget.isHidden() is True
+    assert window.folder_list.isHidden() is True
+    assert window.splitter.sizes()[0] == 0
+    assert window.thumbnail_strip.isHidden() is True
+    assert window.status_bar.isHidden() is True
+
+    # 4. Exit Fullscreen -> restored cleanly
+    window._toggle_fullscreen()
+    assert window.isFullScreen() is False
+    assert window.menuBar().isHidden() is False
+    assert window.top_bar_widget.isHidden() is False
+    assert window.folder_list.isHidden() is False
+    assert window.splitter.sizes()[0] > 0
+    assert window.thumbnail_strip.isHidden() is False
+    assert window.status_bar.isHidden() is False
+
+    window.thumbnail_cache.thread_pool.waitForDone(2000)
+
+
+
+
 
 
 

@@ -10,10 +10,54 @@ __pycache__/
 *$py.class
 .pytest_cache/
 
-# Build & Dist Artifacts
+# Build & Dist Artifacts (PyInstaller & Executables)
 build/
 dist/
 *.spec
+*.exe
+*.bin
+*.dll
+*.so
+*.dylib
+*.pyd
+FolderImagePreviewer*
+KomaShift*
+
+# Machine Learning & AI Models (Large Binaries)
+assets/models/
+*.onnx
+*.pt
+*.pth
+*.weights
+*.safetensors
+
+# OCR, Translation & Workspace Artifacts
+temp/
+*ocr_results*.json
+*translation_results*.json
+*.log
+translation.log
+
+# Generated Images, Debug Dumps & Sample Media
+debug_*
+*_box_review.*
+*_review.*
+*_whitened.*
+*_translated.*
+/*.webp
+/*.png
+/*.jpg
+# Graphify baseline
+graphify-out/*
+!graphify-out/graph.json
+
+# Explicitly keep repository assets
+!assets/*.png
+!assets/*.ico
+!assets/fonts/
+
+# Orca & Agent Workspace Artifacts
+skills/
 
 # Documentation & Superpowers
 docs/superpowers/
@@ -26,3 +70,4 @@ docs/
 *.swo
 .DS_Store
 Thumbs.db
+.agent

@@ -1,6 +1,6 @@
 MAJOR = 1
 MINOR = 0
-PATCH = 11
-BUILD = 11
+PATCH = 0
+BUILD = 0
 
 __version__ = f"{MAJOR}.{MINOR}.{PATCH}"
