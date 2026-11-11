@@ -8,10 +8,9 @@ from typing import Optional, Callable
 logger = logging.getLogger(__name__)
 
 try:
-    from huggingface_hub import try_to_load_from_cache, hf_hub_download
+    import huggingface_hub
 except ImportError:
-    try_to_load_from_cache = None
-    hf_hub_download = None
+    huggingface_hub = None
 
 COMIC_MODEL_URL = "https://github.com/ogkalu2/comic-text-detector/releases/download/v1.0.1/comic-text-detector.onnx"
 DEFAULT_CACHE_DIR = Path.home() / ".cache" / "komashift" / "models"
@@ -114,10 +113,10 @@ class AiAssetsManager:
             return enc.is_file() and dec.is_file()
 
         try:
-            if try_to_load_from_cache is None:
+            if huggingface_hub is None or not hasattr(huggingface_hub, "try_to_load_from_cache"):
                 return False
-            enc_cached = try_to_load_from_cache(target, "encoder_model.onnx")
-            dec_cached = try_to_load_from_cache(target, "decoder_model.onnx")
+            enc_cached = huggingface_hub.try_to_load_from_cache(target, "encoder_model.onnx")
+            dec_cached = huggingface_hub.try_to_load_from_cache(target, "decoder_model.onnx")
             return isinstance(enc_cached, str) and isinstance(dec_cached, str)
         except Exception as e:
             logger.debug(f"Failed to check Hugging Face cache for {target}: {e}")
