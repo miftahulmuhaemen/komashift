@@ -105,7 +105,7 @@ jobs:
           '
 
       - name: Compile Inno Setup Installer
-        uses: Minionguyjpro/Inno-Setup-Action@v1
+        uses: Minionguyjpro/Inno-Setup-Action@v1.3.0
         with:
           path: installer/komashift_setup.iss
           options: /DMyAppVersion=${{ env.APP_VERSION }}
