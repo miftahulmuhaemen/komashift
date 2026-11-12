@@ -47,9 +47,8 @@ debug_*
 /*.webp
 /*.png
 /*.jpg
-# Graphify baseline
-graphify-out/*
-!graphify-out/graph.json
+# Graphify
+graphify-out/
 
 # Explicitly keep repository assets
 !assets/*.png
