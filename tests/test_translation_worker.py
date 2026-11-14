@@ -406,6 +406,101 @@ def test_worker_passes_custom_ocr_and_acceleration_settings(tmp_path: Path):
     assert worker.detector._onnx_detector.force_cpu is True
 
 
+def test_worker_handles_bubble_model_download_failure(tmp_path: Path, qtbot):
+    from unittest.mock import patch
+    img1 = tmp_path / "01.png"
+    _create_dummy_image(img1)
+
+    detector = MangaOcrDetector()
+    detector.is_bubble_detector_available = MagicMock(return_value=False)
+
+    worker = TranslationWorker(
+        folder_path=tmp_path,
+        image_paths=[img1],
+        api_key="mock-key",
+        detector=detector,
+        engine_mode="hybrid"
+    )
+
+    with patch("src.services.ai_assets_manager.AiAssetsManager.download_comic_model", side_effect=RuntimeError("Network timeout")):
+        with qtbot.waitSignal(worker.translation_finished, timeout=5000) as blocker:
+            worker.start()
+        worker.wait()
+
+    success, msg = blocker.args
+    assert success is False
+    assert "Network timeout" in msg
+
+
+def test_worker_auto_downloads_missing_bubble_model(tmp_path: Path, qtbot):
+    from unittest.mock import patch
+    img1 = tmp_path / "01.png"
+    _create_dummy_image(img1)
+
+    fake_model_file = tmp_path / "comic-text-detector.onnx"
+    fake_model_file.write_text("dummy")
+
+    detector = MangaOcrDetector()
+    # Initially missing
+    detector.is_bubble_detector_available = MagicMock(return_value=False)
+
+    worker = TranslationWorker(
+        folder_path=tmp_path,
+        image_paths=[img1],
+        api_key="mock-key",
+        detector=detector,
+        engine_mode="hybrid"
+    )
+    # Stub workspace and translator so it completes
+    worker.workspace.is_translation_complete = MagicMock(return_value=True)
+
+    with patch("src.services.ai_assets_manager.AiAssetsManager.download_comic_model", return_value=fake_model_file) as mock_dl:
+        with qtbot.waitSignal(worker.translation_finished, timeout=5000) as blocker:
+            worker.start()
+        worker.wait()
+
+    assert mock_dl.called
+    success, msg = blocker.args
+    assert success is True
+
+
+def test_worker_multimodal_discards_stale_empty_cache(tmp_path: Path, qtbot):
+    img1 = tmp_path / "01.png"
+    _create_dummy_image(img1)
+
+    worker = TranslationWorker(
+        folder_path=tmp_path,
+        image_paths=[img1],
+        api_key="mock-key",
+        engine_mode="multimodal",
+        vision_scale_pct=50,
+        vision_quality=75
+    )
+
+    # Pre-populate empty cache (0 bubbles) from a previous broken run
+    page1 = PageTranslation("01.png", 400, 600, [])
+    worker.workspace.save_page_ocr(page1)
+    assert len(worker.workspace.load_ocr_results()) == 1
+
+    # Mock detector and translator
+    mock_detect = MagicMock(return_value=PageTranslation("01.png", 400, 600, [BubbleBlock("p1_b1", (10, 10, 50, 50), "こんにちは")]))
+    worker.detector.detect_page = mock_detect
+    worker.translator.translate_page_visual_hybrid = MagicMock(return_value={"p1_b1": "Hello"})
+
+    with qtbot.waitSignal(worker.translation_finished, timeout=5000) as blocker:
+        worker.start()
+    worker.wait()
+
+    success, msg = blocker.args
+    assert success is True
+    # Verify that detect_page was called because stale 0-bubble cache was purged
+    assert mock_detect.call_count == 1
+    assert worker.workspace.is_translation_complete() is True
+
+
+
+
+
 
 
 

@@ -77,7 +77,9 @@ def build():
         ps_path = Path("/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe")
         if ps_path.exists():
             print("Detected Linux/WSL environment. Auto-delegating build to Windows PowerShell to produce .exe...")
-            unc_path = r"\\wsl.localhost\Ubuntu\home\sahana\Code_Repository\personal\win-folder-thumbnail"
+            real_parent = Path(__file__).resolve().parent
+            unc_subpath = str(real_parent).replace("/", "\\")
+            unc_path = f"\\\\wsl.localhost\\Ubuntu{unc_subpath}"
             forward_flags = [arg for arg in sys.argv[1:] if arg != EXPLICIT_FLAG]
             extra = (" " + " ".join(forward_flags)) if forward_flags else ""
             cmd = [str(ps_path), "-NoProfile", "-Command", f"Set-Location '{unc_path}'; python build.py {EXPLICIT_FLAG}{extra}"]

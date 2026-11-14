@@ -2,7 +2,7 @@ import weakref
 from pathlib import Path
 from typing import Tuple, Optional, Callable, Set
 from collections import OrderedDict
-from PyQt6.QtCore import QObject, QRunnable, QThreadPool, pyqtSignal, pyqtSlot, Qt
+from PyQt6.QtCore import QObject, QRunnable, QThreadPool, QThread, pyqtSignal, pyqtSlot, Qt
 from PyQt6.QtGui import QPixmap, QImage
 
 from src.services.thumbnail_cache import create_thumbnail_image
@@ -93,3 +93,47 @@ class ThumbnailCache(QObject):
                 self.thread_pool.waitForDone(wait_ms)
             except Exception:
                 pass
+
+
+class QueuePreflightWorker(QThread):
+    """
+    Checks translation cache in the background before queue start,
+    detecting any existing translations without blocking the main GUI thread.
+    """
+    # Emits (job_id, page_desc, selected_paths, untranslated_paths) for any job with pre-existing cache
+    conflict_found = pyqtSignal(str, str, list, list)
+    preflight_finished = pyqtSignal()
+
+    def __init__(self, jobs: list, parent=None):
+        super().__init__(parent)
+        self.jobs = list(jobs)
+
+    def run(self):
+        from src.infra.json_workspace import JsonTempWorkspace
+        from src.models.translation_job import JobStatus, JobType
+
+        for job in self.jobs:
+            if self.isInterruptionRequested():
+                break
+            if job.status in (JobStatus.PENDING, JobStatus.PAUSED) and job.job_type == JobType.TRANSLATION:
+                selected = job.selected_image_paths if job.selected_image_paths else job.image_paths
+                if not selected:
+                    continue
+                ws = JsonTempWorkspace(job.folder_path)
+                if not ws.translation_file.exists():
+                    continue
+                try:
+                    translated_fns = ws.get_translated_page_filenames(job.target_lang)
+                except Exception:
+                    continue
+                cached_selected = [p for p in selected if p.name in translated_fns]
+                if cached_selected:
+                    untranslated = [p for p in selected if p.name not in translated_fns]
+                    if len(cached_selected) == len(selected):
+                        page_desc = f"all {len(selected)} selected image(s)"
+                    else:
+                        page_desc = f"{len(cached_selected)} of {len(selected)} selected image(s)"
+                    self.conflict_found.emit(job.id, page_desc, selected, untranslated)
+
+        self.preflight_finished.emit()
+

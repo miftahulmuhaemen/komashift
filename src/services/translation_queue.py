@@ -23,10 +23,15 @@ class TranslationQueueManager(QObject):
         self.detector = detector
         self.jobs: List[TranslationJob] = []
         self._is_running = False
+        self._is_stopping = False
         self._current_worker: Optional[TranslationWorker] = None
         self._current_job: Optional[TranslationJob] = None
         self._is_model_downloading = False
         self._model_download_message = ""
+
+    @property
+    def is_stopping(self) -> bool:
+        return self._is_stopping or bool(self._current_worker and self._current_worker.isRunning() and not self._is_running)
 
     @property
     def is_model_downloading(self) -> bool:
@@ -148,6 +153,13 @@ class TranslationQueueManager(QObject):
     def start_queue(self):
         if self._is_running:
             return
+
+        # Resume any paused jobs back to pending
+        for j in self.jobs:
+            if j.status == JobStatus.PAUSED:
+                j.status = JobStatus.PENDING
+                j.status_message = "Pending in queue"
+
         if not any(j.status == JobStatus.PENDING for j in self.jobs):
             # If all are failed/completed, restart failed or return
             has_failed = False
@@ -160,15 +172,19 @@ class TranslationQueueManager(QObject):
                 return
 
         self._is_running = True
+        self._is_stopping = False
         self.queue_state_changed.emit(True)
         # Soft start: yield back to Qt event loop so UI repaints immediately without stutter
         QTimer.singleShot(40, self._process_next)
 
     def pause_queue(self):
         self._is_running = False
-        self.queue_state_changed.emit(False)
         if self._current_worker and self._current_worker.isRunning():
+            self._is_stopping = True
             self._current_worker.requestInterruption()
+        else:
+            self._is_stopping = False
+        self.queue_state_changed.emit(False)
 
     def stop_queue(self):
         """Alias for pause_queue for semantic clarity."""
@@ -180,7 +196,7 @@ class TranslationQueueManager(QObject):
 
         next_job: Optional[TranslationJob] = None
         for j in self.jobs:
-            if j.status == JobStatus.PENDING:
+            if j.status in (JobStatus.PENDING, JobStatus.PAUSED):
                 next_job = j
                 break
 
@@ -283,12 +299,17 @@ class TranslationQueueManager(QObject):
             self.job_progress.emit(self._current_job.id, message, current, total)
 
     def _on_worker_finished(self, success: bool, message: str):
+        self._is_stopping = False
         if self._current_job:
             job_id = self._current_job.id
             failed_images = list(getattr(self._current_worker, "failed_image_paths", []))
             was_cancelled = (message == "Cancelled by user")
 
-            if not was_cancelled and failed_images and self._current_job.retry_count < self._current_job.max_retries:
+            if was_cancelled:
+                self._current_job.status = JobStatus.PAUSED
+                self._current_job.status_message = "Paused"
+                self._current_job.error_message = None
+            elif not was_cancelled and failed_images and self._current_job.retry_count < self._current_job.max_retries:
                 if success:
                     self._current_job.status = JobStatus.COMPLETED
                     self._current_job.progress_pct = 100

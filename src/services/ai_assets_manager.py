@@ -12,7 +12,7 @@ try:
 except ImportError:
     huggingface_hub = None
 
-COMIC_MODEL_URL = "https://github.com/ogkalu2/comic-text-detector/releases/download/v1.0.1/comic-text-detector.onnx"
+COMIC_MODEL_URL = "https://huggingface.co/dreMaz/mit_models/resolve/main/comictextdetector.pt.onnx"
 DEFAULT_CACHE_DIR = Path.home() / ".cache" / "komashift" / "models"
 DEFAULT_OCR_MODEL = "mayocream/manga-ocr-onnx"
 

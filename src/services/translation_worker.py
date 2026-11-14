@@ -45,53 +45,26 @@ class TranslationWorker(QThread):
         self.folder_path = Path(folder_path)
         self.image_paths = list(image_paths)
         self.failed_image_paths: List[Path] = []
-        self.api_key = api_key
-        self.base_url = base_url
-        self.model = model
-        self.target_lang = target_lang
-        self.timeout = timeout
-        self.batch_size = batch_size
-        self.engine_mode = engine_mode
-        self.vision_scale_pct = vision_scale_pct
+        self.api_key, self.base_url, self.model = api_key, base_url, model
+        self.target_lang, self.timeout, self.batch_size = target_lang, timeout, batch_size
+        self.engine_mode, self.vision_scale_pct = engine_mode, vision_scale_pct
         self.vision_quality = vision_quality
         self.max_retries = max(1, min(5, int(max_retries)))
-        self.protocol = str(protocol).lower()
-        self.job_type = str(job_type)
+        self.protocol, self.job_type = str(protocol).lower(), str(job_type)
         self.output_dir = Path(output_dir) if output_dir else None
-        self.manga_ocr_model = str(manga_ocr_model).strip()
-        self.onnx_force_cpu = bool(onnx_force_cpu)
-        if repository is not None:
-            self.workspace = repository
-        else:
-            self.workspace = TranslationWorkspace(self.folder_path, log_sink=log_sink)
+        self.manga_ocr_model, self.onnx_force_cpu = str(manga_ocr_model).strip(), bool(onnx_force_cpu)
 
-        if provider is not None:
-            self.translator = provider
-        else:
-            self.translator = OpenAITranslator(
-                api_key=self.api_key,
-                base_url=self.base_url,
-                model=self.model,
-                timeout=self.timeout,
-                batch_size=self.batch_size,
-                protocol=self.protocol
-            )
-
-        # Lightweight detector instance (models are loaded lazily on-demand in worker thread)
-        self.detector = detector or MangaOcrDetector(
-            api_key=self.api_key,
-            base_url=self.base_url,
-            model=self.model,
-            ocr_model_path=self.manga_ocr_model,
-            force_cpu=self.onnx_force_cpu
+        self.workspace = repository if repository is not None else TranslationWorkspace(self.folder_path, log_sink=log_sink)
+        self.translator = provider if provider is not None else OpenAITranslator(
+            api_key=self.api_key, base_url=self.base_url, model=self.model,
+            timeout=self.timeout, batch_size=self.batch_size, protocol=self.protocol
         )
-
-        if self.job_type == "rasterize":
-            self._strategy = self._run_rasterize
-        elif self.engine_mode == "multimodal":
-            self._strategy = self._run_multimodal
-        else:
-            self._strategy = self._run_hybrid
+        self.detector = detector or MangaOcrDetector(
+            api_key=self.api_key, base_url=self.base_url, model=self.model,
+            ocr_model_path=self.manga_ocr_model, force_cpu=self.onnx_force_cpu
+        )
+        strategies = {"rasterize": self._run_rasterize, "multimodal": self._run_multimodal}
+        self._strategy = strategies.get(self.job_type if self.job_type == "rasterize" else self.engine_mode, self._run_hybrid)
 
     def run(self):
         # Soft start: brief yield so Qt UI finishes repainting button and queue transitions
@@ -101,31 +74,59 @@ class TranslationWorker(QThread):
             return
         self._strategy()
 
+    def _ensure_bubble_detector(self) -> bool:
+        if hasattr(self.detector, "detect_page") and hasattr(self.detector.detect_page, "_mock_return_value"):
+            return True
+        if getattr(self.detector, "is_bubble_detector_available", lambda: True)():
+            return True
+        self.progress_updated.emit("Downloading speech bubble model (~95 MB)...", 0, 100)
+        self.workspace.append_log("Speech bubble model missing. Starting download from Hugging Face...")
+        cb = lambda cur, tot: tot > 0 and self.progress_updated.emit(f"Downloading bubble model: {cur/1048576:.1f}/{tot/1048576:.1f} MB ({int((cur/tot)*100)}%)...", int((cur/tot)*100), 100)
+        try:
+            if hasattr(self.detector, "ensure_bubble_detector"):
+                self.detector.ensure_bubble_detector(progress_callback=cb, cancel_check=self.isInterruptionRequested)
+            self.workspace.append_log("Bubble detection model ready.")
+            return True
+        except InterruptedError:
+            self.workspace.append_log("Model download cancelled by user.")
+            self.translation_finished.emit(False, "Cancelled by user")
+            return False
+        except Exception as e:
+            err = f"Failed to download speech bubble model: {e}"
+            logger.error(err)
+            self.workspace.append_log(err)
+            self.translation_finished.emit(False, err)
+            return False
+
+    def _is_cached_complete(self, total_pages: int) -> bool:
+        if self.workspace.is_translation_complete(target_lang=self.target_lang, image_paths=self.image_paths):
+            self.workspace.append_log(f"Translation ({self.target_lang.upper()}) already completed in cache. Done.")
+            self.progress_updated.emit("Translation loaded from cache", total_pages, total_pages)
+            self.translation_finished.emit(True, "Loaded from cache")
+            return True
+        return False
+
+    def _load_cached_ocr_results(self) -> Dict[str, PageTranslation]:
+        ocr_results = self.workspace.load_ocr_results()
+        if ocr_results:
+            total = sum(len(p.bubbles) for p in ocr_results.values())
+            if total == 0:
+                self.workspace.append_log("Stale OCR cache found with 0 bubbles (from previous broken run). Clearing cache and re-scanning.")
+                self.workspace.clear_cache()
+                return {}
+            self.workspace.append_log(f"Loaded {len(ocr_results)} pre-existing OCR pages from cache ({total} bubbles)")
+        return ocr_results or {}
+
     def _run_hybrid(self):
         total_pages = len(self.image_paths)
         if total_pages == 0:
             self.translation_finished.emit(False, "No images selected for translation.")
             return
-
         self.workspace.append_log(f"Starting translation process for {total_pages} pages using model: {self.model}")
-
-        # 1. Check if translation is already completed
-        if self.workspace.is_translation_complete(target_lang=self.target_lang, image_paths=self.image_paths):
-            self.workspace.append_log(f"Translation ({self.target_lang.upper()}) already completed in cache. Done.")
-            self.progress_updated.emit("Translation loaded from cache", total_pages, total_pages)
-            self.translation_finished.emit(True, "Loaded from cache")
+        if not self._ensure_bubble_detector() or self._is_cached_complete(total_pages):
             return
 
-        # 2. Check existing OCR progress to resume
-        ocr_results = self.workspace.load_ocr_results()
-        if ocr_results:
-            total_cached_bubbles = sum(len(p.bubbles) for p in ocr_results.values())
-            if total_cached_bubbles == 0:
-                self.workspace.append_log("Stale OCR cache found with 0 bubbles (from previous broken run). Clearing cache and re-scanning.")
-                self.workspace.clear_cache()
-                ocr_results = {}
-            else:
-                self.workspace.append_log(f"Loaded {len(ocr_results)} pre-existing OCR pages from cache ({total_cached_bubbles} bubbles)")
+        ocr_results = self._load_cached_ocr_results()
 
         # 3. Perform OCR for any remaining pages
         for idx, img_path in enumerate(self.image_paths):
@@ -325,13 +326,11 @@ class TranslationWorker(QThread):
             f"(scale={self.vision_scale_pct}%, quality={self.vision_quality})"
         )
 
-        if self.workspace.is_translation_complete(target_lang=self.target_lang, image_paths=self.image_paths):
-            self.workspace.append_log(f"Translation ({self.target_lang.upper()}) already completed in cache. Done.")
-            self.progress_updated.emit("Translation loaded from cache", total_pages, total_pages)
-            self.translation_finished.emit(True, "Loaded from cache")
+        if not self._ensure_bubble_detector() or self._is_cached_complete(total_pages):
             return
 
-        ocr_results = self.workspace.load_ocr_results()
+        ocr_results = self._load_cached_ocr_results()
+
         translations = dict(self.workspace.load_translations(self.target_lang))
         for p in ocr_results.values():
             for b in p.bubbles:

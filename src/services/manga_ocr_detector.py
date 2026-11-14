@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from typing import Optional, List, Tuple
+from typing import Optional, List, Tuple, Callable
 from PIL import Image, ImageStat
 from src.models.translation_item import PageTranslation, BubbleBlock
 from src.services.onnx_bubble_detector import OnnxBubbleDetector
@@ -49,6 +49,32 @@ class MangaOcrDetector:
         except Exception as e:
             logger.warning(f"Could not initialize local manga-ocr engine: {e}")
             self._engine = None
+
+    def is_bubble_detector_available(self) -> bool:
+        """Returns True if local speech bubble detection model is available."""
+        return bool(self._onnx_detector and self._onnx_detector.is_available())
+
+    def ensure_bubble_detector(
+        self,
+        progress_callback: Optional[Callable[[int, int], None]] = None,
+        cancel_check: Optional[Callable[[], bool]] = None
+    ) -> bool:
+        """
+        Ensures local speech bubble detection model is available on disk.
+        If missing, downloads it automatically via AiAssetsManager.
+        """
+        if self.is_bubble_detector_available():
+            return True
+        from src.services.ai_assets_manager import AiAssetsManager
+        model_path = AiAssetsManager().download_comic_model(
+            progress_callback=progress_callback,
+            cancel_check=cancel_check
+        )
+        if self._onnx_detector:
+            self._onnx_detector.model_path = model_path
+            self._onnx_detector._available = None
+            self._onnx_detector._session = None
+        return True
 
     def recognize_crop(self, crop_img: Image.Image) -> str:
         """Run local OCR on a cropped image region, returning recognized text."""
@@ -358,6 +384,14 @@ class MangaOcrDetector:
                     logger.warning(err_msg)
                     if log_callback:
                         log_callback(err_msg)
+            else:
+                err_msg = (
+                    f"Speech bubble detection model (comic-text-detector.onnx) is missing. "
+                    f"Cannot detect dialogue bubbles on {image_path.name}."
+                )
+                logger.warning(err_msg)
+                if log_callback:
+                    log_callback(err_msg)
 
             if not detected_bboxes:
                 msg = f"No speech bubbles detected on {image_path.name}"

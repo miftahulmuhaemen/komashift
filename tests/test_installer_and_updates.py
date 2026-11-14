@@ -78,3 +78,28 @@ def test_ai_assets_manager_resolution(tmp_path: Path):
     resolved = manager.get_comic_model_path()
     assert resolved == fake_model
     assert manager.is_comic_model_available() is True
+
+
+def test_comic_model_url_validity():
+    from src.services.ai_assets_manager import COMIC_MODEL_URL
+    assert "huggingface.co" in COMIC_MODEL_URL
+    assert "comictextdetector.pt.onnx" in COMIC_MODEL_URL
+
+
+def test_inno_setup_script_structure():
+    iss_path = Path(__file__).parent.parent / "installer" / "komashift_setup.iss"
+    assert iss_path.is_file()
+    content = iss_path.read_text(encoding="utf-8")
+    assert "DefaultDirName={localappdata}\\Programs\\{#MyAppName}" in content
+    assert "PrivilegesRequired=lowest" in content
+
+
+def test_manga_ocr_detector_bubble_detector_availability():
+    from src.services.manga_ocr_detector import MangaOcrDetector
+    detector = MangaOcrDetector()
+    detector._onnx_detector.is_available = MagicMock(return_value=True)
+    assert detector.is_bubble_detector_available() is True
+
+    detector._onnx_detector.is_available = MagicMock(return_value=False)
+    assert detector.is_bubble_detector_available() is False
+

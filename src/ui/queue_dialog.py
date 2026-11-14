@@ -18,100 +18,10 @@ from src.infra.file_log_sink import FileLogSink
 from src.services.scanner import natural_sort_key
 from src.services.thumbnail_cache import create_thumbnail_pixmap
 from src.ui.settings_dialog import ApiTranslationSettingsWidget
+from src.ui.page_preview_popup import PageThumbnailHoverPopup
+from src.infra.qt_threads import QueuePreflightWorker
 
 logger = logging.getLogger(__name__)
-
-
-class PageThumbnailHoverPopup(QWidget):
-    """Floating hover preview for pages in the Queue Pages tab."""
-    def __init__(self, parent=None, thumbnail_cache=None):
-        super().__init__(parent, Qt.WindowType.ToolTip | Qt.WindowType.FramelessWindowHint)
-        self.thumbnail_cache = thumbnail_cache
-        self._current_path: Optional[str] = None
-        self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating)
-        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
-
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-
-        self.frame = QFrame(self)
-        self.frame.setStyleSheet("""
-            QFrame {
-                background-color: #18181b;
-                border: 1px solid #38bdf8;
-                border-radius: 6px;
-            }
-        """)
-        frame_layout = QVBoxLayout(self.frame)
-        frame_layout.setContentsMargins(6, 6, 6, 6)
-        frame_layout.setSpacing(4)
-
-        self.img_label = QLabel()
-        self.img_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.img_label.setFixedSize(110, 140)
-        self.img_label.setStyleSheet("background-color: #09090b; border-radius: 4px; color: #94a3b8; font-size: 11px;")
-        frame_layout.addWidget(self.img_label)
-
-        self.caption_label = QLabel()
-        self.caption_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.caption_label.setStyleSheet("color: #cbd5e1; font-size: 11px; font-weight: 500;")
-        self.caption_label.setMaximumWidth(110)
-        self.caption_label.setWordWrap(True)
-        frame_layout.addWidget(self.caption_label)
-
-        layout.addWidget(self.frame)
-        self.hide()
-
-    def show_page(self, img_path: Path, caption: str, global_pos: QPoint):
-        path_str = str(img_path)
-        self._current_path = path_str
-        self.caption_label.setText(img_path.name)
-
-        target_size = (110, 140)
-        pix = None
-        if self.thumbnail_cache:
-            pix = self.thumbnail_cache.get(img_path, target_size)
-            if not pix:
-                self.img_label.setText("Loading...")
-                self.thumbnail_cache.load_async(
-                    img_path,
-                    target_size,
-                    lambda p, loaded_pix: self._on_thumb_loaded(p, loaded_pix)
-                )
-        if not pix and not self.thumbnail_cache:
-            pix = create_thumbnail_pixmap(img_path, target_size)
-
-        if pix and not pix.isNull():
-            self.img_label.setPixmap(pix.scaled(
-                110, 140,
-                Qt.AspectRatioMode.KeepAspectRatio,
-                Qt.TransformationMode.SmoothTransformation
-            ))
-
-        screen = QGuiApplication.primaryScreen()
-        target_x = global_pos.x() + 20
-        target_y = global_pos.y() - 70
-        if screen:
-            screen_geom = screen.availableGeometry()
-            if target_x + 130 > screen_geom.right():
-                target_x = global_pos.x() - 140
-            if target_y < screen_geom.top():
-                target_y = screen_geom.top() + 10
-            elif target_y + 175 > screen_geom.bottom():
-                target_y = screen_geom.bottom() - 180
-
-        self.move(target_x, target_y)
-        self.show()
-        self.raise_()
-
-    def _on_thumb_loaded(self, path_str: str, pix: QPixmap):
-        if self._current_path == path_str and self.isVisible():
-            if pix and not pix.isNull():
-                self.img_label.setPixmap(pix.scaled(
-                    110, 140,
-                    Qt.AspectRatioMode.KeepAspectRatio,
-                    Qt.TransformationMode.SmoothTransformation
-                ))
 
 
 class JobListItemWidget(QWidget):
@@ -240,6 +150,10 @@ class JobListItemWidget(QWidget):
             self.status_badge.setText(f" {self.job.progress_pct}% ")
             self.status_badge.setStyleSheet("background-color: #0284c7; color: #f0f9ff; font-size: 10px; font-weight: bold; border-radius: 3px; padding: 2px 4px;")
             self.progress_bar.setStyleSheet("QProgressBar { background-color: #1e1e24; border-radius: 3px; } QProgressBar::chunk { background-color: #38bdf8; border-radius: 3px; }")
+        elif self.job.status == JobStatus.PAUSED:
+            self.status_badge.setText(" Paused ")
+            self.status_badge.setStyleSheet("background-color: #d97706; color: #fffbeb; font-size: 10px; font-weight: bold; border-radius: 3px; padding: 2px 4px;")
+            self.progress_bar.setStyleSheet("QProgressBar { background-color: #1e1e24; border-radius: 3px; } QProgressBar::chunk { background-color: #f59e0b; border-radius: 3px; }")
         elif self.job.status == JobStatus.FAILED:
             self.status_badge.setText(" Failed ")
             self.status_badge.setStyleSheet("background-color: #b91c1c; color: #fef2f2; font-size: 10px; font-weight: bold; border-radius: 3px; padding: 2px 4px;")
@@ -258,6 +172,8 @@ class QueueDialog(QDialog):
         self.settings = settings or QSettings("KomaShift", "KomaShift")
         self.thumbnail_cache = thumbnail_cache
         self._is_populating_pages = False
+        self._preflight_worker: Optional[QueuePreflightWorker] = None
+        self._last_inspected_job_id: Optional[str] = None
         self.setWindowTitle("Translation Queue")
         self.setMinimumSize(800, 560)
         self.resize(880, 600)
@@ -572,65 +488,75 @@ class QueueDialog(QDialog):
     def _toggle_queue(self):
         if self.queue_manager.is_running:
             self.queue_manager.pause_queue()
+            self._update_controls()
         else:
-            # Check if any pending translation job has selected images that are already translated
-            for job in self.queue_manager.jobs:
-                if job.status == JobStatus.PENDING and job.job_type == JobType.TRANSLATION:
-                    selected = job.selected_image_paths if job.selected_image_paths else job.image_paths
-                    if not selected:
-                        continue
-                    ws = TranslationWorkspace(job.folder_path)
-                    translated_fns = ws.get_translated_page_filenames(job.target_lang)
-                    cached_selected = [p for p in selected if p.name in translated_fns]
+            if self._preflight_worker and self._preflight_worker.isRunning():
+                return
+            self.start_btn.setEnabled(False)
+            self.start_btn.setText("Checking...")
+            self._preflight_worker = QueuePreflightWorker(self.queue_manager.jobs, parent=self)
+            self._preflight_worker.conflict_found.connect(self._on_preflight_conflict)
+            self._preflight_worker.preflight_finished.connect(self._on_preflight_finished)
+            self._preflight_worker.start()
 
-                    if cached_selected:
-                        if len(cached_selected) == len(selected):
-                            page_desc = f"all {len(selected)} selected image(s)"
-                        else:
-                            page_desc = f"{len(cached_selected)} of {len(selected)} selected image(s)"
+    def _on_preflight_conflict(self, job_id: str, page_desc: str, selected: list, untranslated: list):
+        target_job = next((j for j in self.queue_manager.jobs if j.id == job_id), None)
+        if not target_job:
+            return
 
-                        reply = QMessageBox.question(
-                            self,
-                            "Translation Cache Found",
-                            f"Translation ({job.lang_display}) data already exists for {page_desc} in '{job.folder_name}'.\n\n"
-                            "Would you like to re-scan and translate them again from scratch?\n\n"
-                            "- Yes: Re-translate and overwrite cached pages.\n"
-                            "- No: Skip already translated pages and only process untranslated ones.",
-                            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No | QMessageBox.StandardButton.Cancel,
-                            QMessageBox.StandardButton.No
-                        )
-                        if reply == QMessageBox.StandardButton.Cancel:
-                            return
-                        elif reply == QMessageBox.StandardButton.No:
-                            untranslated = [p for p in selected if p.name not in translated_fns]
-                            if not untranslated:
-                                job.status = JobStatus.COMPLETED
-                                job.status_message = "All selected pages already translated"
-                                continue
-                            job.selected_image_paths = untranslated
+        reply = QMessageBox.question(
+            self,
+            "Translation Cache Found",
+            f"Translation ({target_job.lang_display}) data already exists for {page_desc} in '{target_job.folder_name}'.\n\n"
+            "Would you like to re-scan and translate them again from scratch?\n\n"
+            "- Yes: Re-translate and overwrite cached pages.\n"
+            "- No: Skip already translated pages and only process untranslated ones.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No | QMessageBox.StandardButton.Cancel,
+            QMessageBox.StandardButton.No
+        )
+        if reply == QMessageBox.StandardButton.Cancel:
+            if self._preflight_worker and self._preflight_worker.isRunning():
+                self._preflight_worker.requestInterruption()
+                self._preflight_worker.wait(500)
+                self._preflight_worker = None
+            self._update_controls()
+        elif reply == QMessageBox.StandardButton.No:
+            if not untranslated:
+                target_job.status = JobStatus.COMPLETED
+                target_job.status_message = "All selected pages already translated"
+            else:
+                target_job.selected_image_paths = list(untranslated)
 
-            self.queue_manager.start_queue()
-            QApplication.processEvents()
+    def _on_preflight_finished(self):
+        self._preflight_worker = None
+        self.queue_manager.start_queue()
         self._update_controls()
-        QApplication.processEvents()
 
     def _update_controls(self):
         is_running = self.queue_manager.is_running
+        is_stopping = getattr(self.queue_manager, "is_stopping", False)
         pending = self.queue_manager.pending_count
 
-        if is_running:
+        if is_stopping:
+            self.start_btn.setText("Pausing...")
+            self.start_btn.setEnabled(False)
+        elif is_running:
             self.start_btn.setText("Pause Queue")
             self.start_btn.setEnabled(True)
         else:
-            self.start_btn.setText("Start Queue")
+            has_paused = any(j.status == JobStatus.PAUSED for j in self.queue_manager.jobs)
             can_start = any(
-                j.status == JobStatus.PENDING and j.selected_count > 0 for j in self.queue_manager.jobs
+                j.status in (JobStatus.PENDING, JobStatus.PAUSED) and j.selected_count > 0 for j in self.queue_manager.jobs
             ) or any(j.status == JobStatus.FAILED for j in self.queue_manager.jobs)
+            self.start_btn.setText("Resume Queue" if has_paused else "Start Queue")
             self.start_btn.setEnabled(can_start)
+
         self.pending_label.setText(f"{pending} jobs pending")
 
         active = self.queue_manager.active_job
-        if is_running and active:
+        if is_stopping:
+            self.status_label.setText("Pausing queue gracefully...")
+        elif is_running and active:
             self.status_label.setText(f"Processing: {active.folder_name} ({active.progress_pct}%)")
         else:
             self.status_label.setText("Idle" if not is_running else "Finishing...")
@@ -675,6 +601,7 @@ class QueueDialog(QDialog):
 
     def _refresh_list(self):
         current_row = self.list_widget.currentRow()
+        self._last_inspected_job_id = None
         self.list_widget.clear()
 
         for job in self.queue_manager.jobs:
@@ -728,6 +655,7 @@ class QueueDialog(QDialog):
         return super().eventFilter(watched, event)
 
     def _on_job_selected(self, row: int):
+        self._last_inspected_job_id = None
         self._update_inspector()
 
     def _update_pages_count_label(self, job: TranslationJob):
@@ -864,6 +792,7 @@ class QueueDialog(QDialog):
     def _update_inspector(self):
         row = self.list_widget.currentRow()
         if row < 0 or row >= len(self.queue_manager.jobs):
+            self._last_inspected_job_id = None
             self.pages_count_label.setText("No job selected")
             self.pages_list.clear()
             if hasattr(self, "pages_sort_combo"):
@@ -875,7 +804,11 @@ class QueueDialog(QDialog):
             return
 
         job = self.queue_manager.jobs[row]
-        self._populate_pages_list(job)
+        if self._last_inspected_job_id != job.id:
+            self._last_inspected_job_id = job.id
+            self._populate_pages_list(job)
+        else:
+            self._update_pages_count_label(job)
 
         job_type_label = "Permanent Rasterization (Rasterize)" if job.job_type == JobType.RASTERIZE else "Translation Overlay"
         if job.lang_display == "Mix-Lang":
