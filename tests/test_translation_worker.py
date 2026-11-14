@@ -498,6 +498,55 @@ def test_worker_multimodal_discards_stale_empty_cache(tmp_path: Path, qtbot):
     assert worker.workspace.is_translation_complete() is True
 
 
+def test_worker_two_pass_multimodal_perception(tmp_path: Path, qtbot):
+    img1 = tmp_path / "01.png"
+    _create_dummy_image(img1)
+
+    worker = TranslationWorker(
+        folder_path=tmp_path,
+        image_paths=[img1],
+        api_key="mock-key",
+        engine_mode="multimodal"
+    )
+
+    # 1. Bubble detection returns bubble with empty text (geometry only)
+    mock_detect = MagicMock(return_value=PageTranslation("01.png", 800, 1200, [BubbleBlock("p1_b1", (10, 10, 50, 50), "")]))
+    worker.detector.detect_page = mock_detect
+
+    # 2. Pass 1: Visual perception extracts text_ja + stage metadata
+    mock_perceive = MagicMock(return_value={
+        "p1_b1": {
+            "text_ja": "待って！",
+            "speaker": "Heroine",
+            "expression": "Desperate",
+            "speech_type": "Spoken dialogue"
+        }
+    })
+    worker.translator.perceive_page_visual_context = mock_perceive
+
+    # 3. Pass 2: Chapter translation receives visual context and returns translation
+    mock_translate_chapter = MagicMock(return_value={"p1_b1": "Wait!"})
+    worker.translator.translate_chapter = mock_translate_chapter
+
+    with qtbot.waitSignal(worker.translation_finished, timeout=5000) as blocker:
+        worker.start()
+    worker.wait()
+
+    success, msg = blocker.args
+    assert success is True
+    assert mock_perceive.call_count == 1
+    assert mock_translate_chapter.call_count == 1
+
+    # Verify translations and enriched OCR results
+    trans = worker.workspace.load_translations()
+    assert trans["p1_b1"] == "Wait!"
+
+    ocr_res = worker.workspace.load_ocr_results()
+    assert ocr_res["01.png"].bubbles[0].speaker == "Heroine"
+    assert ocr_res["01.png"].bubbles[0].expression == "Desperate"
+
+
+
 
 
 

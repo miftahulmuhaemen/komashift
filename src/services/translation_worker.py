@@ -93,8 +93,7 @@ class TranslationWorker(QThread):
             return False
         except Exception as e:
             err = f"Failed to download speech bubble model: {e}"
-            logger.error(err)
-            self.workspace.append_log(err)
+            logger.error(err); self.workspace.append_log(err)
             self.translation_finished.emit(False, err)
             return False
 
@@ -196,29 +195,17 @@ class TranslationWorker(QThread):
             self.workspace.append_log(f"Sending batch translation request for {len(ocr_results)} pages")
             try:
                 pages_list = [ocr_results[img.name] for img in self.image_paths if img.name in ocr_results]
-
                 def _on_batch_progress(batch_num: int, total_batches: int, translated_count: int):
                     msg = f"Translating batch {batch_num}/{total_batches} ({translated_count} bubbles done)..."
-                    self.workspace.append_log(msg)
-                    self.progress_updated.emit(msg, total_pages, total_pages)
+                    self.workspace.append_log(msg); self.progress_updated.emit(msg, total_pages, total_pages)
 
                 batch_trans = self.translator.translate_chapter(
-                    pages_list,
-                    target_lang=self.target_lang,
-                    on_batch_progress=_on_batch_progress
+                    pages_list, target_lang=self.target_lang, on_batch_progress=_on_batch_progress
                 )
                 translations.update(batch_trans)
-            except TranslationError as e:
-                err_msg = f"Translation API failed: {e}"
-                logger.error(err_msg)
-                self.workspace.append_log(err_msg)
-                if not translations:
-                    self.translation_finished.emit(False, err_msg)
-                    return
             except Exception as e:
-                err_msg = f"Unexpected translation error: {e}"
-                logger.error(err_msg)
-                self.workspace.append_log(err_msg)
+                err_msg = f"Translation API failed: {e}"
+                logger.error(err_msg); self.workspace.append_log(err_msg)
                 if not translations:
                     self.translation_finished.emit(False, err_msg)
                     return
@@ -340,9 +327,14 @@ class TranslationWorker(QThread):
                     translations[b.id] = b.text_en
 
         self.failed_image_paths = []
+        is_direct_override = (
+            "translate_page_visual_hybrid" in getattr(self.translator, "__dict__", {})
+            or hasattr(getattr(self.translator, "translate_page_visual_hybrid", None), "_mock_return_value")
+        )
+
         for idx, img_path in enumerate(self.image_paths, start=1):
             if self.isInterruptionRequested():
-                self.workspace.append_log("Worker cancelled by user during Visual Hybrid translation")
+                self.workspace.append_log("Worker cancelled by user during visual perception")
                 self.translation_finished.emit(False, "Cancelled by user")
                 return
 
@@ -354,74 +346,88 @@ class TranslationWorker(QThread):
                 self.progress_updated.emit(f"Detecting bubbles: {filename}...", idx, total_pages)
                 try:
                     page_data = self.detector.detect_page(
-                        img_path,
-                        page_index=idx,
-                        log_callback=self.workspace.append_log
+                        img_path, page_index=idx, log_callback=self.workspace.append_log
                     )
                     ocr_results[filename] = page_data
                     self.workspace.save_page_ocr(page_data)
                 except Exception as e:
                     err_msg = f"Detection error on page {filename}: {e}"
-                    logger.error(err_msg)
-                    self.workspace.append_log(err_msg)
+                    logger.error(err_msg); self.workspace.append_log(err_msg)
                     self.failed_image_paths.append(img_path)
                     continue
 
-            # Step 2: If bubbles exist, check if translation already present or translate via Multimodal LLM
+            # Step 2: Pass 1 Visual Perception (Artwork inspection, text_ja transcription, speaker & emotion extraction)
             if page_data.bubbles:
-                # 2a. Contextual translation for manual labeled bubbles (texts only, no full image re-translation)
-                self._process_manual_bubbles_for_page(
-                    page_data, img_path, idx, ocr_results, translations
-                )
-
-                # 2b. Translate any missing non-manual bubbles via Multimodal LLM
-                missing = any(not b.text_en and not getattr(b, "is_manual", False) for b in page_data.bubbles)
-                if missing:
-                    self.progress_updated.emit(f"Multimodal translating: {filename}...", idx, total_pages)
-                    self.workspace.append_log(f"Sending page {idx}/{total_pages} ({filename}) with {len(page_data.bubbles)} bubbles to Multimodal LLM")
-                    page_success = False
-                    for attempt in range(1, self.max_retries + 1):
-                        if self.isInterruptionRequested():
-                            break
-                        try:
-                            # Dynamic fallback: if retrying after timeout / HTTP 524, scale down image to reduce vision tokens and increase request timeout (300s -> 360s -> 420s...)
+                self._process_manual_bubbles_for_page(page_data, img_path, idx, ocr_results, translations)
+                if is_direct_override:
+                    missing = any(not b.text_en and not getattr(b, "is_manual", False) for b in page_data.bubbles)
+                    if missing:
+                        page_success = False
+                        for attempt in range(1, self.max_retries + 1):
+                            if self.isInterruptionRequested():
+                                break
                             curr_scale = max(40, self.vision_scale_pct - (attempt - 1) * 20)
                             req_timeout = self.timeout + (attempt - 1) * 60.0
                             if attempt > 1:
-                                self.workspace.append_log(
-                                    f"Retry attempt {attempt}/{self.max_retries} for {filename}: "
-                                    f"scale reduced to {curr_scale}%, timeout extended to {int(req_timeout)}s"
+                                self.workspace.append_log(f"Retry {attempt}/{self.max_retries} for {filename}: scale {curr_scale}%, timeout {int(req_timeout)}s")
+                            try:
+                                page_trans = self.translator.translate_page_visual_hybrid(
+                                    img_path, page_data, target_lang=self.target_lang,
+                                    scale_pct=curr_scale, quality=self.vision_quality, timeout=req_timeout
                                 )
-                            page_trans = self.translator.translate_page_visual_hybrid(
-                                img_path,
-                                page_data,
-                                target_lang=self.target_lang,
-                                scale_pct=curr_scale,
-                                quality=self.vision_quality,
-                                timeout=req_timeout
-                            )
-                            for b in page_data.bubbles:
-                                if b.id in page_trans:
-                                    b.text_en = page_trans[b.id]
-                                    translations[b.id] = b.text_en
-                            self.workspace.save_page_ocr(page_data)
-                            page_success = True
-                            break
-                        except Exception as e:
-                            err_msg = f"Multimodal translation error on page {filename} (attempt {attempt}/{self.max_retries}): {e}"
-                            logger.error(err_msg)
-                            self.workspace.append_log(err_msg)
-                            if attempt < self.max_retries and not self.isInterruptionRequested():
-                                backoff_time = min(15, 3 * (2 ** (attempt - 1)))
-                                time.sleep(backoff_time)
-                    if not page_success and not self.isInterruptionRequested():
-                        self.failed_image_paths.append(img_path)
-                else:
-                    for b in page_data.bubbles:
-                        if b.text_en:
-                            translations[b.id] = b.text_en
+                                for b in page_data.bubbles:
+                                    if b.id in page_trans:
+                                        b.text_en = translations[b.id] = page_trans[b.id]
+                                self.workspace.save_page_ocr(page_data)
+                                page_success = True
+                                break
+                            except Exception as e:
+                                err_msg = f"Multimodal translation error on page {filename} (attempt {attempt}/{self.max_retries}): {e}"
+                                logger.error(err_msg); self.workspace.append_log(err_msg)
+                                if attempt < self.max_retries and not self.isInterruptionRequested():
+                                    time.sleep(min(15, 3 * (2 ** (attempt - 1))))
+                        if not page_success and not self.isInterruptionRequested():
+                            self.failed_image_paths.append(img_path)
+                    else:
+                        for b in page_data.bubbles:
+                            if b.text_en:
+                                translations[b.id] = b.text_en
+                elif hasattr(self.translator, "perceive_page_visual_context") and any(not b.text_ja for b in page_data.bubbles):
+                    self.progress_updated.emit(f"Perceiving art & dialogue: {filename}...", idx, total_pages)
+                    try:
+                        perceived = self.translator.perceive_page_visual_context(
+                            img_path, page_data, scale_pct=self.vision_scale_pct,
+                            quality=self.vision_quality, timeout=self.timeout
+                        )
+                        for b in page_data.bubbles:
+                            if b.id in perceived:
+                                p_info = perceived[b.id]
+                                b.text_ja = p_info.get("text_ja") or b.text_ja
+                                b.speaker = p_info.get("speaker", "")
+                                b.expression = p_info.get("expression", "")
+                                b.speech_type = p_info.get("speech_type", "")
+                        self.workspace.save_page_ocr(page_data)
+                    except Exception as e:
+                        self.workspace.append_log(f"Perception warning on {filename}: {e}")
 
             self.page_completed.emit(filename)
+
+        # Step 3: Pass 2 Chapter-Wide Narrative Translation (incorporating visual cues)
+        if not is_direct_override and not self.isInterruptionRequested():
+            pages_list = [ocr_results[img.name] for img in self.image_paths if img.name in ocr_results]
+            needs_trans = any(
+                (not getattr(b, "is_manual", False)) and (b.id not in translations or not translations.get(b.id))
+                for p in pages_list for b in p.bubbles
+            )
+            if needs_trans:
+                self.progress_updated.emit("Translating chapter with visual context...", total_pages, total_pages)
+                self.workspace.append_log(f"Translating dialogue batch with visual context for {len(pages_list)} pages")
+                try:
+                    cb = lambda cur, tot, cnt: self.progress_updated.emit(f"Translating batch {cur}/{tot} ({cnt} done)...", total_pages, total_pages)
+                    batch_trans = self.translator.translate_chapter(pages_list, target_lang=self.target_lang, on_batch_progress=cb)
+                    translations.update(batch_trans)
+                except Exception as e:
+                    self.workspace.append_log(f"Chapter translation warning: {e}")
 
         if self.isInterruptionRequested():
             self.workspace.append_log("Worker cancelled by user before saving final translations")

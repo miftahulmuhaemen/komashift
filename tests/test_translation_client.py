@@ -1,6 +1,7 @@
 import json
 import pytest
 from pathlib import Path
+from PIL import Image
 from unittest.mock import patch, MagicMock
 from urllib.error import HTTPError
 from src.models.translation_item import BubbleBlock, PageTranslation
@@ -527,6 +528,82 @@ def test_anthropic_protocol_visual_hybrid(tmp_path: Path):
         assert img_block["source"]["type"] == "base64"
         assert img_block["source"]["media_type"] == "image/webp"
         assert len(img_block["source"]["data"]) > 0
+
+
+def test_perceive_page_visual_context(tmp_path: Path):
+    translator = OpenAITranslator(
+        api_key="mock-key",
+        base_url="https://api.openai.com/v1",
+        model="gpt-4o",
+        protocol="openai"
+    )
+    img_path = tmp_path / "page_01.png"
+    Image.new("RGB", (800, 1200), color="white").save(img_path)
+
+    page = PageTranslation(
+        page_filename="page_01.png",
+        page_width=800,
+        page_height=1200,
+        bubbles=[
+            BubbleBlock("p1_b1", (50, 50, 100, 100), "おい、どこ行くんだよ？")
+        ]
+    )
+
+    mock_resp = MagicMock()
+    mock_resp.__enter__.return_value.read.return_value = json.dumps({
+        "choices": [
+            {
+                "message": {
+                    "content": json.dumps({
+                        "p1_b1": {
+                            "text_ja": "おい、どこ行くんだよ？",
+                            "speaker": "Male classmate",
+                            "expression": "Annoyed, shouting",
+                            "speech_type": "Spoken dialogue"
+                        }
+                    })
+                }
+            }
+        ]
+    }).encode("utf-8")
+    mock_resp.__enter__.return_value.status = 200
+
+    with patch("urllib.request.urlopen", return_value=mock_resp):
+        res = translator.perceive_page_visual_context(img_path, page)
+        assert "p1_b1" in res
+        info = res["p1_b1"]
+        assert info["text_ja"] == "おい、どこ行くんだよ？"
+        assert info["speaker"] == "Male classmate"
+        assert info["expression"] == "Annoyed, shouting"
+        assert info["speech_type"] == "Spoken dialogue"
+
+
+def test_translate_chapter_with_visual_cues(tmp_path: Path):
+    translator = OpenAITranslator(
+        api_key="mock-key",
+        base_url="https://api.openai.com/v1",
+        model="gpt-4o",
+        protocol="openai"
+    )
+    b1 = BubbleBlock("p1_b1", (10, 10, 50, 50), "おい", speaker="Male student", expression="Angry shouting")
+    page = PageTranslation("01.png", 800, 1200, [b1])
+
+    mock_resp = MagicMock()
+    mock_resp.__enter__.return_value.read.return_value = json.dumps({
+        "choices": [{"message": {"content": json.dumps({"p1_b1": "Hey!"})}}]
+    }).encode("utf-8")
+    mock_resp.__enter__.return_value.status = 200
+
+    with patch("urllib.request.urlopen", return_value=mock_resp) as mock_url:
+        trans = translator.translate_chapter([page], target_lang="en")
+        assert trans == {"p1_b1": "Hey!"}
+        # Verify sent payload contained visual context
+        req = mock_url.call_args[0][0]
+        body = json.loads(req.data.decode("utf-8"))
+        user_msg = body["messages"][1]["content"]
+        assert "Angry shouting" in user_msg
+        assert "Male student" in user_msg
+
 
 
 

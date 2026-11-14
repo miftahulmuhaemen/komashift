@@ -95,7 +95,17 @@ class OpenAITranslator:
                     unique_to_translate[text].append(b.id)
                 else:
                     unique_to_translate[text] = [b.id]
-                    pending_bubbles.append((b.id, text))
+                    if getattr(b, "speaker", "") or getattr(b, "expression", "") or getattr(b, "speech_type", ""):
+                        payload = {"text": text}
+                        if b.speaker:
+                            payload["speaker"] = b.speaker
+                        if b.expression:
+                            payload["expression"] = b.expression
+                        if b.speech_type:
+                            payload["speech_type"] = b.speech_type
+                        pending_bubbles.append((b.id, payload))
+                    else:
+                        pending_bubbles.append((b.id, text))
                     bid_to_text_ja[b.id] = text
 
         if not pending_bubbles:
@@ -158,18 +168,31 @@ class OpenAITranslator:
             else "English"
         )
 
-        system_prompt = (
-            "You are a professional manga localization translator.\n"
-            f"Translate each extracted dialogue speech bubble into natural, fluent {lang_desc} that accurately reflects character voice, emotion, and manga context.\n"
-            "Rules:\n"
-            "1. Output strictly a valid JSON object mapping each bubble ID to its translation, and nothing else. Do not include markdown codeblocks, conversational preambles, or explanations.\n"
-            "2. Preserve every bubble ID key exactly as given in the input.\n"
-            "3. Keep emotional punctuation (e.g. '...!', '?!', '--') natural and intact.\n\n"
-            "Example Input:\n"
-            '{"p1_b1": "こんにちは！", "p1_b2": "大丈夫ですか？"}\n\n'
-            "Example Output:\n"
-            '{"p1_b1": "Hello!", "p1_b2": "Are you alright?"}'
-        )
+        has_visual_cues = any(isinstance(v, dict) and any(v.get(k) for k in ("speaker", "expression", "speech_type")) for v in flat_dict.values())
+        if has_visual_cues:
+            system_prompt = (
+                "You are an expert manga localization translator.\n"
+                f"Translate each extracted dialogue speech bubble into natural, fluent {lang_desc}.\n"
+                "You are provided with visual context tags (speaker character, emotional expression, speech type).\n"
+                "Rules:\n"
+                "1. Use character voice, emotional expressions, and speech types to guide accurate tone, pronouns, and natural manga dialogue.\n"
+                "2. Output strictly a valid JSON object mapping each bubble ID to its translation, and nothing else. Do not include markdown or explanations.\n"
+                "3. Preserve every bubble ID key exactly as given in the input.\n"
+                "4. Keep emotional punctuation intact."
+            )
+        else:
+            system_prompt = (
+                "You are a professional manga localization translator.\n"
+                f"Translate each extracted dialogue speech bubble into natural, fluent {lang_desc} that accurately reflects character voice, emotion, and manga context.\n"
+                "Rules:\n"
+                "1. Output strictly a valid JSON object mapping each bubble ID to its translation, and nothing else. Do not include markdown codeblocks, conversational preambles, or explanations.\n"
+                "2. Preserve every bubble ID key exactly as given in the input.\n"
+                "3. Keep emotional punctuation (e.g. '...!', '?!', '--') natural and intact.\n\n"
+                "Example Input:\n"
+                '{"p1_b1": "こんにちは！", "p1_b2": "大丈夫ですか？"}\n\n'
+                "Example Output:\n"
+                '{"p1_b1": "Hello!", "p1_b2": "Are you alright?"}'
+            )
 
         user_content = (
             f"Translate the following speech bubbles into natural, fluent {lang_desc}.\n"
@@ -510,6 +533,122 @@ class OpenAITranslator:
 
         resp_json = self._execute_post_request(body, timeout=timeout)
         return self._parse_response(resp_json)
+
+    def perceive_page_visual_context(
+        self,
+        image_path: Union[str, Path],
+        page: PageTranslation,
+        scale_pct: int = 75,
+        quality: int = 75,
+        timeout: Optional[float] = None
+    ) -> Dict[str, Dict[str, str]]:
+        """
+        Pass 1 Perception: Inspects speech bubble locations on the image and extracts
+        accurate Japanese dialogue (text_ja) along with visual context (speaker, expression, speech_type).
+        """
+        if not page.bubbles:
+            return {}
+
+        image_path = Path(image_path)
+        data_url, (scaled_w, scaled_h), (orig_w, orig_h) = compress_image_to_webp(
+            image_path, scale_pct=scale_pct, quality=quality
+        )
+
+        bubbles_prompt_list = []
+        for b in page.bubbles:
+            bx, by, bw, bh = b.expanded_bbox if b.expanded_bbox else b.bbox
+            ymin = int(by * 1000 / orig_h) if orig_h > 0 else 0
+            xmin = int(bx * 1000 / orig_w) if orig_w > 0 else 0
+            ymax = int((by + bh) * 1000 / orig_h) if orig_h > 0 else 1000
+            xmax = int((bx + bw) * 1000 / orig_w) if orig_w > 0 else 1000
+            hint = f" (OCR hint: '{b.text_ja}')" if b.text_ja else ""
+            bubbles_prompt_list.append(f"- {b.id}: location=[ymin:{ymin}, xmin:{xmin}, ymax:{ymax}, xmax:{xmax}]{hint}")
+
+        bubbles_text = "\n".join(bubbles_prompt_list)
+        system_prompt = (
+            "You are an expert manga visual editor and Japanese transcriptionist.\n"
+            "For each detected speech bubble on this page:\n"
+            "1. Transcribe the accurate Japanese dialogue (text_ja) from the artwork, correcting any OCR defects.\n"
+            "2. Identify the character/speaker (e.g. 'Male student', 'Female protagonist', 'Teacher', 'Narrator').\n"
+            "3. Identify the emotional expression or tone (e.g. 'Angry / shouting', 'Whispering', 'Blushing', 'Casual', 'Shocked').\n"
+            "4. Identify the speech type ('Spoken dialogue', 'Internal thought', 'Narration', 'SFX').\n"
+            "Return strictly a valid JSON object mapping each bubble ID to its details:\n"
+            '{"<bubble_id>": {"text_ja": "...", "speaker": "...", "expression": "...", "speech_type": "..."}}'
+        )
+        user_prompt = (
+            f"Detected speech bubbles on this page:\n{bubbles_text}\n\n"
+            "Inspect each bubble on the artwork. Extract the accurate Japanese text, speaker, expression, and speech type.\n"
+            'Output strictly JSON: {"<bubble_id>": {"text_ja": "...", "speaker": "...", "expression": "...", "speech_type": "..."}}'
+        )
+
+        if self.protocol == "anthropic":
+            media_type = "image/webp"
+            b64_data = data_url
+            if "," in data_url:
+                header, b64_data = data_url.split(",", 1)
+                if ":" in header and ";" in header:
+                    media_type = header.split(":", 1)[1].split(";", 1)[0]
+            body = {
+                "model": self.model,
+                "system": system_prompt,
+                "messages": [{
+                    "role": "user",
+                    "content": [
+                        {"type": "image", "source": {"type": "base64", "media_type": media_type, "data": b64_data}},
+                        {"type": "text", "text": user_prompt}
+                    ]
+                }],
+                "max_tokens": 4096,
+                "temperature": 0.2
+            }
+        else:
+            body = {
+                "model": self.model,
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": user_prompt},
+                            {"type": "image_url", "image_url": {"url": data_url}}
+                        ]
+                    }
+                ],
+                "temperature": 0.2
+            }
+            if "gpt" in self.model.lower() or "gemini" in self.model.lower():
+                body["response_format"] = {"type": "json_object"}
+
+        resp_json = self._execute_post_request(body, timeout=timeout)
+        content = ""
+        if "content" in resp_json and isinstance(resp_json["content"], list):
+            text_blocks = [b.get("text", "") for b in resp_json["content"] if isinstance(b, dict) and b.get("type") == "text"]
+            content = "\n".join(text_blocks)
+        else:
+            choices = resp_json.get("choices", [])
+            if choices:
+                msg = choices[0].get("message", {})
+                content = msg.get("content") or msg.get("reasoning_content") or ""
+
+        parsed = self._extract_json_from_content(content)
+        results: Dict[str, Dict[str, str]] = {}
+        if isinstance(parsed, dict):
+            for bid, val in parsed.items():
+                if isinstance(val, dict):
+                    results[str(bid)] = {
+                        "text_ja": str(val.get("text_ja", "")).strip(),
+                        "speaker": str(val.get("speaker", "")).strip(),
+                        "expression": str(val.get("expression", "")).strip(),
+                        "speech_type": str(val.get("speech_type", "")).strip(),
+                    }
+                elif isinstance(val, str):
+                    results[str(bid)] = {
+                        "text_ja": str(val).strip(),
+                        "speaker": "",
+                        "expression": "",
+                        "speech_type": "",
+                    }
+        return results
 
     def translate_page_multimodal(
         self,

@@ -4,19 +4,27 @@ from pathlib import Path
 from typing import Tuple, Union
 from PIL import Image
 
+MIN_HEIGHT_FLOOR = 1200
+MIN_QUALITY_FLOOR = 55
+
 
 def compress_image_to_webp(
     image_path: Union[str, Path],
     scale_pct: int = 75,
-    quality: int = 75
+    quality: int = 75,
+    min_height: int = MIN_HEIGHT_FLOOR,
+    min_quality: int = MIN_QUALITY_FLOOR
 ) -> Tuple[str, Tuple[int, int], Tuple[int, int]]:
     """
-    Compresses an image to WebP with percentage-based downscaling.
+    Compresses an image to WebP with uniform aspect-ratio preserving downscaling
+    and legibility guardrails (enforcing minimum height and quality floors).
 
     Args:
         image_path: Path to the source image file.
-        scale_pct: Scale percentage (10 to 100). Default is 75.
-        quality: WebP compression quality (1 to 100). Default is 75.
+        scale_pct: Requested scale percentage (10 to 100). Default is 75.
+        quality: Requested WebP compression quality (1 to 100). Default is 75.
+        min_height: Minimum pixel height floor. Resolution never drops below this.
+        min_quality: Minimum WebP compression quality floor.
 
     Returns:
         Tuple containing:
@@ -25,24 +33,38 @@ def compress_image_to_webp(
             - (orig_w, orig_h): Original dimensions of the source image.
     """
     scale_pct = max(10, min(100, int(scale_pct)))
-    quality = max(1, min(100, int(quality)))
+    effective_quality = max(min_quality, min(100, int(quality)))
+    img_file = Path(image_path)
 
-    with Image.open(image_path) as img:
+    with Image.open(img_file) as img:
         orig_w, orig_h = img.size
 
-        if scale_pct < 100:
-            scaled_w = max(1, int(orig_w * (scale_pct / 100.0)))
-            scaled_h = max(1, int(orig_h * (scale_pct / 100.0)))
-            img = img.resize((scaled_w, scaled_h), Image.Resampling.LANCZOS)
+        # Aspect-Ratio Preserving Scalar Calculation:
+        # Enforce resolution floor so low-res scans (< min_height) are never downscaled.
+        if scale_pct < 100 and orig_h > min_height:
+            target_h = int(orig_h * (scale_pct / 100.0))
+            effective_h = max(min_height, target_h)
+            factor = effective_h / float(orig_h)
         else:
-            scaled_w, scaled_h = orig_w, orig_h
+            factor = 1.0
 
-        # WebP supports RGB and RGBA. Convert palette or CMYK modes to RGB.
+        scaled_w = max(1, int(round(orig_w * factor)))
+        scaled_h = max(1, int(round(orig_h * factor)))
+
+        # Passthrough Optimization: If source is already lightweight WebP and no resize needed
+        if factor == 1.0 and img_file.suffix.lower() == ".webp" and img_file.stat().st_size <= 600 * 1024:
+            raw_bytes = img_file.read_bytes()
+            b64_str = base64.b64encode(raw_bytes).decode("utf-8")
+            return f"data:image/webp;base64,{b64_str}", (orig_w, orig_h), (orig_w, orig_h)
+
+        if factor < 1.0:
+            img = img.resize((scaled_w, scaled_h), Image.Resampling.LANCZOS)
+
         if img.mode not in ("RGB", "RGBA"):
             img = img.convert("RGB")
 
         buffer = io.BytesIO()
-        img.save(buffer, format="WEBP", quality=quality)
+        img.save(buffer, format="WEBP", quality=effective_quality)
         raw_bytes = buffer.getvalue()
 
     b64_str = base64.b64encode(raw_bytes).decode("utf-8")

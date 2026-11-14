@@ -12,6 +12,9 @@ class BubbleBlock:
     centroid: Optional[Tuple[int, int]] = None
     shape: str = "oval"
     is_manual: bool = False
+    speaker: str = ""
+    expression: str = ""
+    speech_type: str = ""
 
     def to_dict(self) -> Dict[str, Any]:
         res = {
@@ -25,6 +28,12 @@ class BubbleBlock:
             res["target_lang"] = self.target_lang
         if self.is_manual:
             res["is_manual"] = True
+        if self.speaker:
+            res["speaker"] = self.speaker
+        if self.expression:
+            res["expression"] = self.expression
+        if self.speech_type:
+            res["speech_type"] = self.speech_type
         if self.expanded_bbox is not None:
             res["expanded_bbox"] = list(self.expanded_bbox)
         if self.centroid is not None:
@@ -48,6 +57,9 @@ class BubbleBlock:
             centroid=centroid,
             shape=str(data.get("shape", "oval")),
             is_manual=bool(data.get("is_manual", False)),
+            speaker=str(data.get("speaker", "")),
+            expression=str(data.get("expression", "")),
+            speech_type=str(data.get("speech_type", "")),
         )
 
 @dataclass
