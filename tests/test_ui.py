@@ -231,7 +231,7 @@ def test_main_window_rename(qtbot, tmp_path: Path):
 def test_rename_dialog_widget(qtbot):
     from src.ui.rename_dialog import RenameDialog
 
-    sample_name = "nhentai-672171 - [Chinjao Girl. (Special G, Yamagiri)]"
+    sample_name = "sample-672171 - [Manga Title (Special Edition)]"
     dialog = RenameDialog(sample_name)
     qtbot.addWidget(dialog)
     dialog.show()
@@ -252,8 +252,8 @@ def test_rename_dialog_widget(qtbot):
 def test_batch_rename_dialog_widget(qtbot, tmp_path: Path):
     from src.ui.batch_rename_dialog import BatchRenameDialog
 
-    f1 = FolderItem(path=tmp_path / "f1", name="nhentai-672171 - [Chinjao Girl.] (01)")
-    f2 = FolderItem(path=tmp_path / "f2", name="nhentai-123456 - [Another Title] (02)")
+    f1 = FolderItem(path=tmp_path / "f1", name="sample-672171 - [Manga Title] (01)")
+    f2 = FolderItem(path=tmp_path / "f2", name="sample-123456 - [Another Title] (02)")
     dialog = BatchRenameDialog([f1, f2])
     qtbot.addWidget(dialog)
     dialog.show()
@@ -263,26 +263,26 @@ def test_batch_rename_dialog_widget(qtbot, tmp_path: Path):
 
     # Test Strip Leading ID
     dialog.strip_leading_id()
-    assert dialog._new_names[0] == "[Chinjao Girl.] (01)"
+    assert dialog._new_names[0] == "[Manga Title] (01)"
     assert dialog._new_names[1] == "[Another Title] (02)"
     assert dialog.ok_btn.isEnabled() is True
 
     # Test Strip Trailing Numbers
     dialog.strip_trailing_numbers()
-    assert dialog._new_names[0] == "[Chinjao Girl.]"
+    assert dialog._new_names[0] == "[Manga Title]"
     assert dialog._new_names[1] == "[Another Title]"
 
     # Test Trim Head One & Untrim Head One
     dialog.trim_head_one()
-    assert dialog._new_names[0].startswith("Chinjao")
+    assert dialog._new_names[0].startswith("Manga")
     dialog.untrim_head_one()
-    assert dialog._new_names[0].startswith("[Chinjao")
+    assert dialog._new_names[0].startswith("[Manga")
 
     # Test Trim Tail One & Untrim Tail One
     dialog.trim_tail_one()
-    assert dialog._new_names[0].endswith("Girl.")
+    assert dialog._new_names[0].endswith("Title")
     dialog.untrim_tail_one()
-    assert dialog._new_names[0].endswith("Girl.]")
+    assert dialog._new_names[0].endswith("Title]")
 
     # Test Add Prefix & Suffix
     dialog.head_input.setText("Prefix_")
@@ -309,13 +309,13 @@ def test_main_window_batch_rename(qtbot, tmp_path: Path):
     window = MainWindow()
     qtbot.addWidget(window)
 
-    f1_dir = tmp_path / "nhentai-1 - Album A"
-    f2_dir = tmp_path / "nhentai-2 - Album B"
+    f1_dir = tmp_path / "sample-1 - Album A"
+    f2_dir = tmp_path / "sample-2 - Album B"
     f1_dir.mkdir()
     f2_dir.mkdir()
 
-    f1 = FolderItem(path=f1_dir, name="nhentai-1 - Album A")
-    f2 = FolderItem(path=f2_dir, name="nhentai-2 - Album B")
+    f1 = FolderItem(path=f1_dir, name="sample-1 - Album A")
+    f2 = FolderItem(path=f2_dir, name="sample-2 - Album B")
     window.folder_list.set_folders([f1, f2])
 
     with patch("src.ui.main_window.BatchRenameDialog.exec", return_value=True), \

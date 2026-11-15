@@ -3,6 +3,8 @@
 venv/
 env/
 ENV/
+.env
+*.env.local
 
 # Python Cache
 __pycache__/
@@ -70,3 +72,6 @@ docs/
 .DS_Store
 Thumbs.db
 .agent
+
+#  Testing
+source*

@@ -252,16 +252,20 @@ class JsonTempWorkspace:
 
     def clear_cache(self):
         if self.ocr_file.exists():
-            try:
-                self.ocr_file.unlink()
-            except Exception:
-                pass
-        for t_file in self.temp_dir.glob("translation_results*.json"):
-            try:
-                t_file.unlink()
-            except Exception:
-                pass
+            try: self.ocr_file.unlink()
+            except Exception: pass
+        self.clear_translation_cache()
         self.append_log("Cleared OCR and translation cache.")
+
+    def clear_translation_cache(self, target_lang: Optional[str] = None):
+        pattern = f"translation_results_{target_lang.lower()}.json" if target_lang else "translation_results*.json"
+        for t_file in self.temp_dir.glob(pattern):
+            try: t_file.unlink()
+            except Exception: pass
+        if (self.temp_dir / "translation_results.json").exists() and target_lang in (None, "en"):
+            try: (self.temp_dir / "translation_results.json").unlink()
+            except Exception: pass
+        self.append_log(f"Cleared translation cache ({target_lang or 'all'}).")
 
     def _atomic_write_json(self, target_path: Path, data: dict):
         temp_file = target_path.with_suffix(".tmp")

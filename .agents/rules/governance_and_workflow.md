@@ -29,7 +29,7 @@ Strict rules governing execution safety, planning invariants, verification caden
    - Before executing any tool call, the agent MUST explicitly cross-reference the user's current message against `.agents/rules/`.
    - The agent must verify whether the proposed action is governed by negative constraints (`NEVER`, `PROHIBITED`).
 6. **Restricted Action Registry (Zero Autonomous Execution)**:
-   - **Standalone .exe Build**: Requires explicit trigger (`"build"`, `"compile"`, `"make exe"`) in the CURRENT prompt. Autonomous execution is physically blocked by `build.py --explicit-user-request`.
+   - **Windows Setup Installer Build**: Requires explicit trigger (`"build"`, `"compile"`, `"make exe"`, `"make installer"`) in the CURRENT prompt. Autonomous execution is physically blocked by `build.py --explicit-user-request`.
    - **Git Commit / Push**: Requires unsolicited, explicit user command in the current prompt.
    - **File Deletions**: Requires explicit confirmation.
    - If the trigger is absent, the agent must NEVER perform the action.

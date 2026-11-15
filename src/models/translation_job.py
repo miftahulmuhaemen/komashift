@@ -26,6 +26,7 @@ class TranslationJob:
     image_paths: List[Path]
     target_lang: str = "en"
     job_type: JobType = JobType.TRANSLATION
+    retranslate_mode: str = "skip"
     selected_image_paths: List[Path] = field(default_factory=list)
     output_dir: Optional[Path] = None
     id: str = field(default_factory=lambda: str(uuid.uuid4()))

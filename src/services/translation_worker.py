@@ -33,6 +33,7 @@ class TranslationWorker(QThread):
         max_retries: int = 3,
         protocol: str = "openai",
         job_type: str = "translation",
+        retranslate_mode: str = "skip",
         output_dir: Optional[Path] = None,
         parent=None,
         provider: Optional[Any] = None,
@@ -48,9 +49,8 @@ class TranslationWorker(QThread):
         self.api_key, self.base_url, self.model = api_key, base_url, model
         self.target_lang, self.timeout, self.batch_size = target_lang, timeout, batch_size
         self.engine_mode, self.vision_scale_pct = engine_mode, vision_scale_pct
-        self.vision_quality = vision_quality
-        self.max_retries = max(1, min(5, int(max_retries)))
-        self.protocol, self.job_type = str(protocol).lower(), str(job_type)
+        self.vision_quality, self.max_retries = vision_quality, max(1, min(5, int(max_retries)))
+        self.protocol, self.job_type, self.retranslate_mode = str(protocol).lower(), str(job_type), str(retranslate_mode).lower().strip()
         self.output_dir = Path(output_dir) if output_dir else None
         self.manga_ocr_model, self.onnx_force_cpu = str(manga_ocr_model).strip(), bool(onnx_force_cpu)
 
@@ -98,12 +98,21 @@ class TranslationWorker(QThread):
             return False
 
     def _is_cached_complete(self, total_pages: int) -> bool:
+        if self.retranslate_mode in ("full", "text_only"):
+            return False
         if self.workspace.is_translation_complete(target_lang=self.target_lang, image_paths=self.image_paths):
             self.workspace.append_log(f"Translation ({self.target_lang.upper()}) already completed in cache. Done.")
             self.progress_updated.emit("Translation loaded from cache", total_pages, total_pages)
             self.translation_finished.emit(True, "Loaded from cache")
             return True
         return False
+
+    def _apply_retranslate_mode(self):
+        if self.retranslate_mode == "full":
+            self.workspace.append_log("Full re-scan requested. Purging cache."); self.workspace.clear_cache()
+        elif self.retranslate_mode == "text_only":
+            self.workspace.append_log(f"Re-translation keeping OCR requested ({self.target_lang.upper()}).")
+            if hasattr(self.workspace, "clear_translation_cache"): self.workspace.clear_translation_cache(self.target_lang)
 
     def _load_cached_ocr_results(self) -> Dict[str, PageTranslation]:
         ocr_results = self.workspace.load_ocr_results()
@@ -119,9 +128,9 @@ class TranslationWorker(QThread):
     def _run_hybrid(self):
         total_pages = len(self.image_paths)
         if total_pages == 0:
-            self.translation_finished.emit(False, "No images selected for translation.")
-            return
+            self.translation_finished.emit(False, "No images selected for translation."); return
         self.workspace.append_log(f"Starting translation process for {total_pages} pages using model: {self.model}")
+        self._apply_retranslate_mode()
         if not self._ensure_bubble_detector() or self._is_cached_complete(total_pages):
             return
 
@@ -136,44 +145,34 @@ class TranslationWorker(QThread):
 
             filename = img_path.name
             if filename in ocr_results:
-                self.progress_updated.emit(f"Cached OCR: {filename}", idx + 1, total_pages)
-                continue
+                self.page_completed.emit(filename); continue
 
             self.progress_updated.emit(f"Scanning OCR: {filename}...", idx + 1, total_pages)
             try:
-                page_data = self.detector.detect_page(
-                    img_path,
-                    page_index=idx + 1,
-                    log_callback=self.workspace.append_log
-                )
-                self.workspace.save_page_ocr(page_data)
-                ocr_results[filename] = page_data
+                page_data = self.detector.detect_page(img_path, page_index=idx + 1, log_callback=self.workspace.append_log)
+                self.workspace.save_page_ocr(page_data); ocr_results[filename] = page_data
                 self.page_completed.emit(filename)
             except Exception as e:
                 err_msg = f"OCR error on page {filename}: {e}"
-                logger.error(err_msg)
-                self.workspace.append_log(err_msg)
-                # Continue with other pages or fail gracefully
+                logger.error(err_msg); self.workspace.append_log(err_msg)
 
         if self.isInterruptionRequested():
             self.workspace.append_log("Worker cancelled by user before translation")
-            self.translation_finished.emit(False, "Cancelled by user")
-            return
+            self.translation_finished.emit(False, "Cancelled by user"); return
 
         # 4. Check if any bubbles were detected
         total_bubbles = sum(len(p.bubbles) for p in ocr_results.values())
         if total_bubbles == 0:
             err_msg = "0 speech bubbles were detected in this chapter. Please review the logs."
-            self.workspace.append_log(err_msg)
-            self.translation_finished.emit(False, err_msg)
+            self.workspace.append_log(err_msg); self.translation_finished.emit(False, err_msg)
             return
 
         # 5. Harvest pre-existing translations from workspace and OCR results
-        translations = dict(self.workspace.load_translations(self.target_lang))
+        translations = {} if self.retranslate_mode == "text_only" else dict(self.workspace.load_translations(self.target_lang))
         for p in ocr_results.values():
             for b in p.bubbles:
-                if b.text_en and b.id not in translations:
-                    translations[b.id] = b.text_en
+                if self.retranslate_mode == "text_only": b.text_en = ""
+                elif b.text_en and b.id not in translations: translations[b.id] = b.text_en
 
         # Process any manual labeled bubbles first
         for idx, img_path in enumerate(self.image_paths, 1):
@@ -195,20 +194,20 @@ class TranslationWorker(QThread):
             self.workspace.append_log(f"Sending batch translation request for {len(ocr_results)} pages")
             try:
                 pages_list = [ocr_results[img.name] for img in self.image_paths if img.name in ocr_results]
-                def _on_batch_progress(batch_num: int, total_batches: int, translated_count: int):
-                    msg = f"Translating batch {batch_num}/{total_batches} ({translated_count} bubbles done)..."
+                def _on_batch_progress(b_num: int, tot: int, cnt: int, part=None):
+                    if part: translations.update(part); self.workspace.save_translations(translations, target_lang=self.target_lang)
+                    msg = f"Translating batch {b_num}/{tot} ({cnt} bubbles done)..."
                     self.workspace.append_log(msg); self.progress_updated.emit(msg, total_pages, total_pages)
 
-                batch_trans = self.translator.translate_chapter(
+                translations.update(self.translator.translate_chapter(
                     pages_list, target_lang=self.target_lang, on_batch_progress=_on_batch_progress
-                )
-                translations.update(batch_trans)
+                ))
             except Exception as e:
                 err_msg = f"Translation API failed: {e}"
                 logger.error(err_msg); self.workspace.append_log(err_msg)
-                if not translations:
-                    self.translation_finished.emit(False, err_msg)
-                    return
+                self.workspace.save_translations(translations, target_lang=self.target_lang)
+                self.translation_finished.emit(False, err_msg)
+                return
 
         self.workspace.save_translations(translations, target_lang=self.target_lang)
         self.workspace.append_log(f"Translation finished successfully: {len(translations)} bubbles")
@@ -313,18 +312,18 @@ class TranslationWorker(QThread):
             f"(scale={self.vision_scale_pct}%, quality={self.vision_quality})"
         )
 
+        self._apply_retranslate_mode()
         if not self._ensure_bubble_detector() or self._is_cached_complete(total_pages):
             return
 
         ocr_results = self._load_cached_ocr_results()
 
-        translations = dict(self.workspace.load_translations(self.target_lang))
+        translations = {} if self.retranslate_mode == "text_only" else dict(self.workspace.load_translations(self.target_lang))
         for p in ocr_results.values():
             for b in p.bubbles:
-                if b.id in translations and not b.text_en:
-                    b.text_en = translations[b.id]
-                elif b.text_en and b.id not in translations:
-                    translations[b.id] = b.text_en
+                if self.retranslate_mode == "text_only": b.text_en = ""
+                elif b.id in translations and not b.text_en: b.text_en = translations[b.id]
+                elif b.text_en and b.id not in translations: translations[b.id] = b.text_en
 
         self.failed_image_paths = []
         is_direct_override = (
@@ -392,7 +391,7 @@ class TranslationWorker(QThread):
                         for b in page_data.bubbles:
                             if b.text_en:
                                 translations[b.id] = b.text_en
-                elif hasattr(self.translator, "perceive_page_visual_context") and any(not b.text_ja for b in page_data.bubbles):
+                elif hasattr(self.translator, "perceive_page_visual_context") and any(not getattr(b, "speaker", "") for b in page_data.bubbles):
                     self.progress_updated.emit(f"Perceiving art & dialogue: {filename}...", idx, total_pages)
                     try:
                         perceived = self.translator.perceive_page_visual_context(
@@ -423,11 +422,16 @@ class TranslationWorker(QThread):
                 self.progress_updated.emit("Translating chapter with visual context...", total_pages, total_pages)
                 self.workspace.append_log(f"Translating dialogue batch with visual context for {len(pages_list)} pages")
                 try:
-                    cb = lambda cur, tot, cnt: self.progress_updated.emit(f"Translating batch {cur}/{tot} ({cnt} done)...", total_pages, total_pages)
-                    batch_trans = self.translator.translate_chapter(pages_list, target_lang=self.target_lang, on_batch_progress=cb)
-                    translations.update(batch_trans)
+                    def _cb(cur: int, tot: int, cnt: int, part=None):
+                        if part: translations.update(part); self.workspace.save_translations(translations, target_lang=self.target_lang)
+                        self.progress_updated.emit(f"Translating batch {cur}/{tot} ({cnt} done)...", total_pages, total_pages)
+                    translations.update(self.translator.translate_chapter(pages_list, target_lang=self.target_lang, on_batch_progress=_cb))
                 except Exception as e:
-                    self.workspace.append_log(f"Chapter translation warning: {e}")
+                    err_msg = f"Chapter translation failed: {e}"
+                    logger.error(err_msg); self.workspace.append_log(err_msg)
+                    self.workspace.save_translations(translations, target_lang=self.target_lang)
+                    self.translation_finished.emit(False, err_msg)
+                    return
 
         if self.isInterruptionRequested():
             self.workspace.append_log("Worker cancelled by user before saving final translations")
@@ -468,14 +472,13 @@ class TranslationWorker(QThread):
         translations = self.workspace.load_translations()
 
         successful_count = 0
-        from src.infra.image_rasterizer import ImageRasterizer
         import shutil
+        from src.infra.image_rasterizer import ImageRasterizer
 
         for idx, img_path in enumerate(self.image_paths, start=1):
             if self.isInterruptionRequested():
                 self.workspace.append_log("Worker cancelled by user during rasterization")
-                self.translation_finished.emit(False, "Cancelled by user")
-                return
+                self.translation_finished.emit(False, "Cancelled by user"); return
 
             filename = img_path.name
             page_data = ocr_results.get(filename)
@@ -491,8 +494,7 @@ class TranslationWorker(QThread):
 
             if not page_data or not page_data.bubbles:
                 try:
-                    shutil.copy2(img_path, output_file)
-                    successful_count += 1
+                    shutil.copy2(img_path, output_file); successful_count += 1
                 except Exception as e:
                     self.workspace.append_log(f"Failed to copy non-text page {filename}: {e}")
                 self.page_completed.emit(filename)

@@ -122,3 +122,28 @@ def test_workspace_clear_cache_scoped_to_temp(tmp_path: Path):
     # Outside file is preserved
     assert outside_file.exists()
     assert outside_file.read_text(encoding="utf-8") == "keep me"
+
+
+def test_workspace_clear_translation_cache_preserves_ocr(tmp_path: Path):
+    ws = JsonTempWorkspace(tmp_path)
+    page = PageTranslation("01.png", 800, 1200, [BubbleBlock("p1_b1", (10, 10, 50, 50), "おはよう")])
+    ws.save_page_ocr(page)
+    ws.save_translations({"p1_b1": "Good morning"}, target_lang="en")
+    ws.save_translations({"p1_b1": "Selamat pagi"}, target_lang="id")
+
+    assert ws.ocr_file.exists()
+    assert (ws.temp_dir / "translation_results.json").exists()
+    assert (ws.temp_dir / "translation_results_id.json").exists()
+
+    # Clear only English translations
+    ws.clear_translation_cache(target_lang="en")
+    assert not (ws.temp_dir / "translation_results.json").exists()
+    # OCR and Indonesian translations preserved
+    assert ws.ocr_file.exists()
+    assert (ws.temp_dir / "translation_results_id.json").exists()
+    assert ws.load_ocr_results()["01.png"].bubbles[0].text_ja == "おはよう"
+
+    # Clear all translations
+    ws.clear_translation_cache()
+    assert not (ws.temp_dir / "translation_results_id.json").exists()
+    assert ws.ocr_file.exists()

@@ -49,3 +49,7 @@ class PageRepository(Protocol):
     def clear_cache(self) -> None:
         """Purge OCR and translation caches for this chapter."""
         ...
+
+    def clear_translation_cache(self, target_lang: Optional[str] = None) -> None:
+        """Purge only translation caches, preserving speech bubble geometry and OCR."""
+        ...

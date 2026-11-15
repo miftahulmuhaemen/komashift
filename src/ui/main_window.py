@@ -1058,24 +1058,16 @@ class MainWindow(QMainWindow):
                     cached_selected = [p for p in selected if p.name in translated_fns]
 
                     if cached_selected:
-                        if len(cached_selected) == len(selected):
-                            page_desc = f"all {len(selected)} selected image(s)"
-                        else:
-                            page_desc = f"{len(cached_selected)} of {len(selected)} selected image(s)"
-
-                        reply = QMessageBox.question(
-                            self,
-                            "Translation Cache Found",
-                            f"Translation ({job.lang_display}) data already exists for {page_desc} in '{job.folder_name}'.\n\n"
-                            "Would you like to re-scan and translate them again from scratch?\n\n"
-                            "- Yes: Re-translate and overwrite cached pages.\n"
-                            "- No: Skip already translated pages and only process untranslated ones.",
-                            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No | QMessageBox.StandardButton.Cancel,
-                            QMessageBox.StandardButton.No
-                        )
-                        if reply == QMessageBox.StandardButton.Cancel:
+                        page_desc = f"all {len(selected)} selected image(s)" if len(cached_selected) == len(selected) else f"{len(cached_selected)} of {len(selected)} selected image(s)"
+                        from src.ui.cache_conflict_dialog import prompt_cache_conflict
+                        choice = prompt_cache_conflict(self, job.folder_name, job.lang_display, page_desc)
+                        if choice == "cancel":
                             return
-                        elif reply == QMessageBox.StandardButton.No:
+                        if choice in ("text_only", "full"):
+                            job.retranslate_mode = choice
+                            job.selected_image_paths = list(selected)
+                        elif choice == "skip":
+                            job.retranslate_mode = "skip"
                             untranslated = [p for p in selected if p.name not in translated_fns]
                             if not untranslated:
                                 job.status = JobStatus.COMPLETED

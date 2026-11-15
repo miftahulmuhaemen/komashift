@@ -3,7 +3,7 @@
 
 #define MyAppName "KomaShift"
 #ifndef MyAppVersion
-  #define MyAppVersion "0.1.0"
+  #define MyAppVersion "0.1.1"
 #endif
 #define MyAppPublisher "Sahana"
 #define MyAppURL "https://github.com/sahana/win-folder-thumbnail"

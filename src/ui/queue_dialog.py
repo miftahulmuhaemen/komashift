@@ -504,23 +504,23 @@ class QueueDialog(QDialog):
         if not target_job:
             return
 
-        reply = QMessageBox.question(
-            self,
-            "Translation Cache Found",
-            f"Translation ({target_job.lang_display}) data already exists for {page_desc} in '{target_job.folder_name}'.\n\n"
-            "Would you like to re-scan and translate them again from scratch?\n\n"
-            "- Yes: Re-translate and overwrite cached pages.\n"
-            "- No: Skip already translated pages and only process untranslated ones.",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No | QMessageBox.StandardButton.Cancel,
-            QMessageBox.StandardButton.No
-        )
-        if reply == QMessageBox.StandardButton.Cancel:
+        from src.ui.cache_conflict_dialog import prompt_cache_conflict
+        choice = prompt_cache_conflict(self, target_job.folder_name, target_job.lang_display, page_desc)
+
+        if choice == "cancel":
             if self._preflight_worker and self._preflight_worker.isRunning():
                 self._preflight_worker.requestInterruption()
                 self._preflight_worker.wait(500)
                 self._preflight_worker = None
             self._update_controls()
-        elif reply == QMessageBox.StandardButton.No:
+        elif choice == "text_only":
+            target_job.retranslate_mode = "text_only"
+            target_job.selected_image_paths = list(selected)
+        elif choice == "full":
+            target_job.retranslate_mode = "full"
+            target_job.selected_image_paths = list(selected)
+        elif choice == "skip":
+            target_job.retranslate_mode = "skip"
             if not untranslated:
                 target_job.status = JobStatus.COMPLETED
                 target_job.status_message = "All selected pages already translated"
@@ -726,8 +726,7 @@ class QueueDialog(QDialog):
                     item.setCheckState(Qt.CheckState.Unchecked)
                 else:
                     flags |= Qt.ItemFlag.ItemIsEnabled
-                    is_checked = is_selected or has_manual_label
-                    item.setCheckState(Qt.CheckState.Checked if is_checked else Qt.CheckState.Unchecked)
+                    item.setCheckState(Qt.CheckState.Checked if is_selected else Qt.CheckState.Unchecked)
             else:
                 item.setCheckState(Qt.CheckState.Checked if is_selected else Qt.CheckState.Unchecked)
 

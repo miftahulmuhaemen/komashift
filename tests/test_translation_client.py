@@ -605,6 +605,154 @@ def test_translate_chapter_with_visual_cues(tmp_path: Path):
         assert "Male student" in user_msg
 
 
+def test_split_pages_into_adaptive_batches_page_boundaries():
+    translator = OpenAITranslator(api_key="mock-key", model="deepseek-v4.1")
+    # Page 1: 150 bubbles
+    p1 = PageTranslation("01.png", 800, 1200, [
+        BubbleBlock(f"p1_b{i}", (0, 0, 10, 10), f"Line {i}") for i in range(150)
+    ])
+    # Page 2: 150 bubbles (total with p1 = 300 <= 320 max tolerance)
+    p2 = PageTranslation("02.png", 800, 1200, [
+        BubbleBlock(f"p2_b{i}", (0, 0, 10, 10), f"Line {i}") for i in range(150)
+    ])
+    # Page 3: 50 bubbles (300 + 50 = 350 > 320 -> cuts cleanly before p3)
+    p3 = PageTranslation("03.png", 800, 1200, [
+        BubbleBlock(f"p3_b{i}", (0, 0, 10, 10), f"Line {i}") for i in range(50)
+    ])
+
+    batches = translator._split_pages_into_adaptive_batches([p1, p2, p3], target_bubbles=280, max_tolerance=320)
+    assert len(batches) == 2
+    assert batches[0] == [p1, p2]
+    assert batches[1] == [p3]
+
+
+def test_universal_json_mode_for_openai_protocol():
+    translator = OpenAITranslator(
+        api_key="mock-key",
+        base_url="https://api.deepseek.com/v1",
+        model="deepseek-chat",
+        protocol="openai"
+    )
+    b1 = BubbleBlock("p1_b1", (0, 0, 10, 10), "こんにちは")
+    page = PageTranslation("01.png", 800, 1200, [b1])
+
+    mock_resp = MagicMock()
+    mock_resp.__enter__.return_value.read.return_value = json.dumps({
+        "choices": [{"message": {"content": json.dumps({"p1_b1": "Hello"})}}]
+    }).encode("utf-8")
+    mock_resp.__enter__.return_value.status = 200
+
+    with patch("urllib.request.urlopen", return_value=mock_resp) as mock_url:
+        translator.translate_chapter([page], target_lang="en")
+        req = mock_url.call_args[0][0]
+        body = json.loads(req.data.decode("utf-8"))
+        assert "response_format" in body
+        assert body["response_format"] == {"type": "json_object"}
+
+
+def test_translate_chapter_adaptive_page_batching_with_rolling_summary():
+    translator = OpenAITranslator(
+        api_key="mock-key",
+        base_url="https://api.openai.com/v1",
+        model="deepseek-v4.1",
+        batch_size=0,
+        protocol="openai"
+    )
+    # Page 1 with 200 bubbles
+    p1 = PageTranslation("01.png", 800, 1200, [
+        BubbleBlock(f"p1_b{i}", (0, 0, 10, 10), f"Text 1_{i}", speaker="Alice") for i in range(200)
+    ])
+    # Page 2 with 200 bubbles (200 + 200 = 400 > 320 -> splits into 2 batches at page boundary)
+    p2 = PageTranslation("02.png", 800, 1200, [
+        BubbleBlock(f"p2_b{i}", (0, 0, 10, 10), f"Text 2_{i}", speaker="Bob") for i in range(200)
+    ])
+
+    batch_requests = []
+
+    def mock_urlopen(req, timeout=None):
+        body = json.loads(req.data.decode("utf-8"))
+        batch_requests.append(body)
+
+        m_resp = MagicMock()
+        if len(batch_requests) == 1:
+            resp_content = {
+                "narrative_summary": "Alice begins exploring the ancient ruins alone.",
+                "translations": {f"p1_b{i}": f"Trans 1_{i}" for i in range(200)}
+            }
+        else:
+            resp_content = {
+                "narrative_summary": "Bob catches up with Alice inside the inner chamber.",
+                "translations": {f"p2_b{i}": f"Trans 2_{i}" for i in range(200)}
+            }
+        m_resp.__enter__.return_value.read.return_value = json.dumps({
+            "choices": [{"message": {"content": json.dumps(resp_content)}}]
+        }).encode("utf-8")
+        m_resp.__enter__.return_value.status = 200
+        return m_resp
+
+    with patch("urllib.request.urlopen", side_effect=mock_urlopen):
+        progress_calls = []
+        def on_prog(cur, tot, cnt, partial=None):
+            progress_calls.append((cur, tot, cnt, len(partial) if partial else 0))
+
+        results = translator.translate_chapter([p1, p2], target_lang="en", on_batch_progress=on_prog)
+
+        assert len(results) == 400
+        assert len(batch_requests) == 2
+        assert len(progress_calls) == 2
+
+        # Verify Batch 1 did not have preceding summary
+        b1_content = batch_requests[0]["messages"][1]["content"]
+        assert "--- Preceding Story Context ---" not in b1_content
+
+        # Verify Batch 2 received Batch 1's narrative summary and recent dialogue
+        b2_content = batch_requests[1]["messages"][1]["content"]
+        assert "--- Preceding Story Context ---" in b2_content
+        assert "Alice begins exploring the ancient ruins alone." in b2_content
+        assert "--- Immediately Preceding Dialogue ---" in b2_content
+        assert 'Alice: "Trans 1_199"' in b2_content
+
+
+def test_adaptive_batching_calibrated_threshold():
+    translator = OpenAITranslator(api_key="mock-key", model="deepseek-v4.1")
+    # 3 pages with 50 bubbles each (total 150 bubbles)
+    # Target 90, max 110: p1 (50) + p2 (50) = 100 <= 110 -> Batch 1
+    # p3 (50) would make 150 > 110 -> Batch 2
+    p1 = PageTranslation("01.png", 800, 1200, [BubbleBlock(f"p1_{i}", (0, 0, 10, 10), f"T{i}") for i in range(50)])
+    p2 = PageTranslation("02.png", 800, 1200, [BubbleBlock(f"p2_{i}", (0, 0, 10, 10), f"T{i}") for i in range(50)])
+    p3 = PageTranslation("03.png", 800, 1200, [BubbleBlock(f"p3_{i}", (0, 0, 10, 10), f"T{i}") for i in range(50)])
+
+    # Using default parameters (target_bubbles=90, max_tolerance=110)
+    batches = translator._split_pages_into_adaptive_batches([p1, p2, p3])
+    assert len(batches) == 2
+    assert batches[0] == [p1, p2]
+    assert batches[1] == [p3]
+
+
+def test_translate_chapter_retries_transient_batch_failure():
+    translator = OpenAITranslator(api_key="mock-key", model="deepseek-v4.1", batch_size=0)
+    p1 = PageTranslation("01.png", 800, 1200, [BubbleBlock("p1_b1", (0, 0, 10, 10), "こんにちは")])
+
+    attempts = 0
+    def mock_single_batch(*args, **kwargs):
+        nonlocal attempts
+        attempts += 1
+        if attempts == 1:
+            raise TranslationError("HTTP Error 524: Cloudflare Gateway Timeout")
+        return {"p1_b1": "Hello"}, "Summary"
+
+    translator._translate_single_batch = MagicMock(side_effect=mock_single_batch)
+
+    with patch("time.sleep") as mock_sleep:
+        results = translator.translate_chapter([p1], target_lang="en")
+
+    assert attempts == 2
+    assert results == {"p1_b1": "Hello"}
+    mock_sleep.assert_called_once_with(2)
+
+
+
+
 
 
 

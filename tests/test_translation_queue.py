@@ -295,10 +295,25 @@ def test_queue_dialog_manual_label_tag(tmp_path: Path, qtbot):
     dialog.list_widget.setCurrentRow(0)
 
     # 01.png should be tagged [Cached to EN]
-    # 02.png should be tagged [Manual Label] [to EN] and checked
+    # 02.png should be tagged [Manual Label] [to EN] and checked initially
     assert "[Cached to EN]" in dialog.pages_list.item(0).text()
     assert "[Manual Label] [to EN]" in dialog.pages_list.item(1).text()
     assert dialog.pages_list.item(1).checkState() == Qt.CheckState.Checked
+    assert dialog.pages_count_label.text() == "Selected: 2 / 2 pages"
+
+    # Clicking Unselect All must uncheck BOTH items and update counter to 0 / 2
+    dialog.btn_unselect_all.click()
+    assert job.selected_count == 0
+    assert dialog.pages_count_label.text() == "Selected: 0 / 2 pages"
+    assert dialog.pages_list.item(0).checkState() == Qt.CheckState.Unchecked
+    assert dialog.pages_list.item(1).checkState() == Qt.CheckState.Unchecked
+    assert dialog.start_btn.isEnabled() is False
+
+    # Clicking the manual labeled item directly should check it and update counter to 1 / 2
+    dialog.pages_list.item(1).setCheckState(Qt.CheckState.Checked)
+    assert job.selected_count == 1
+    assert dialog.pages_count_label.text() == "Selected: 1 / 2 pages"
+    assert dialog.start_btn.isEnabled() is True
 
 
 def test_queue_dialog_ui_fixes(tmp_path: Path, qtbot):

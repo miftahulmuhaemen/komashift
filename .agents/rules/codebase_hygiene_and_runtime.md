@@ -18,7 +18,7 @@ Strict rules governing execution runtimes, repository cleanliness, documentation
    - **Launch Desktop Application**: `.venv/bin/python src/main.py`
    - **Run Test Suite**: `QT_QPA_PLATFORM=offscreen .venv/bin/pytest tests/`
    - **Syntax & Compilation Validation**: `.venv/bin/python -m py_compile src/main.py`
-   - **Build Standalone Windows .exe**: Follow [`.agents/rules/build.md`](file:///home/sahana/Code_Repository/personal/win-folder-thumbnail/.agents/rules/build.md) strictly using `/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe`.
+   - **Build Windows Setup Installer**: Follow [`.agents/rules/build.md`](file:///home/sahana/Code_Repository/personal/win-folder-thumbnail/.agents/rules/build.md) strictly using `/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe`.
 3. **Headless Qt Testing Invariant**:
    - On Linux/WSL environments, Qt applications require an offscreen platform plugin when no X11/Wayland display server is available.
    - All automated test executions must pass `QT_QPA_PLATFORM=offscreen` (e.g. `QT_QPA_PLATFORM=offscreen .venv/bin/pytest tests/`).

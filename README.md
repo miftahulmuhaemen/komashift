@@ -47,7 +47,7 @@ When you want to share your translations or upload them to web readers, you can 
 - **Batch Rename**: Speed up your library cleanup with quick, in-place folder renaming and convenient batch disk operations directly within the workspace.
 - **Translation**: An adaptable localization pipeline featuring both a token-saving hybrid mode (using ONNX Runtime, OpenCV, Manga OCR, and OpenAI text APIs) and a context-aware visual hybrid mode (combining ONNX bubble geometry with Vision LLM reading). Measured single-page benchmarks show 2,502 total tokens for hybrid text translation versus 3,702 total tokens for visual hybrid translation, giving users direct control over API expenditure versus contextual visual precision.
 - **Permanent Rasterization (Export)**: Flatten speech bubble inpainting and translated typography directly into permanent image files (`<folder_name>_translated`) via `Ctrl+B` or the top toolbar, ready for web upload and sharing.
-- **Queue Manager**: Track background translation jobs and rasterization batches in real time with progress indicators and error logging.
+- **Queue Manager**: Track background translation jobs and rasterization batches in real time with progress indicators, error logging, and fast-path re-translation (preserving existing OCR geometry to test or switch models without re-scanning).
 - **Hardware Acceleration & Custom Models**: Automatically detects and leverages GPU acceleration (DirectML, CUDA, CoreML, OpenVINO, ROCm) for both speech bubble segmentation and Japanese OCR, or lets you enforce CPU-only mode. Also allows specifying custom Manga OCR models by HuggingFace repository ID or local directories containing encoder and decoder ONNX models.
 
 ## Hardware Acceleration (GPU) & Custom Models

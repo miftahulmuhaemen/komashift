@@ -117,10 +117,12 @@ def build():
         print(f"Cleaning previous installer: {target_setup}")
         target_setup.unlink(missing_ok=True)
 
-    onedir = "--onedir" in sys.argv or "--installer" in sys.argv
-    build_installer = "--installer" in sys.argv or onedir
-    no_model = "--no-model" in sys.argv
-    packaging_mode = "--onedir" if onedir else "--onefile"
+    # Packaging mode: default is ALWAYS Windows Setup Installer (--installer with on-demand model streaming)
+    is_onefile = "--onefile" in sys.argv or "--standalone" in sys.argv
+    build_installer = not is_onefile
+    onedir = build_installer or "--onedir" in sys.argv or "--installer" in sys.argv
+    packaging_mode = "--onefile" if is_onefile else "--onedir"
+    no_model = "--with-model" not in sys.argv
 
     sep = ";" if sys.platform.startswith("win") else ":"
     cmd = [

@@ -249,6 +249,7 @@ class TranslationQueueManager(QObject):
             manga_ocr_model=manga_ocr_model,
             onnx_force_cpu=onnx_force_cpu,
             job_type=next_job.job_type.value if hasattr(next_job.job_type, "value") else str(next_job.job_type),
+            retranslate_mode=getattr(next_job, "retranslate_mode", "skip"),
             output_dir=next_job.output_dir
         )
         self._current_worker.progress_updated.connect(self._on_worker_progress)

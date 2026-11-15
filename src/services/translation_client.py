@@ -1,6 +1,7 @@
 import json
 import logging
 import re
+import time
 import urllib.request
 from urllib.error import HTTPError, URLError
 from pathlib import Path
@@ -62,7 +63,59 @@ class OpenAITranslator:
         norm = unicodedata.normalize("NFKC", text.strip())
         norm = re.sub(r"\.{4,}", "...", norm)
         norm = re.sub(r"-{4,}", "---", norm)
+        norm = re.sub(r"~{4,}", "~~~", norm)
         return norm
+
+    @staticmethod
+    def _clamp_repeated_symbols(text: str) -> str:
+        """Clamps long repetitive sound markers, punctuation, and Japanese wave dashes."""
+        return re.sub(r"([ー\u2014―\-\.~…・\u301c\uff5e])\1{2,}", r"\1\1\1", text.strip())
+
+    def _split_pages_into_adaptive_batches(
+        self,
+        pages: List[PageTranslation],
+        target_bubbles: int = 90,
+        max_tolerance: int = 110
+    ) -> List[List[PageTranslation]]:
+        """
+        Splits chapter pages into adaptive batches aligned to page boundaries.
+        Target threshold: ~90 bubbles. Max tolerance: 110 bubbles.
+        Accumulates full pages; if adding the next page would cause total bubbles to exceed
+        max_tolerance, falls back and cuts cleanly at the previous page boundary.
+        Never splits a single page across batches.
+        """
+        if not pages:
+            return []
+
+        batches: List[List[PageTranslation]] = []
+        current_batch: List[PageTranslation] = []
+        current_count = 0
+
+        for p in pages:
+            p_count = sum(
+                1 for b in p.bubbles
+                if b.text_ja.strip() and not self._is_pure_punctuation_or_symbol(
+                    self._clamp_repeated_symbols(b.text_ja)
+                )
+            )
+
+            if not current_batch:
+                current_batch.append(p)
+                current_count += p_count
+                continue
+
+            if current_count + p_count <= max_tolerance:
+                current_batch.append(p)
+                current_count += p_count
+            else:
+                batches.append(current_batch)
+                current_batch = [p]
+                current_count = p_count
+
+        if current_batch:
+            batches.append(current_batch)
+
+        return batches
 
     def translate_chapter(
         self,
@@ -71,26 +124,169 @@ class OpenAITranslator:
         on_batch_progress = None
     ) -> Dict[str, str]:
         all_translations: Dict[str, str] = {}
-        unique_to_translate: Dict[str, List[str]] = {}  # text_ja -> list of bubble IDs
-        pending_bubbles: List[Tuple[str, str]] = []     # [(bubble_id, text_ja), ...]
-        bid_to_text_ja: Dict[str, str] = {}             # bubble_id -> text_ja
+        if not pages:
+            return all_translations
+
+        # 1. Local resolution for pure punctuation/symbol bubbles (0 token, 0 latency)
+        for p in pages:
+            for b in p.bubbles:
+                text = b.text_ja.strip()
+                if not text:
+                    continue
+                norm_punct = self._clamp_repeated_symbols(text)
+                if not norm_punct:
+                    continue
+                if self._is_pure_punctuation_or_symbol(norm_punct):
+                    all_translations[b.id] = self._normalize_punctuation_text(norm_punct)
+
+        # 2. Check batching mode: fixed-size slicing if batch_size > 0
+        if self.batch_size > 0:
+            return self._translate_chapter_fixed_slices(
+                pages, all_translations, target_lang=target_lang, on_batch_progress=on_batch_progress
+            )
+
+        # 3. Page-Boundary Adaptive Batching (target ~90 bubbles, max tolerance 110 bubbles)
+        page_batches = self._split_pages_into_adaptive_batches(pages, target_bubbles=90, max_tolerance=110)
+        total_batches = len(page_batches)
+
+        summaries_list: List[str] = []
+        recent_dialogue_lines: List[str] = []
+
+        for i, batch_pages in enumerate(page_batches, 1):
+            batch_payload: Dict[str, Any] = {}
+            batch_bid_to_text: Dict[str, str] = {}
+            batch_unique_to_bids: Dict[str, List[str]] = {}
+
+            for p in batch_pages:
+                for b in p.bubbles:
+                    text = b.text_ja.strip()
+                    if not text:
+                        continue
+                    text = self._clamp_repeated_symbols(text)
+                    if not text or self._is_pure_punctuation_or_symbol(text):
+                        continue
+
+                    batch_bid_to_text[b.id] = text
+                    if text in batch_unique_to_bids:
+                        batch_unique_to_bids[text].append(b.id)
+                    else:
+                        batch_unique_to_bids[text] = [b.id]
+                        if getattr(b, "speaker", "") or getattr(b, "expression", "") or getattr(b, "speech_type", ""):
+                            payload = {"text": text}
+                            if b.speaker:
+                                payload["speaker"] = b.speaker
+                            if b.expression:
+                                payload["expression"] = b.expression
+                            if b.speech_type:
+                                payload["speech_type"] = b.speech_type
+                            batch_payload[b.id] = payload
+                        else:
+                            batch_payload[b.id] = text
+
+            if not batch_payload:
+                continue
+
+            prev_summary = "\n\n".join(summaries_list[-3:]) if summaries_list else ""
+            logger.info("Translating batch %d/%d (%d pages, %d unique bubbles)...", i, total_batches, len(batch_pages), len(batch_payload))
+
+            max_retries = 3
+            batch_res = None
+            last_err = None
+            for attempt in range(1, max_retries + 1):
+                try:
+                    try:
+                        batch_res = self._translate_single_batch(
+                            batch_payload,
+                            target_lang=target_lang,
+                            prev_summary=prev_summary,
+                            recent_lines=recent_dialogue_lines,
+                            is_multi_batch=(total_batches > 1),
+                            return_summary=True
+                        )
+                    except TypeError:
+                        batch_res = self._translate_single_batch(batch_payload, target_lang=target_lang)
+
+                    res_dict = batch_res[0] if isinstance(batch_res, tuple) else batch_res
+                    if isinstance(res_dict, dict) and len(res_dict) < len(batch_payload) * 0.85:
+                        raise TranslationError(f"Model omitted bubbles: received {len(res_dict)}/{len(batch_payload)}")
+                    break
+                except Exception as e:
+                    last_err = e
+                    if attempt < max_retries:
+                        backoff = 2 ** (attempt - 1) * 2
+                        logger.warning(
+                            "Batch %d/%d translation failed or incomplete (attempt %d/%d): %s. Retrying in %ds...",
+                            i, total_batches, attempt, max_retries, e, backoff
+                        )
+                        time.sleep(backoff)
+                    else:
+                        logger.error("Batch %d/%d failed after %d attempts: %s", i, total_batches, max_retries, e)
+                        raise last_err
+
+            if isinstance(batch_res, tuple):
+                chunk_results, new_summary = batch_res
+            elif isinstance(batch_res, dict):
+                chunk_results, new_summary = batch_res, ""
+            else:
+                chunk_results, new_summary = {}, ""
+
+            if new_summary:
+                summaries_list.append(new_summary)
+
+            batch_translations: Dict[str, str] = {}
+            for b_id, translated in chunk_results.items():
+                batch_translations[b_id] = translated
+                all_translations[b_id] = translated
+                text_ja = batch_bid_to_text.get(b_id)
+                if text_ja and text_ja in batch_unique_to_bids:
+                    for duplicate_id in batch_unique_to_bids[text_ja]:
+                        batch_translations[duplicate_id] = translated
+                        all_translations[duplicate_id] = translated
+
+            # Extract last 3 translated dialogue lines from this batch for context chaining
+            batch_lines = []
+            for p in reversed(batch_pages):
+                for b in reversed(p.bubbles):
+                    trans = all_translations.get(b.id)
+                    if trans and not self._is_pure_punctuation_or_symbol(trans):
+                        spk = getattr(b, "speaker", "")
+                        line_str = f'{spk}: "{trans}"' if spk else f'"{trans}"'
+                        batch_lines.insert(0, f"[{b.id}] {line_str}")
+                        if len(batch_lines) >= 3:
+                            break
+                if len(batch_lines) >= 3:
+                    break
+            if batch_lines:
+                recent_dialogue_lines = batch_lines
+
+            if on_batch_progress:
+                try:
+                    on_batch_progress(i, total_batches, len(all_translations), all_translations)
+                except TypeError:
+                    on_batch_progress(i, total_batches, len(all_translations))
+
+        return all_translations
+
+    def _translate_chapter_fixed_slices(
+        self,
+        pages: List[PageTranslation],
+        all_translations: Dict[str, str],
+        target_lang: str = "en",
+        on_batch_progress = None
+    ) -> Dict[str, str]:
+        unique_to_translate: Dict[str, List[str]] = {}
+        pending_bubbles: List[Tuple[str, Any]] = []
+        bid_to_text_ja: Dict[str, str] = {}
 
         for p in pages:
             for b in p.bubbles:
                 text = b.text_ja.strip()
                 if not text:
                     continue
-                # Collapse excessive repeated punctuation/symbols (e.g. 50+ dashes or dots) to prevent LLM degeneration loops
-                text = re.sub(r"([ー\u2014―\-\.~…・])\1{3,}", r"\1\1\1", text).strip()
-                if not text:
+                text = self._clamp_repeated_symbols(text)
+                if not text or self._is_pure_punctuation_or_symbol(text):
                     continue
 
-                # 1. Local resolution for pure punctuation/symbol bubbles (0 token, 0 latency)
-                if self._is_pure_punctuation_or_symbol(text):
-                    all_translations[b.id] = self._normalize_punctuation_text(text)
-                    continue
-
-                # 2. In-chapter deduplication: only send unique strings to the LLM
                 if text in unique_to_translate:
                     unique_to_translate[text].append(b.id)
                 else:
@@ -111,39 +307,39 @@ class OpenAITranslator:
         if not pending_bubbles:
             return all_translations
 
-        # Prepare batches: if batch_size <= 0, send whole chapter at once (no batching)
-        batches: List[Dict[str, str]] = []
-        if self.batch_size <= 0:
-            batches = [dict(pending_bubbles)]
-        else:
-            for i in range(0, len(pending_bubbles), self.batch_size):
-                batch_slice = pending_bubbles[i : i + self.batch_size]
-                batches.append(dict(batch_slice))
-
+        batches = [
+            dict(pending_bubbles[i : i + self.batch_size])
+            for i in range(0, len(pending_bubbles), self.batch_size)
+        ]
         total_batches = len(batches)
 
         for i, batch in enumerate(batches, 1):
-            logger.info("Translating batch %d/%d (%d unique bubbles)...", i, total_batches, len(batch))
+            logger.info("Translating fixed batch %d/%d (%d bubbles)...", i, total_batches, len(batch))
             chunk_results = self._translate_single_batch(batch, target_lang=target_lang)
-
             for b_id, translated in chunk_results.items():
                 all_translations[b_id] = translated
-                # Propagate translation to identical duplicate bubbles in the chapter
                 text_ja = bid_to_text_ja.get(b_id)
                 if text_ja and text_ja in unique_to_translate:
                     for duplicate_id in unique_to_translate[text_ja]:
                         all_translations[duplicate_id] = translated
 
             if on_batch_progress:
-                on_batch_progress(i, total_batches, len(all_translations))
+                try:
+                    on_batch_progress(i, total_batches, len(all_translations), all_translations)
+                except TypeError:
+                    on_batch_progress(i, total_batches, len(all_translations))
 
         return all_translations
 
     def _translate_single_batch(
         self,
         payload_items: Union[Dict[str, str], List[Dict[str, Any]]],
-        target_lang: str = "en"
-    ) -> Dict[str, str]:
+        target_lang: str = "en",
+        prev_summary: str = "",
+        recent_lines: Optional[List[str]] = None,
+        is_multi_batch: bool = False,
+        return_summary: bool = False
+    ) -> Union[Dict[str, str], Tuple[Dict[str, str], str]]:
         # Normalize payload to flat dict: {bubble_id: text_ja}
         if isinstance(payload_items, dict):
             flat_dict = payload_items
@@ -160,7 +356,7 @@ class OpenAITranslator:
             flat_dict = {}
 
         if not flat_dict:
-            return {}
+            return ({}, "") if return_summary else {}
 
         lang_desc = (
             "Indonesian (Bahasa Indonesia santai/alami sesuai konteks manga/komik)"
@@ -176,29 +372,67 @@ class OpenAITranslator:
                 "You are provided with visual context tags (speaker character, emotional expression, speech type).\n"
                 "Rules:\n"
                 "1. Use character voice, emotional expressions, and speech types to guide accurate tone, pronouns, and natural manga dialogue.\n"
-                "2. Output strictly a valid JSON object mapping each bubble ID to its translation, and nothing else. Do not include markdown or explanations.\n"
-                "3. Preserve every bubble ID key exactly as given in the input.\n"
-                "4. Keep emotional punctuation intact."
+                "2. Maintain narrative continuity, character voices, and terminology with any preceding context provided.\n"
+                "3. Correct minor OCR artifacts or slurred sounds into natural dialogue fitting the scene context (never translate distorted sounds literally as food items or bizarre non-sequiturs).\n"
+            )
+            if is_multi_batch:
+                system_prompt += (
+                    "4. Output strictly a valid JSON object with two top-level keys: 'narrative_summary' (2-3 sentences summarizing key narrative events, character interactions, and story progression in this batch) and 'translations' (mapping each bubble ID to its localized translation). Do not include markdown codeblocks or explanations.\n"
+                )
+            else:
+                system_prompt += (
+                    "4. Output strictly a valid JSON object mapping each bubble ID to its translation, and nothing else. Do not include markdown or explanations.\n"
+                )
+            system_prompt += (
+                "5. Preserve every bubble ID key exactly as given in the input without omitting any bubble.\n"
+                "6. Keep emotional punctuation intact."
             )
         else:
             system_prompt = (
                 "You are a professional manga localization translator.\n"
                 f"Translate each extracted dialogue speech bubble into natural, fluent {lang_desc} that accurately reflects character voice, emotion, and manga context.\n"
                 "Rules:\n"
-                "1. Output strictly a valid JSON object mapping each bubble ID to its translation, and nothing else. Do not include markdown codeblocks, conversational preambles, or explanations.\n"
-                "2. Preserve every bubble ID key exactly as given in the input.\n"
-                "3. Keep emotional punctuation (e.g. '...!', '?!', '--') natural and intact.\n\n"
-                "Example Input:\n"
-                '{"p1_b1": "こんにちは！", "p1_b2": "大丈夫ですか？"}\n\n'
-                "Example Output:\n"
-                '{"p1_b1": "Hello!", "p1_b2": "Are you alright?"}'
+                "1. Maintain narrative continuity, character voices, and terminology with any preceding context provided.\n"
+                "2. Correct minor OCR artifacts or slurred sounds into natural dialogue fitting the scene context (never translate distorted sounds literally as food items or bizarre non-sequiturs).\n"
+            )
+            if is_multi_batch:
+                system_prompt += (
+                    "3. Output strictly a valid JSON object with two top-level keys: 'narrative_summary' (2-3 sentences summarizing key narrative events, character interactions, and story progression in this batch) and 'translations' (mapping each bubble ID to its localized translation). Do not include markdown codeblocks, conversational preambles, or explanations.\n"
+                )
+            else:
+                system_prompt += (
+                    "3. Output strictly a valid JSON object mapping each bubble ID to its translation, and nothing else. Do not include markdown codeblocks, conversational preambles, or explanations.\n"
+                )
+            system_prompt += (
+                "4. Preserve every bubble ID key exactly as given in the input without omitting any bubble.\n"
+                "5. Keep emotional punctuation (e.g. '...!', '?!', '--') natural and intact."
             )
 
-        user_content = (
-            f"Translate the following speech bubbles into natural, fluent {lang_desc}.\n"
-            'Output strictly in this JSON format: {"<bubble_id>": "<translated text>"}\n\n'
-            + json.dumps(flat_dict, ensure_ascii=False)
-        )
+        context_parts = []
+        if prev_summary and prev_summary.strip():
+            context_parts.append(f"--- Preceding Story Context ---\n{prev_summary.strip()}")
+        if recent_lines:
+            dialogue_text = "\n".join(f"- {line}" for line in recent_lines if line.strip())
+            if dialogue_text:
+                context_parts.append(f"--- Immediately Preceding Dialogue ---\n{dialogue_text}")
+
+        context_header = ("\n\n".join(context_parts) + "\n\n") if context_parts else ""
+
+        if is_multi_batch:
+            user_content = (
+                f"{context_header}"
+                f"Translate the following speech bubbles into natural, fluent {lang_desc}.\n"
+                'Output strictly in this JSON format:\n'
+                '{\n  "narrative_summary": "<2-3 sentences summarizing key narrative events in this batch>",\n  "translations": {"<bubble_id>": "<translated text>"}\n}\n\n'
+                + json.dumps(flat_dict, ensure_ascii=False)
+            )
+        else:
+            user_content = (
+                f"{context_header}"
+                f"Translate the following speech bubbles into natural, fluent {lang_desc}.\n"
+                'Output strictly in this JSON format: {"<bubble_id>": "<translated text>"}\n\n'
+                + json.dumps(flat_dict, ensure_ascii=False)
+            )
 
         if self.protocol == "anthropic":
             body = {
@@ -219,11 +453,14 @@ class OpenAITranslator:
                 ],
                 "temperature": 0.3
             }
-            if "gpt" in self.model.lower() or "gemini" in self.model.lower():
+            if self.protocol == "openai":
                 body["response_format"] = {"type": "json_object"}
 
         resp_json = self._execute_post_request(body)
-        return self._parse_response(resp_json)
+        translations, summary = self._parse_batch_translation_response(resp_json)
+        if return_summary:
+            return translations, summary
+        return translations
 
     def translate_single_text_with_context(
         self,
@@ -294,7 +531,7 @@ class OpenAITranslator:
                 ],
                 "temperature": 0.3
             }
-            if "gpt" in self.model.lower() or "gemini" in self.model.lower():
+            if self.protocol == "openai":
                 body["response_format"] = {"type": "json_object"}
 
         resp_json = self._execute_post_request(body)
@@ -377,7 +614,9 @@ class OpenAITranslator:
                     return json.loads(cleaned, strict=False)
             raise
 
-    def _parse_response(self, resp_json: Dict[str, Any]) -> Dict[str, str]:
+    def _parse_batch_translation_response(
+        self, resp_json: Dict[str, Any]
+    ) -> Tuple[Dict[str, str], str]:
         try:
             if "content" in resp_json and isinstance(resp_json["content"], list):
                 text_blocks = [b.get("text", "") for b in resp_json["content"] if isinstance(b, dict) and b.get("type") == "text"]
@@ -396,11 +635,23 @@ class OpenAITranslator:
                     raise TranslationError(f"Model refused translation: {refusal}")
 
             parsed = self._extract_json_from_content(content)
+            translations: Dict[str, str] = {}
+            summary = ""
 
-            translations = {}
             if isinstance(parsed, dict):
-                if "translations" in parsed and isinstance(parsed["translations"], list):
-                    for item in parsed["translations"]:
+                summary = str(parsed.get("narrative_summary") or "").strip()
+                raw_trans = parsed.get("translations")
+
+                if isinstance(raw_trans, dict):
+                    for k, v in raw_trans.items():
+                        if isinstance(v, str):
+                            translations[str(k)] = v
+                        elif isinstance(v, dict):
+                            ten = v.get("text_en") or v.get("text") or v.get("translation", "")
+                            if ten:
+                                translations[str(k)] = str(ten)
+                elif isinstance(raw_trans, list):
+                    for item in raw_trans:
                         if isinstance(item, dict):
                             bid = item.get("id")
                             ten = item.get("text_en") or item.get("text") or item.get("translation", "")
@@ -417,19 +668,25 @@ class OpenAITranslator:
                                         translations[str(bid)] = str(ten)
                 else:
                     for k, v in parsed.items():
+                        if k == "narrative_summary":
+                            continue
                         if isinstance(v, str):
                             translations[str(k)] = v
                         elif isinstance(v, dict):
                             ten = v.get("text_en") or v.get("text") or v.get("translation", "")
                             if ten:
                                 translations[str(k)] = str(ten)
-            return translations
+            return translations, summary
         except json.JSONDecodeError as e:
             raise TranslationError(f"Failed to parse LLM response JSON: {e}") from e
         except Exception as e:
             if isinstance(e, TranslationError):
                 raise
             raise TranslationError(f"Error extracting translations: {e}") from e
+
+    def _parse_response(self, resp_json: Dict[str, Any]) -> Dict[str, str]:
+        translations, _ = self._parse_batch_translation_response(resp_json)
+        return translations
 
     def translate_page_visual_hybrid(
         self,
@@ -528,7 +785,7 @@ class OpenAITranslator:
                 ],
                 "temperature": 0.3
             }
-            if "gpt" in self.model.lower() or "gemini" in self.model.lower():
+            if self.protocol == "openai":
                 body["response_format"] = {"type": "json_object"}
 
         resp_json = self._execute_post_request(body, timeout=timeout)
@@ -616,7 +873,7 @@ class OpenAITranslator:
                 ],
                 "temperature": 0.2
             }
-            if "gpt" in self.model.lower() or "gemini" in self.model.lower():
+            if self.protocol == "openai":
                 body["response_format"] = {"type": "json_object"}
 
         resp_json = self._execute_post_request(body, timeout=timeout)
@@ -740,7 +997,7 @@ class OpenAITranslator:
                 ],
                 "temperature": 0.3
             }
-            if "gpt" in self.model.lower() or "gemini" in self.model.lower():
+            if self.protocol == "openai":
                 body["response_format"] = {"type": "json_object"}
 
         resp_json = self._execute_post_request(body, timeout=timeout)

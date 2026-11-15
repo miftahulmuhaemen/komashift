@@ -5,6 +5,7 @@ from PyQt6.QtCore import QThread
 from src.models.translation_item import PageTranslation, BubbleBlock
 from src.services.translation_worker import TranslationWorker
 from src.services.manga_ocr_detector import MangaOcrDetector
+from src.ports.translation_provider import TranslationError
 
 def _create_dummy_image(path: Path):
     img = Image.new("RGB", (400, 600), color="white")
@@ -509,8 +510,8 @@ def test_worker_two_pass_multimodal_perception(tmp_path: Path, qtbot):
         engine_mode="multimodal"
     )
 
-    # 1. Bubble detection returns bubble with empty text (geometry only)
-    mock_detect = MagicMock(return_value=PageTranslation("01.png", 800, 1200, [BubbleBlock("p1_b1", (10, 10, 50, 50), "")]))
+    # 1. Bubble detection returns bubble with OCR text already populated by MangaOCR
+    mock_detect = MagicMock(return_value=PageTranslation("01.png", 800, 1200, [BubbleBlock("p1_b1", (10, 10, 50, 50), "待って！")]))
     worker.detector.detect_page = mock_detect
 
     # 2. Pass 1: Visual perception extracts text_ja + stage metadata
@@ -544,6 +545,122 @@ def test_worker_two_pass_multimodal_perception(tmp_path: Path, qtbot):
     ocr_res = worker.workspace.load_ocr_results()
     assert ocr_res["01.png"].bubbles[0].speaker == "Heroine"
     assert ocr_res["01.png"].bubbles[0].expression == "Desperate"
+
+
+def test_worker_retranslate_text_only_skips_ocr(tmp_path: Path, qtbot):
+    img1 = tmp_path / "01.png"
+    _create_dummy_image(img1)
+
+    page = PageTranslation("01.png", 800, 1200, [BubbleBlock("p1_b1", (10, 10, 50, 50), "こんにちは", text_en="Old Hello")])
+    worker = TranslationWorker(
+        folder_path=tmp_path,
+        image_paths=[img1],
+        api_key="mock-key",
+        engine_mode="hybrid",
+        retranslate_mode="text_only"
+    )
+    worker.workspace.save_page_ocr(page)
+    worker.workspace.save_translations({"p1_b1": "Old Hello"})
+
+    # Detector mock should never be invoked because OCR is preserved
+    mock_detect = MagicMock()
+    worker.detector.detect_page = mock_detect
+
+    # Translator is invoked with the new translation
+    mock_trans = MagicMock(return_value={"p1_b1": "Brand New Hello!"})
+    worker.translator.translate_chapter = mock_trans
+
+    with qtbot.waitSignal(worker.translation_finished, timeout=5000) as blocker:
+        worker.start()
+    worker.wait()
+
+    success, msg = blocker.args
+    assert success is True
+    # ONNX / OCR was completely skipped
+    assert mock_detect.call_count == 0
+    # LLM was queried with pre-existing Japanese text
+    assert mock_trans.call_count == 1
+
+    # New translations saved and OCR geometry preserved
+    trans = worker.workspace.load_translations()
+    assert trans["p1_b1"] == "Brand New Hello!"
+    cached_ocr = worker.workspace.load_ocr_results()
+    assert cached_ocr["01.png"].bubbles[0].text_ja == "こんにちは"
+
+
+def test_worker_saves_translations_incrementally_on_batch_progress(tmp_path: Path, qtbot):
+    img1 = tmp_path / "01.png"
+    _create_dummy_image(img1)
+
+    worker = TranslationWorker(
+        folder_path=tmp_path,
+        image_paths=[img1],
+        api_key="mock-key",
+        engine_mode="standard"
+    )
+
+    p1 = PageTranslation("01.png", 800, 1200, [BubbleBlock("p1_b1", (10, 10, 50, 50), "こんにちは")])
+    worker.detector.detect_page = MagicMock(return_value=p1)
+
+    incremental_checks = []
+
+    def fake_translate_chapter(pages, target_lang="en", on_batch_progress=None):
+        if on_batch_progress:
+            # Simulate batch 1 progress with partial translation
+            on_batch_progress(1, 2, 1, {"p1_b1": "Batch 1 Partial Translation"})
+            # Check if workspace has already written the file to disk
+            saved = worker.workspace.load_translations()
+            incremental_checks.append(saved.get("p1_b1"))
+        return {"p1_b1": "Batch 1 Final Translation"}
+
+    worker.translator.translate_chapter = MagicMock(side_effect=fake_translate_chapter)
+
+    with qtbot.waitSignal(worker.translation_finished, timeout=5000) as blocker:
+        worker.start()
+    worker.wait()
+
+    assert blocker.args[0] is True
+    assert incremental_checks == ["Batch 1 Partial Translation"]
+    final_saved = worker.workspace.load_translations()
+    assert final_saved["p1_b1"] == "Batch 1 Final Translation"
+
+
+def test_worker_reports_failure_when_batch_fails_mid_chapter(tmp_path: Path, qtbot):
+    img1 = tmp_path / "01.png"
+    img2 = tmp_path / "02.png"
+    _create_dummy_image(img1)
+    _create_dummy_image(img2)
+
+    worker = TranslationWorker(
+        folder_path=tmp_path,
+        image_paths=[img1, img2],
+        api_key="mock-key",
+        engine_mode="standard"
+    )
+
+    p1 = PageTranslation("01.png", 800, 1200, [BubbleBlock("p1_b1", (10, 10, 50, 50), "Line 1")])
+    p2 = PageTranslation("02.png", 800, 1200, [BubbleBlock("p2_b1", (10, 10, 50, 50), "Line 2")])
+    worker.detector.detect_page = MagicMock(side_effect=[p1, p2])
+
+    def failing_translate_chapter(pages, target_lang="en", on_batch_progress=None):
+        if on_batch_progress:
+            on_batch_progress(1, 2, 1, {"p1_b1": "Trans 1"})
+        raise TranslationError("HTTP Error 524: Cloudflare Timeout on Batch 2")
+
+    worker.translator.translate_chapter = MagicMock(side_effect=failing_translate_chapter)
+
+    with qtbot.waitSignal(worker.translation_finished, timeout=5000) as blocker:
+        worker.start()
+    worker.wait()
+
+    success, msg = blocker.args
+    assert success is False
+    assert "HTTP Error 524" in msg
+
+    saved = worker.workspace.load_translations()
+    assert saved.get("p1_b1") == "Trans 1"
+
+
 
 
 
